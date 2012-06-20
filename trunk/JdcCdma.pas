@@ -5,10 +5,18 @@ interface
 uses Classes, SysUtils, SerialNG, IdGlobal, Vcl.ExtCtrls;
 
 const
+  // M2M COMMAND
   COMMAND_CRM129 = 'at+crm=129';
+  COMMAND_ATDT = 'atdt';
+  COMMAND_CLEAR = 'clear';
+  COMMAND_LOAD = 'load';
+  COMMAND_MEASURE_TIME = 'int';
+  COMMAND_DATE_TIME = 'time';
   COMMAND_SMS = 'at$smsmo=';
   COMMAND_PHONENUM = 'at$phonenum?';
 
+
+  // TCPIP COMMAND
   COMMAND_CRM251 = 'at+crm=251';
   COMMAND_TCPUID = 'at$tcpuid=sktelecom';
   COMMAND_TCPPWD = 'at$tcppasswdnull';
@@ -19,6 +27,7 @@ const
   COMMAND_TCPCLOSE = 'AT$TCPCLOSE';
   COMMAND_TCPEXIT = 'AT$TCPEXIT';
 
+  // RESPONSE
   RESPONSE_OK = 'OK';
   RESPONSE_CONNECT = 'CONNECT';
   RESPONSE_TCP_OPEN = 'TCPOPEN';
@@ -195,7 +204,7 @@ end;
 
 function TCdmaAbstract.GetCommPort: String;
 begin
-  result := FSerialNG.CommPort;
+  result := String( FSerialNG.CommPort );
 end;
 
 function TCdmaAbstract.GetConnected: Boolean;
@@ -262,7 +271,7 @@ end;
 
 procedure TCdmaAbstract.SetCommPort(const Value: String);
 begin
-  FSerialNG.CommPort := Value;
+  FSerialNG.CommPort := ShortString( Value );
 end;
 
 procedure TCdmaAbstract.SetOnTimeout(const Value: TNotifyEvent);
