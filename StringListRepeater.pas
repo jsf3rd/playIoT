@@ -79,9 +79,7 @@ begin
   // FExcutionCount 값이 FMaxMessage를 초과했다면 Queue가 실행 중 오류가 발생한 것으로 판단하고
   // 작업을 진행한다.
   if (FExcutionCount > 0) and (FExcutionCount < FMaxMessage) then
-  begin
     exit;
-  end;
 
   if Assigned(FOnBeforeExcute) then
   begin

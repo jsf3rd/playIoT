@@ -4,33 +4,37 @@ interface
 
 uses
   ValueList,
-  Classes, SysUtils, Windows, ZLib;
+  Classes, SysUtils, Windows, ZLib, IdGlobal;
 
 // 로그 찍기..
 procedure PrintLog(AFile, AMessage: String);
 
 // 데이터 압축..
 function CompressStream(Stream: TStream; OutStream: TStream;
-OnProgress: TNotifyEvent): boolean;
+  OnProgress: TNotifyEvent): boolean;
 
 // 데이터 압축 해제..
 function DeCompressStream(Stream: TStream; OutStream: TStream;
   OnProgress: TNotifyEvent): boolean;
 
-
 // 응답 검사..
-function Contains(Contents: string; const str: array of const): Boolean;
-function IsGoodResponse(Text, Command: string; Response: array of const): Boolean;
+function Contains(Contents: string; const str: array of const): boolean;
+function IsGoodResponse(Text, Command: string;
+  Response: array of const): boolean;
 
 // Reverse 4Btye..
 function Rev4Bytes(Value: LongInt): LongInt;
 
-implementation
+function HexStrToByte(const ASource: String; const AIndex: integer = 1): Byte;
+function HexStrToWord(const ASource: string; const AIndex: integer = 1): Word;
+function HexStrToBytes(const ASource: string;
+  const AIndex: integer = 1): TBytes;
 
+implementation
 
 procedure PrintLog(AFile, AMessage: String);
 var
-  FileHandle: Integer;
+  FileHandle: integer;
   S: AnsiString;
 begin
 
@@ -54,41 +58,42 @@ begin
 end;
 
 function CompressStream(Stream: TStream; OutStream: TStream;
-OnProgress: TNotifyEvent): boolean;
+  OnProgress: TNotifyEvent): boolean;
 var
-   CS: TZCompressionStream;
+  CS: TZCompressionStream;
 begin
-   CS := TZCompressionStream.Create(OutStream); // 스트림 생성
-try
-   if Assigned(OnProgress) then CS.OnProgress := OnProgress;
-      CS.CopyFrom(Stream, Stream.Size); // 여기서 압축이 진행됨
-                                          // 테스트 결과 압축완료시 이벤트가 발생하지 않기 때문에
-                                          // 완료시 한번 더 이벤트를 불러준다.
-   if Assigned(OnProgress) then OnProgress(CS);
-      Result := True;
-   finally
-      CS.Free;
-   end;
+  CS := TZCompressionStream.Create(OutStream); // 스트림 생성
+  try
+    if Assigned(OnProgress) then
+      CS.OnProgress := OnProgress;
+    CS.CopyFrom(Stream, Stream.Size); // 여기서 압축이 진행됨
+    // 테스트 결과 압축완료시 이벤트가 발생하지 않기 때문에
+    // 완료시 한번 더 이벤트를 불러준다.
+    if Assigned(OnProgress) then
+      OnProgress(CS);
+    Result := True;
+  finally
+    CS.Free;
+  end;
 end;
 
-
-function Contains(Contents: string; const str: array of const): Boolean;
+function Contains(Contents: string; const str: array of const): boolean;
 var
-  i: Integer;
+  i: integer;
 begin
   Result := False;
 
   for i := 0 to High(str) do
-    begin
-      if Pos(str[i].VPWideChar, Contents) = 0 then
-        Exit;
-    end;
+  begin
+    if Pos(str[i].VPWideChar, Contents) = 0 then
+      Exit;
+  end;
 
   Result := True;
 end;
 
-
-function IsGoodResponse(Text, Command: string; Response: array of const): Boolean;
+function IsGoodResponse(Text, Command: string;
+  Response: array of const): boolean;
 var
   sl: TStringList;
 begin
@@ -131,7 +136,7 @@ begin
       until ReadSize < BuffSize;
       if Assigned(OnProgress) then
         OnProgress(DS); // Compress와 같은이유
-      Result := true;
+      Result := True;
     finally
       FreeMem(Buff)
     end;
@@ -140,10 +145,97 @@ begin
   end;
 end;
 
-
 function Rev4Bytes(Value: LongInt): LongInt;
 asm
- BSWAP    EAX;
+  BSWAP    EAX;
+end;
+
+function HexStrToByte(const ASource: String; const AIndex: integer): Byte;
+var
+  str: String;
+  tmp: TBytes;
+begin
+
+  str := ASource;
+
+  if Length(str) = 1 then
+    str := '0' + str;
+
+  if Length(str) < AIndex + 1 then
+  begin
+    result := $00;
+    exit;
+  end;
+
+  str := Copy(str, AIndex, 2);
+  tmp := HexStrToBytes(str);
+  CopyMemory(@result, tmp, 1);
+end;
+
+function HexStrToWord(const ASource: string; const AIndex: integer): Word;
+var
+  str: string;
+begin
+
+  str := ASource;
+
+  if Length(str) = 1 then
+    str := '000' + str;
+
+  if Length(str) < AIndex + 3 then
+  begin
+    result := $00;
+    exit;
+  end;
+
+  str := Copy(str, AIndex, 4);
+  result := BytesToWord(HexStrToBytes(str));
+end;
+
+function HexStrToBytes(const ASource: string; const AIndex: integer): TIdBytes;
+var
+  I, j, n: integer;
+  c: char;
+  b: Byte;
+begin
+  SetLength(result, 0);
+
+  j := 0;
+  b := 0;
+  n := 0;
+
+  for I := AIndex to Length(ASource) do
+  begin
+    c := ASource[I];
+    case c of
+      '0' .. '9':
+        n := ord(c) - ord('0');
+      'A' .. 'F':
+        n := ord(c) - ord('A') + 10;
+      'a' .. 'f':
+        n := ord(c) - ord('a') + 10;
+    else
+      Continue;
+    end;
+
+    if j = 0 then
+    begin
+      b := n;
+      j := 1;
+    end
+    else
+    begin
+      b := (b shl 4) + n;
+      j := 0;
+
+      AppendBytes(result, ToBytes(b));
+    end
+  end;
+
+  if j <> 0 then
+    raise Exception.Create
+      ('Input contains an odd number of hexadecimal digits.[' + ASource + '/' +
+      IntToStr(AIndex) + ']');
 end;
 
 
