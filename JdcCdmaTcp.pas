@@ -41,7 +41,7 @@ type
 
   TState = class abstract(TInterfacedObject, IState)
   strict protected
-    FMessage: String;   // 토큰이 잘려들어오는 경우.. 이어 붙이기 위한 변수..
+    FMessage: String; // 토큰이 잘려들어오는 경우.. 이어 붙이기 위한 변수..
     FContext: TCdmaTcpContext;
   public
     procedure Incoming(const AMessage: String); virtual;
@@ -91,34 +91,43 @@ procedure TStateNormal.Incoming(const AMessage: String);
 begin
   inherited;
 
+  // RESPONSE_OK 이 잘려서 들어오는 경우 대비..
+  FMessage := FMessage + AMessage;
+
   if IsGoodResponse(AMessage, COMMAND_CRM251, [RESPONSE_OK]) then
   begin
     FContext.Command := COMMAND_TCPUID;
+    FMessage := '';
   end
-  else if IsGoodResponse(AMessage, COMMAND_TCPUID, [RESPONSE_OK]) then
+  else if IsGoodResponse(FMessage, COMMAND_TCPUID, [RESPONSE_OK]) then
   begin
     FContext.Command := COMMAND_TCPPWD;
+    FMessage := '';
   end
-  else if IsGoodResponse(AMessage, COMMAND_TCPPWD, [RESPONSE_OK]) then
+  else if IsGoodResponse(FMessage, COMMAND_TCPPWD, [RESPONSE_OK]) then
   begin
     FContext.Command := COMMAND_ATD1501;
+    FMessage := '';
+  end
+  else if pos(COMMAND_TCPPWD, AMessage) + pos(COMMAND_TCPUID, AMessage) > 0 then
+  begin
+    // RESPONSE_OK 가 잘려서 온 경우
+    FMessage := AMessage;
   end
   else if pos(RESPONSE_NO_DIALTONE, AMessage) > 0 then
   begin
-    // NO DIALTONE
-    FMessage := '';
+    // NO DIALTONE.. 이미 ppp 연결이 되어있는 경우..
     FContext.SetState(FContext.StateTCPOpen);
     FContext.Command := COMMAND_TCPOPEN + FContext.TCPInfo.TCPHost + ',' +
       IntToStr(FContext.TCPInfo.TCPPort);
   end
   else if pos(COMMAND_ATD1501, AMessage) > 0 then
   begin
-    // ppp 연결 시도..
+    // ppp 연결 중..
   end
   else if pos(RESPONSE_CONNECT, AMessage) > 0 then
   begin
     // ppp 연결 됨..
-    FMessage := '';
     FContext.SetState(FContext.StateTCPOpen);
     FContext.Command := COMMAND_TCPOPEN + FContext.TCPInfo.TCPHost + ',' +
       IntToStr(FContext.TCPInfo.TCPPort);
@@ -128,6 +137,7 @@ begin
     // 오류..
     FContext.SetState(FContext.StateTCPClose);
     FContext.Command := COMMAND_TCPCLOSE;
+    FMessage := '';
   end;
 
 end;
@@ -141,36 +151,24 @@ begin
   inherited;
 
   // RESPONSE_TCP_OPEN 이 잘려서 들어오는 경우 대비..
-  FMessage := FMessage + StringReplace(AMessage, #$D, '', [rfReplaceAll]);
-  FMessage := StringReplace(FMessage, #$A, '', [rfReplaceAll]);
+  FMessage := FMessage + AMessage;
 
-  if pos(RESPONSE_OK, FMessage) > 0 then
+  if Contains(FMessage, [COMMAND_TCPOPEN, RESPONSE_OK, RESPONSE_TCP_OPEN]) then
   begin
-    // OK 까지 Trim..
-    // RESPONSE_TCP_OPEN 이 잘려서 들어오는 경우 대비..
-    Index := pos(RESPONSE_OK, FMessage) + Length(RESPONSE_OK);
-    FMessage := Copy(FMessage, Index, Length(FMessage) - Index + 1);
-
-    // RESPONSE_OK 와 RESPONSE_TCP_OPEN 가 한줄에 같이 온 경우..
-    if pos(RESPONSE_TCP_OPEN, FMessage) > 0 then
-    begin
-      // TCP Open 됨..
-      FContext.SetState(FContext.StateTCPConnect);
-      FContext.TCPInfo.OnTCPConnected(Self);
-    end;
-
-  end
-  else if pos(RESPONSE_TCP_OPEN, FMessage) > 0 then
-  begin
-    // TCP Open 됨..
     FContext.SetState(FContext.StateTCPConnect);
     FContext.TCPInfo.OnTCPConnected(Self);
+    FMessage := '';
   end
-
+  else if Contains(AMessage, [COMMAND_TCPOPEN, RESPONSE_OK]) then
+  begin
+    // RESPONSE_TCP_OPEN 이 잘려서 들어오는 경우 대비..
+    FMessage := StringsReplace(AMessage, [#$D, #$A], ['', '']);
+  end
   else
   begin
     FContext.SetState(FContext.StateTCPClose);
     FContext.Command := COMMAND_TCPCLOSE;
+    FMessage := '';
   end;
 
 end;
@@ -183,26 +181,19 @@ begin
 
   if pos(RESPONSE_SEND_DONE, AMessage) > 0 then
   begin
+    // 전송 완료..
     FContext.TCPInfo.OnTCPSendDone(Self);
   end
-  else if pos(COMMAND_TCPCLOSE, AMessage) > 0 then
+  else if IsGoodResponse(AMessage, COMMAND_TCPCLOSE, [RESPONSE_OK]) then
   begin
+    // 접속 해제..
     FContext.SetState(FContext.StateTCPClose);
   end
-  else if pos(RESPONSE_TCPCLOSED, AMessage) > 0 then
-  begin
-    FContext.SetState(FContext.StateTCPClose);
-    FContext.Command := COMMAND_TCPEXIT;
-  end
-  else if pos(RESPONSE_ERROR, AMessage) > 0 then
+  else
   begin
     FContext.SetState(FContext.StateTCPClose);
     FContext.Command := COMMAND_TCPCLOSE;
   end
-  else
-  begin
-    // 전송 중..
-  end;
 
 end;
 
@@ -225,12 +216,17 @@ begin
   else if pos(RESPONSE_OK, AMessage) > 0 then
   begin
     // 종료 중..
+    // AT$TCPCLOSE / AT$TCPEXIT
   end
-  else if pos(RESPONSE_ERROR, AMessage) > 0 then
+  else if IsGoodResponse(AMessage, COMMAND_TCPCLOSE, [RESPONSE_ERROR]) then
   begin
-    // TCP 연결 종료 됨..
+    FContext.Command := COMMAND_TCPEXIT;
+  end
+  else if IsGoodResponse(AMessage, COMMAND_TCPEXIT, [RESPONSE_ERROR]) then
+  begin
+    // 오류로 인한 TCP 연결 종료..
     FContext.SetState(FContext.StateNormal);
-    FContext.TCPInfo.OnTCPDisconnected(Self);
+    FContext.TCPInfo.OnTCPDisconnected(nil);
   end
   else
     FContext.Command := COMMAND_TCPEXIT;
