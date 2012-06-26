@@ -27,6 +27,10 @@ type
     FStateTCPOpen: IState;
     FStateTCPConnect: IState;
     FStateTCPClose: IState;
+    FStateError: IState;
+  private
+
+    FState: IState;
   public
     TCPInfo: TTCPInfo;
     constructor Create(ATCPInfo: TTCPInfo); reintroduce; overload;
@@ -37,6 +41,7 @@ type
     property StateTCPOpen: IState read FStateTCPOpen;
     property StateTCPConnect: IState read FStateTCPConnect;
     property StateTCPClose: IState read FStateTCPClose;
+    property StateError: IState read FStateError;
   end;
 
   TState = class abstract(TInterfacedObject, IState)
@@ -64,6 +69,11 @@ type
   end;
 
   TStateClose = class(TState)
+  public
+    procedure Incoming(const AMessage: String); override;
+  end;
+
+  TStateError = class(TState)
   public
     procedure Incoming(const AMessage: String); override;
   end;
@@ -135,7 +145,7 @@ begin
   else
   begin
     // 오류..
-    FContext.SetState(FContext.StateTCPClose);
+    FContext.SetState(FContext.StateError);
     FContext.Command := COMMAND_TCPCLOSE;
     FMessage := '';
   end;
@@ -159,6 +169,7 @@ begin
     FContext.TCPInfo.OnTCPConnected(Self);
     FMessage := '';
   end
+
   else if Contains(AMessage, [COMMAND_TCPOPEN, RESPONSE_OK]) then
   begin
     // RESPONSE_TCP_OPEN 이 잘려서 들어오는 경우 대비..
@@ -166,7 +177,8 @@ begin
   end
   else
   begin
-    FContext.SetState(FContext.StateTCPClose);
+    // 오류..
+    FContext.SetState(FContext.StateError);
     FContext.Command := COMMAND_TCPCLOSE;
     FMessage := '';
   end;
@@ -191,7 +203,7 @@ begin
   end
   else
   begin
-    FContext.SetState(FContext.StateTCPClose);
+    FContext.SetState(FContext.StateError);
     FContext.Command := COMMAND_TCPCLOSE;
   end
 
@@ -229,9 +241,41 @@ begin
     FContext.TCPInfo.OnTCPDisconnected(nil);
   end
   else
+  begin
+    FContext.SetState(FContext.StateError);
     FContext.Command := COMMAND_TCPEXIT;
+  end;
 
 end;
+
+{ TStateError }
+
+procedure TStateError.Incoming(const AMessage: String);
+begin
+  inherited;
+
+  if pos(RESPONSE_TCPCLOSED, AMessage) > 0 then
+  begin
+    FContext.Command := COMMAND_TCPEXIT;
+  end
+  else if pos(RESPONSE_OK, AMessage) > 0 then
+  begin
+    // 종료 중..
+    // AT$TCPCLOSE / AT$TCPEXIT
+  end
+  else if IsGoodResponse(AMessage, COMMAND_TCPCLOSE, [RESPONSE_ERROR]) then
+  begin
+    FContext.Command := COMMAND_TCPEXIT;
+  end
+  else
+  begin
+    // 오류로 인한 TCP 연결 종료..
+    FContext.SetState(FContext.StateNormal);
+    FContext.TCPInfo.OnTCPDisconnected(nil);
+  end;
+
+end;
+
 
 { TCDMA }
 
@@ -299,6 +343,7 @@ begin
   FStateTCPOpen := TStateOpen.Create(Self);
   FStateTCPConnect := TStateConnect.Create(Self);
   FStateTCPClose := TStateClose.Create(Self);
+  FStateError := TStateError.Create(Self);
   FState := FStateNormal;
 end;
 
@@ -315,6 +360,9 @@ begin
 
   if Assigned(FStateTCPClose) then
     FStateTCPClose := nil;
+
+  if Assigned(FStateError) then
+    FStateError := nil;
 
   if Assigned(TCPInfo) then
     FreeAndNil(TCPInfo);
