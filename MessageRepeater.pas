@@ -60,7 +60,7 @@ procedure TMessageRepeater<T>._Excute;
 begin
   if not Empty then
   begin
-    FOnExcute(Extract);
+    FOnExcute(Dequeue);
     _Excute;
   end;
 end;
