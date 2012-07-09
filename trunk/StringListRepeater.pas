@@ -2,12 +2,14 @@ unit StringListRepeater;
 
 interface
 
-uses SysUtils, Classes;
+uses SysUtils, Classes, System.Generics.Collections;
 
 const
   DEFAULT_MAX_MESSAGE = 10;
 
 type
+
+
   TOnClearEvent = procedure(const ACount: Integer) of Object;
   TAfterExcuteEvent = procedure(Sender: TObject; AData: String) of Object;
 

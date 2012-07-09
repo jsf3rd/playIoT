@@ -4,7 +4,7 @@ interface
 
 uses
   ObserverList, ValueList,
-  Classes, SysUtils, StringListRepeater;
+  Classes, SysUtils, MessageRepeater;
 
 const
   MAX_MESSAGE = 10;
@@ -12,7 +12,7 @@ const
 type
   TViewAbstract = class(TObserverList)
   protected
-    FMessageQueue: TStringListRepeater;
+    FMessageQueue: TMessageRepeater<String>;
     constructor Create(AOwner: TComponent); reintroduce;
     procedure OnExcute(const AData: String);
 
@@ -36,7 +36,7 @@ implementation
 constructor TViewAbstract.Create(AOwner: TComponent);
 begin
   inherited;
-  FMessageQueue := TStringListRepeater.Create(MAX_MESSAGE);
+  FMessageQueue := TMessageRepeater<String>.Create(MAX_MESSAGE);
   FMessageQueue.OnExcute := OnExcute;
 
 end;
@@ -86,7 +86,7 @@ begin
   _packet := TValueList.Create;
   try
     _packet.Text := APacket;
-    FMessageQueue.Add(_packet.Text);
+    FMessageQueue.Enqueue(_packet.Text);
   finally
     _packet.Free;
   end;
@@ -102,7 +102,7 @@ begin
   try
     _packet.Values['Code'] := ACode;
     _packet.Values['Msg'] := AMsg;
-    FMessageQueue.Add(_packet.Text);
+    FMessageQueue.Enqueue(_packet.Text);
   finally
     _packet.Free;
   end;
