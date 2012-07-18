@@ -61,6 +61,7 @@ begin
   if not Empty then
   begin
     FOnExcute(Dequeue);
+    Sleep(1);
     _Excute;
   end;
 end;
