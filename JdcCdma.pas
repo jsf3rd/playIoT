@@ -63,6 +63,8 @@ type
     procedure SendCmd(ACommand: string);
     procedure SendSMS(ToPhone, FromPhone, AMessage: string);
 
+    procedure SetCommand(const ACommand: String);
+
     procedure SerialRxClusterEvent(Sender: TObject);
 
     property Connected: Boolean read GetConnected;
