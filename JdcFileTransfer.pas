@@ -40,7 +40,7 @@ type
     function LoadZipFiles: Integer;
     procedure DoSendProcess; virtual; abstract;
   public
-    constructor Create;
+    constructor Create(AInterval : Integer = THIRTY_MINS);
     destructor Destroy; override;
 
     procedure CompressFile(SubFolder: String); virtual; abstract;
@@ -55,13 +55,13 @@ implementation
 
 uses Option, Common, View;
 
-constructor TFileTransfer.Create;
+constructor TFileTransfer.Create(AInterval : Integer = THIRTY_MINS);
 var
   TCPInfo: TTCPInfo;
 begin
   // 30분 주기로 zip 파일이 있는지 체크한다.
   FSendTimer := TTimer.Create(nil);
-  FSendTimer.Interval := THIRTY_MINS;
+  FSendTimer.Interval := AInterval;
   FSendTimer.OnTimer := OnSendTimer;
   FSendTimer.Enabled := true;
 
