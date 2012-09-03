@@ -40,11 +40,12 @@ type
     function LoadZipFiles: Integer;
     procedure DoSendProcess; virtual; abstract;
   public
-    constructor Create(AInterval : Integer = THIRTY_MINS);
+    constructor Create(AInterval: Integer = THIRTY_MINS);
     destructor Destroy; override;
 
     procedure CompressFile(SubFolder: String); virtual; abstract;
     procedure SendFile(Sender: TObject);
+    procedure Cancel;
 
     property Active: boolean read FActive;
   end;
@@ -55,7 +56,14 @@ implementation
 
 uses Option, Common, View;
 
-constructor TFileTransfer.Create(AInterval : Integer = THIRTY_MINS);
+procedure TFileTransfer.Cancel;
+begin
+  FSendTimer.Enabled := false;
+  if FTransfer.Connected then
+    FTransfer.SendCmd(COMMAND_TCPCLOSE);
+end;
+
+constructor TFileTransfer.Create(AInterval: Integer = THIRTY_MINS);
 var
   TCPInfo: TTCPInfo;
 begin
@@ -122,6 +130,8 @@ procedure TFileTransfer.SendFile(Sender: TObject);
 var
   conn: TConnInfo;
 begin
+  if not FSendTimer.Enabled then FSendTimer.Enabled := true;
+
   if FTransfer.Connected then
     exit;
 

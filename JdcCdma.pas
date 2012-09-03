@@ -65,8 +65,6 @@ type
 
     procedure SetCommand(const ACommand: String);
 
-    procedure SerialRxClusterEvent(Sender: TObject);
-
     property Connected: Boolean read GetConnected;
   end;
 
