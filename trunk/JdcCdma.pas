@@ -175,6 +175,7 @@ begin
   FTimeoutTimer.Interval := 60000; // ±âº» 1ºÐ..
   FTimeoutTimer.OnTimer := OnTimeoutTimer;
   FTimeoutTimer.Enabled := false;
+  FTimeoutTimer.Tag := 0;
 end;
 
 destructor TCdmaAbstract.Destroy;
@@ -193,6 +194,7 @@ end;
 
 procedure TCdmaAbstract.Disconnect;
 begin
+  FTimeoutTimer.Tag := 0;
   FSerialNG.Active := false;
   FTimeoutTimer.Enabled := false;
 end;
