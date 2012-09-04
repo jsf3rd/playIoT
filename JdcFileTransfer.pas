@@ -130,13 +130,15 @@ procedure TFileTransfer.SendFile(Sender: TObject);
 var
   conn: TConnInfo;
 begin
-  if not FSendTimer.Enabled then FSendTimer.Enabled := true;
-
   if FTransfer.Connected then
     exit;
 
   if LoadZipFiles = 0 then
+  begin
+    FActive := false;
     exit; // zip 파일 없음..
+  end;
+
 
   TView.Obj.sp_AsyncMessage('PrepareSendFile');
 
@@ -156,7 +158,10 @@ begin
     end;
   except
     on E: Exception do
+    begin
+      FActive := false;
       TView.Obj.sp_ErrorMessage(E.Message);
+    end;
   end;
 end;
 
