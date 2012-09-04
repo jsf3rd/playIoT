@@ -4,7 +4,7 @@ interface
 
 uses
   ValueList,
-  Classes, SysUtils, Windows, ZLib, IdGlobal, System.IOUtils;
+  Classes, SysUtils, Windows, ZLib, IdGlobal, IOUtils;
 
 // ·Î±× Âï±â..
 procedure PrintLog(AFile, AMessage: String);

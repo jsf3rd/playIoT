@@ -2,7 +2,7 @@ unit MessageRepeater;
 
 interface
 
-uses SysUtils, Classes, System.Generics.Defaults, System.Generics.Collections;
+uses SysUtils, Classes, Generics.Defaults, Generics.Collections;
 
 const
   DEFAULT_MESSAGE_COUNT = 10;
