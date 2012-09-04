@@ -4,7 +4,7 @@ interface
 
 uses
   ValueList,
-  Classes, SysUtils, Windows, ZLib, IdGlobal;
+  Classes, SysUtils, Windows, ZLib, IdGlobal, System.IOUtils;
 
 // ·Î±× Âï±â..
 procedure PrintLog(AFile, AMessage: String);
@@ -36,10 +36,25 @@ procedure PrintLog(AFile, AMessage: String);
 var
   FileHandle: integer;
   S: AnsiString;
+
+  SL: TStringList;
 begin
 
   if FileExists(AFile) then
   begin
+    SL := TStringList.Create;
+    try
+      SL.LoadFromFile(AFile);
+
+      if SL.Count > 100000 then
+      begin
+        SL.Clear;
+        SL.SaveToFile(AFile);
+      end;
+    finally
+      SL.Free;
+    end;
+
     FileHandle := FileOpen(AFile, fmOpenWrite);
   end
   else
@@ -163,13 +178,13 @@ begin
 
   if Length(str) < AIndex + 1 then
   begin
-    result := $00;
-    exit;
+    Result := $00;
+    Exit;
   end;
 
   str := Copy(str, AIndex, 2);
   tmp := HexStrToBytes(str);
-  CopyMemory(@result, tmp, 1);
+  CopyMemory(@Result, tmp, 1);
 end;
 
 function HexStrToWord(const ASource: string; const AIndex: integer): Word;
@@ -184,29 +199,29 @@ begin
 
   if Length(str) < AIndex + 3 then
   begin
-    result := $00;
-    exit;
+    Result := $00;
+    Exit;
   end;
 
   str := Copy(str, AIndex, 4);
-  result := BytesToWord(HexStrToBytes(str));
+  Result := BytesToWord(HexStrToBytes(str));
 end;
 
 function HexStrToBytes(const ASource: string; const AIndex: integer): TIdBytes;
 var
-  I, j, n: integer;
+  i, j, n: integer;
   c: char;
   b: Byte;
 begin
-  SetLength(result, 0);
+  SetLength(Result, 0);
 
   j := 0;
   b := 0;
   n := 0;
 
-  for I := AIndex to Length(ASource) do
+  for i := AIndex to Length(ASource) do
   begin
-    c := ASource[I];
+    c := ASource[i];
     case c of
       '0' .. '9':
         n := ord(c) - ord('0');
@@ -228,7 +243,7 @@ begin
       b := (b shl 4) + n;
       j := 0;
 
-      AppendBytes(result, ToBytes(b));
+      AppendBytes(Result, ToBytes(b));
     end
   end;
 
@@ -237,6 +252,5 @@ begin
       ('Input contains an odd number of hexadecimal digits.[' + ASource + '/' +
       IntToStr(AIndex) + ']');
 end;
-
 
 end.
