@@ -54,7 +54,7 @@ implementation
 
 { TFileClient }
 
-uses Option, Common, View;
+uses Option, Common, JdcView;
 
 procedure TFileTransfer.Cancel;
 begin
