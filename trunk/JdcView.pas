@@ -10,13 +10,15 @@ const
   MAX_MESSAGE = 10;
 
 type
-  TViewAbstract = class(TObserverList)
+  TView = class(TObserverList)
   protected
     FMessageQueue: TMessageRepeater<String>;
     constructor Create(AOwner: TComponent); reintroduce;
     procedure OnExcute(const AData: String);
 
   public
+    class function Obj: TView;
+
     procedure sp_SyncPacket(APacket: String);
     procedure sp_ASyncPacket(APacket: String);
 
@@ -26,34 +28,36 @@ type
 
     procedure sp_ErrorMessage(Msg: String);
     procedure sp_ShowMessage(Msg: String);
-        procedure sp_Terminate(Msg: string);
+    procedure sp_Terminate(Msg: string);
   end;
 
 implementation
 
-{ TViewAbstract }
+var
+  MyObj: TView = nil;
 
-constructor TViewAbstract.Create(AOwner: TComponent);
+  { TView }
+
+constructor TView.Create(AOwner: TComponent);
 begin
   inherited;
   FMessageQueue := TMessageRepeater<String>.Create(MAX_MESSAGE);
   FMessageQueue.OnExcute := OnExcute;
-
 end;
 
-destructor TViewAbstract.Destroy;
+destructor TView.Destroy;
 begin
   FMessageQueue.Free;
   inherited;
 end;
 
-procedure TViewAbstract.OnExcute(const AData: String);
+procedure TView.OnExcute(const AData: String);
 begin
   Packet.Text := AData;
   BroadCast;
 end;
 
-procedure TViewAbstract.sp_AsyncMessage(ACode, AMsg: String);
+procedure TView.sp_AsyncMessage(ACode, AMsg: String);
 begin
   Packet.Clear;
   Packet.Values['Code'] := ACode;
@@ -61,25 +65,25 @@ begin
   AsyncBroadcast;
 end;
 
-procedure TViewAbstract.sp_ASyncPacket(APacket: String);
+procedure TView.sp_ASyncPacket(APacket: String);
 begin
   Packet.Clear;
   Packet.Text := APacket;
   AsyncBroadcast;
 end;
 
-procedure TViewAbstract.sp_ErrorMessage(Msg: String);
+procedure TView.sp_ErrorMessage(Msg: String);
 begin
   // sp_SyncMessage('ErrorMessage', Msg + ' : ' + ProcByLevel(1) + '(' +IntToStr(LineByLevel(1)) + ')');
   sp_SyncMessage('ErrorMessage', Msg);
 end;
 
-procedure TViewAbstract.sp_ShowMessage(Msg: String);
+procedure TView.sp_ShowMessage(Msg: String);
 begin
   sp_SyncMessage('ShowMessage', Msg);
 end;
 
-procedure TViewAbstract.sp_SyncPacket(APacket: String);
+procedure TView.sp_SyncPacket(APacket: String);
 var
   _packet: TValueList;
 begin
@@ -94,7 +98,7 @@ begin
   FMessageQueue.Excute;
 end;
 
-procedure TViewAbstract.sp_SyncMessage(ACode, AMsg: String);
+procedure TView.sp_SyncMessage(ACode, AMsg: String);
 var
   _packet: TValueList;
 begin
@@ -110,12 +114,21 @@ begin
   FMessageQueue.Excute;
 end;
 
-procedure TViewAbstract.sp_Terminate(Msg: string);
+procedure TView.sp_Terminate(Msg: string);
 begin
   Packet.Clear;
   Packet.Values['Code'] := 'Terminate';
   Packet.Values['Msg'] := Msg;
   BroadCast;
+end;
+
+{ TView }
+
+class function TView.Obj: TView;
+begin
+  if MyObj = nil then
+    MyObj := TView.Create(nil);
+  Result := MyObj;
 end;
 
 end.
