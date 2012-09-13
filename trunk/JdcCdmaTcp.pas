@@ -82,7 +82,7 @@ implementation
 
 { TState }
 
-uses View, Common;
+uses JdcView, Common;
 
 constructor TState.Create(AContext: TCdmaTcpContext);
 begin
