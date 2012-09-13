@@ -30,6 +30,19 @@ function HexStrToWord(const ASource: string; const AIndex: integer = 1): Word;
 function HexStrToBytes(const ASource: string;
   const AIndex: integer = 1): TBytes;
 
+
+type
+  IExecuteFunc<T> = Interface
+    ['{48E4B912-AE21-4201-88E0-4835432FEE69}']
+    function Execute(AValue:String):T;
+  End;
+
+  IExecuteProc<T> = Interface
+    ['{48E4B912-AE21-4201-88E0-4835432FEE69}']
+    procedure Execute(AValue:T);
+  End;
+
+
 implementation
 
 procedure PrintLog(AFile, AMessage: String);
