@@ -4,10 +4,11 @@ interface
 
 uses
   ValueList,
-  Classes, SysUtils, Windows, ZLib, IdGlobal, IOUtils;
+  Classes, SysUtils, Windows, ZLib, IdGlobal, IOUtils, StdCtrls;
 
 // 로그 찍기..
-procedure PrintLog(AFile, AMessage: String);
+procedure PrintLog(AFile, AMessage: String); overload;
+procedure PrintLog(AMemo: TMemo; AMsg: String); overload;
 
 // 데이터 압축..
 function CompressStream(Stream: TStream; OutStream: TStream;
@@ -45,6 +46,18 @@ type
 
 implementation
 
+procedure PrintLog(AMemo: TMemo; AMsg: String);
+begin
+  if AMemo.Lines.Count > 3000 then
+    AMemo.Lines.Clear;
+
+  if AMsg = '' then
+    AMemo.Lines.Add('')
+  else
+    AMemo.Lines.Add(FormatDateTime('YYYY-MM-DD, HH:NN:SS.zzz, ', now) + AMsg);
+end;
+
+
 procedure PrintLog(AFile, AMessage: String);
 var
   FileHandle: integer;
@@ -77,7 +90,7 @@ begin
 
   try
     FileSeek(FileHandle, 0, 2);
-    S := AnsiString(AMessage) + #13#10;
+    S := AnsiString(FormatDateTime('YYYY-MM-DD, HH:NN:SS.zzz, ', now) + AMessage) + #13#10;
     FileWrite(FileHandle, S[1], Length(S));
   finally
     FileClose(FileHandle);
