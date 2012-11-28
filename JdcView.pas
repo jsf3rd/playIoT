@@ -4,7 +4,7 @@ interface
 
 uses
   ObserverList, ValueList,
-  Classes, SysUtils, MessageRepeater;
+  Classes, SysUtils;
 
 const
   MAX_MESSAGE = 10;
@@ -12,10 +12,7 @@ const
 type
   TView = class(TObserverList)
   protected
-    FMessageQueue: TMessageRepeater<String>;
     constructor Create(AOwner: TComponent); reintroduce;
-    procedure OnExcute(const AData: String);
-
   public
     class function Obj: TView;
 
@@ -41,35 +38,38 @@ var
 constructor TView.Create(AOwner: TComponent);
 begin
   inherited;
-  FMessageQueue := TMessageRepeater<String>.Create(MAX_MESSAGE);
-  FMessageQueue.OnExcute := OnExcute;
 end;
 
 destructor TView.Destroy;
 begin
-  FMessageQueue.Free;
   inherited;
 end;
 
-procedure TView.OnExcute(const AData: String);
-begin
-  Packet.Text := AData;
-  BroadCast;
-end;
-
 procedure TView.sp_AsyncMessage(ACode, AMsg: String);
+var
+  ValueList: TValueList;
 begin
-  Packet.Clear;
-  Packet.Values['Code'] := ACode;
-  Packet.Values['Msg'] := AMsg;
-  AsyncBroadcast;
+  ValueList := TValueList.Create;
+  try
+    ValueList.Values['Code'] := ACode;
+    ValueList.Values['Msg'] := AMsg;
+    AsyncBroadcast(ValueList);
+  finally
+    ValueList.Free;
+  end;
 end;
 
 procedure TView.sp_ASyncPacket(APacket: String);
+var
+  ValueList: TValueList;
 begin
-  Packet.Clear;
-  Packet.Text := APacket;
-  AsyncBroadcast;
+  ValueList := TValueList.Create;
+  try
+    ValueList.Text := APacket;
+    AsyncBroadcast(ValueList);
+  finally
+    ValueList.Free;
+  end;
 end;
 
 procedure TView.sp_ErrorMessage(Msg: String);
@@ -85,41 +85,35 @@ end;
 
 procedure TView.sp_SyncPacket(APacket: String);
 var
-  _packet: TValueList;
+  ValueList: TValueList;
 begin
-  _packet := TValueList.Create;
+  ValueList := TValueList.Create;
   try
-    _packet.Text := APacket;
-    FMessageQueue.Enqueue(_packet.Text);
+    ValueList.Text := APacket;
+    BroadCast(ValueList);
   finally
-    _packet.Free;
+    ValueList.Free;
   end;
 
-  FMessageQueue.Excute;
 end;
 
 procedure TView.sp_SyncMessage(ACode, AMsg: String);
 var
-  _packet: TValueList;
+  ValueList: TValueList;
 begin
-  _packet := TValueList.Create;
+  ValueList := TValueList.Create;
   try
-    _packet.Values['Code'] := ACode;
-    _packet.Values['Msg'] := AMsg;
-    FMessageQueue.Enqueue(_packet.Text);
+    ValueList.Values['Code'] := ACode;
+    ValueList.Values['Msg'] := AMsg;
+    BroadCast(ValueList);
   finally
-    _packet.Free;
+    ValueList.Free;
   end;
-
-  FMessageQueue.Excute;
 end;
 
 procedure TView.sp_Terminate(Msg: string);
 begin
-  Packet.Clear;
-  Packet.Values['Code'] := 'Terminate';
-  Packet.Values['Msg'] := Msg;
-  BroadCast;
+  sp_SyncMessage('Terminate', Msg);
 end;
 
 { TView }
