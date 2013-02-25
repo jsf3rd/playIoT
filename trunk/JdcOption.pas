@@ -13,19 +13,19 @@ type
     FExeName: String;
     procedure IniTemplete(ACallBack: TIniProc);
     function GetStringValue(const ASec, AIdent, ADefault: String): String;
-    procedure SetStringValue(const ASec, AIndent, AValue: String);
+    procedure SetStringValue(const ASec, AIdent, AValue: String);
 
     function GetIntegerValue(const ASec, AIdent: String;
       ADefault: Integer): Integer;
-    procedure SetIntegerValue(const ASec, AIndent: String; AValue: Integer);
+    procedure SetIntegerValue(const ASec, AIdent: String; AValue: Integer);
 
     function GetBoolValue(const ASec, AIdent: String;
       ADefault: Boolean): Boolean;
-    procedure SetBoolValue(const ASec, AIndent: String; AValue: Boolean);
+    procedure SetBoolValue(const ASec, AIdent: String; AValue: Boolean);
 
     function GetDateTimeValue(const ASec, AIdent: String; ADefault: TDateTime)
       : TDateTime;
-    procedure SetDateTimeValue(const ASec, AIndent: String; AValue: TDateTime);
+    procedure SetDateTimeValue(const ASec, AIdent: String; AValue: TDateTime);
 
   end;
 
@@ -123,52 +123,52 @@ begin
   end;
 end;
 
-procedure TOptionAbstract.SetBoolValue(const ASec, AIndent: String;
+procedure TOptionAbstract.SetBoolValue(const ASec, AIdent: String;
 AValue: Boolean);
 begin
   IniTemplete(
     procedure(AIni: TIniFile)
     begin
 
-      AIni.WriteBool(ASec, AIndent, AValue);
+      AIni.WriteBool(ASec, AIdent, AValue);
 
     end);
 
 end;
 
-procedure TOptionAbstract.SetDateTimeValue(const ASec, AIndent: String;
+procedure TOptionAbstract.SetDateTimeValue(const ASec, AIdent: String;
 AValue: TDateTime);
 begin
   IniTemplete(
     procedure(AIni: TIniFile)
     begin
 
-      AIni.WriteDateTime(ASec, AIndent, AValue);
+      AIni.WriteDateTime(ASec, AIdent, AValue);
 
     end);
 
 end;
 
-procedure TOptionAbstract.SetIntegerValue(const ASec, AIndent: String;
+procedure TOptionAbstract.SetIntegerValue(const ASec, AIdent: String;
 AValue: Integer);
 begin
   IniTemplete(
     procedure(AIni: TIniFile)
     begin
 
-      AIni.WriteInteger(ASec, AIndent, AValue);
+      AIni.WriteInteger(ASec, AIdent, AValue);
 
     end);
 
 end;
 
-procedure TOptionAbstract.SetStringValue(const ASec, AIndent, AValue: String);
+procedure TOptionAbstract.SetStringValue(const ASec, AIdent, AValue: String);
 begin
   IniTemplete(
     procedure(AIni: TIniFile)
     begin
 
-      AIni.WriteString(ASec, AIndent, AValue);
+      AIni.WriteString(ASec, AIdent, AValue);
 
     end);
 end;
