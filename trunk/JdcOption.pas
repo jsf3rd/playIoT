@@ -13,10 +13,6 @@ type
 
   protected
     FExeName: String;
-    function ReadSections: TStrings;
-    function ReadSection(ASection: string): TStrings;
-    function ReadSectionValues(ASection: string): TStrings;
-
     procedure IniTemplete(ACallBack: TIniProc);
     function GetStringValue(const ASec, AIdent, ADefault: String): String;
     procedure SetStringValue(const ASec, AIdent, AValue: String);
@@ -32,7 +28,10 @@ type
     function GetDateTimeValue(const ASec, AIdent: String; ADefault: TDateTime)
       : TDateTime;
     procedure SetDateTimeValue(const ASec, AIdent: String; AValue: TDateTime);
-
+  public
+    function ReadSections: TStrings;
+    function ReadSection(ASection: string): TStrings;
+    function ReadSectionValues(ASection: string): TStrings;
   end;
 
 implementation
