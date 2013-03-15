@@ -9,8 +9,14 @@ type
   TIniProc = reference to procedure(AIni: TIniFile);
 
   TOptionAbstract = class(TComponent)
+  private
+
   protected
     FExeName: String;
+    function ReadSections: TStrings;
+    function ReadSection(ASection: string): TStrings;
+    function ReadSectionValues(ASection: string): TStrings;
+
     procedure IniTemplete(ACallBack: TIniProc);
     function GetStringValue(const ASec, AIdent, ADefault: String): String;
     procedure SetStringValue(const ASec, AIdent, AValue: String);
@@ -35,9 +41,53 @@ var
   MyObj: TOptionAbstract = nil;
 
   { TOption }
+function TOptionAbstract.ReadSection(ASection: string): TStrings;
+var
+  Value: TStrings;
+begin
+
+  IniTemplete(
+
+    procedure(AIni: TIniFile)
+    begin
+      AIni.ReadSection(ASection, Value);
+    end);
+
+  result := Value;
+end;
+
+function TOptionAbstract.ReadSections: TStrings;
+var
+  Value: TStrings;
+begin
+
+  IniTemplete(
+
+    procedure(AIni: TIniFile)
+    begin
+      AIni.ReadSections(Value);
+    end);
+
+  result := Value;
+end;
+
+function TOptionAbstract.ReadSectionValues(ASection: string): TStrings;
+var
+  Value: TStrings;
+begin
+
+  IniTemplete(
+
+    procedure(AIni: TIniFile)
+    begin
+      AIni.ReadSectionValues(ASection, Value);
+    end);
+
+  result := Value;
+end;
 
 function TOptionAbstract.GetBoolValue(const ASec, AIdent: String;
-  ADefault: Boolean): Boolean;
+ADefault: Boolean): Boolean;
 var
   Value: Boolean;
 begin
