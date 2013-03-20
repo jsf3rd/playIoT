@@ -44,6 +44,7 @@ function TOptionAbstract.ReadSection(ASection: string): TStrings;
 var
   Value: TStrings;
 begin
+  Value := TStringList.Create;
 
   IniTemplete(
 
@@ -59,6 +60,7 @@ function TOptionAbstract.ReadSections: TStrings;
 var
   Value: TStrings;
 begin
+  Value := TStringList.Create;
 
   IniTemplete(
 
@@ -74,6 +76,7 @@ function TOptionAbstract.ReadSectionValues(ASection: string): TStrings;
 var
   Value: TStrings;
 begin
+  Value := TStringList.Create;
 
   IniTemplete(
 
