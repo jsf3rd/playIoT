@@ -15,7 +15,6 @@ const
   COMMAND_SMS = 'at$smsmo=';
   COMMAND_PHONENUM = 'at$phonenum?';
 
-
   // TCPIP COMMAND
   COMMAND_CRM251 = 'at+crm=251';
   COMMAND_TCPUID = 'at$tcpuid=sktelecom';
@@ -30,7 +29,7 @@ const
   // RESPONSE
   RESPONSE_OK = 'OK';
   RESPONSE_CONNECT = 'CONNECT';
-  RESPONSE_TCP_OPEN = 'TCPOPEN'+#$D#$A;
+  RESPONSE_TCP_OPEN = 'TCPOPEN' + #$D#$A;
   RESPONSE_SEND_DONE = 'TCPSENDDONE';
   RESPONSE_TCPCLOSED = 'TCPCLOSED';
   RESPONSE_NO_CARRIER = 'CARRIER'; // NO CARRIER
@@ -206,7 +205,7 @@ end;
 
 function TCdmaAbstract.GetCommPort: String;
 begin
-  result := String( FSerialNG.CommPort );
+  result := String(FSerialNG.CommPort);
 end;
 
 function TCdmaAbstract.GetConnected: Boolean;
@@ -231,9 +230,9 @@ begin
   begin
     FSerialNG.ClearRxDQueue; // 버퍼 비우기
     FSerialNG.SendString(AnsiString(ACommand) + #13);
-  end
-  else
-    Assert(false, 'CDMA is not active.');
+  end;
+  // else
+  // Assert(false, 'CDMA is not active.');
 end;
 
 function TCdmaAbstract.BuildSMS(const ToPhone, FromPhone,
@@ -273,7 +272,7 @@ end;
 
 procedure TCdmaAbstract.SetCommPort(const Value: String);
 begin
-  FSerialNG.CommPort := ShortString( Value );
+  FSerialNG.CommPort := ShortString(Value);
 end;
 
 procedure TCdmaAbstract.SetOnTimeout(const Value: TNotifyEvent);
