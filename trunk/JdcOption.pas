@@ -32,6 +32,8 @@ type
     function ReadSections: TStrings;
     function ReadSection(ASection: string): TStrings;
     function ReadSectionValues(ASection: string): TStrings;
+
+    procedure SetEraseValue(const ASec: String);
   end;
 
 implementation
@@ -40,6 +42,18 @@ var
   MyObj: TOptionAbstract = nil;
 
   { TOption }
+
+procedure TOptionAbstract.SetEraseValue(const ASec: String);
+begin
+  IniTemplete(
+    procedure(AIni: TIniFile)
+    begin
+
+      AIni.EraseSection(ASec);
+
+    end);
+end;
+
 function TOptionAbstract.ReadSection(ASection: string): TStrings;
 var
   Value: TStrings;
