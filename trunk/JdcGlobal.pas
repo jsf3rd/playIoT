@@ -31,18 +31,16 @@ function HexStrToWord(const ASource: string; const AIndex: integer = 1): Word;
 function HexStrToBytes(const ASource: string;
   const AIndex: integer = 1): TBytes;
 
-
 type
   IExecuteFunc<T> = Interface
     ['{48E4B912-AE21-4201-88E0-4835432FEE69}']
-    function Execute(AValue:String):T;
+    function Execute(AValue: String): T;
   End;
 
   IExecuteProc<T> = Interface
     ['{48E4B912-AE21-4201-88E0-4835432FEE69}']
-    procedure Execute(AValue:T);
+    procedure Execute(AValue: T);
   End;
-
 
 implementation
 
@@ -56,7 +54,6 @@ begin
   else
     AMemo.Lines.Add(FormatDateTime('YYYY-MM-DD, HH:NN:SS.zzz, ', now) + AMsg);
 end;
-
 
 procedure PrintLog(AFile, AMessage: String);
 var
@@ -90,7 +87,8 @@ begin
 
   try
     FileSeek(FileHandle, 0, 2);
-    S := AnsiString(FormatDateTime('YYYY-MM-DD, HH:NN:SS.zzz, ', now) + AMessage) + #13#10;
+    S := AnsiString(FormatDateTime('YYYY-MM-DD, HH:NN:SS.zzz, ', now) +
+      AMessage) + #13#10;
     FileWrite(FileHandle, S[1], Length(S));
   finally
     FileClose(FileHandle);
@@ -136,15 +134,15 @@ end;
 function IsGoodResponse(Text, Command: string;
   Response: array of const): boolean;
 var
-  sl: TStringList;
+  SL: TStringList;
 begin
-  sl := TStringList.Create;
+  SL := TStringList.Create;
   try
-    sl.Text := Text;
+    SL.Text := Text;
 
-    Result := (sl.Strings[0] = Command) and (Contains(Text, Response));
+    Result := (SL.Strings[0] = Command) and (Contains(Text, Response));
   finally
-    sl.Free;
+    SL.Free;
   end;
 end;
 
