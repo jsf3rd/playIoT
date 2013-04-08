@@ -4,7 +4,7 @@ interface
 
 uses
   ValueList,
-  Classes, SysUtils, Windows, ZLib, IdGlobal, IOUtils, StdCtrls;
+  Classes, SysUtils, Windows, ZLib, IdGlobal, IOUtils, StdCtrls, DBXJSON;
 
 // ·Î±× Âï±â..
 procedure PrintLog(AFile, AMessage: String); overload;
@@ -31,6 +31,9 @@ function HexStrToWord(const ASource: string; const AIndex: integer = 1): Word;
 function HexStrToBytes(const ASource: string;
   const AIndex: integer = 1): TBytes;
 
+// Clear JSONObject Members
+procedure ClearJSONObject(AObject: TJSONObject);
+
 type
   IExecuteFunc<T> = Interface
     ['{48E4B912-AE21-4201-88E0-4835432FEE69}']
@@ -43,6 +46,20 @@ type
   End;
 
 implementation
+
+procedure ClearJSONObject(AObject: TJSONObject);
+var
+  Pair: TJSONPair;
+  I: integer;
+begin
+  for I := AObject.Size - 1 downto 0 do
+  begin
+    Pair := AObject.Get(I);
+    AObject.RemovePair(Pair.JsonString.Value);
+    if Assigned(Pair.JsonValue) then
+      Pair.JsonValue.Free;
+  end;
+end;
 
 procedure PrintLog(AMemo: TMemo; AMsg: String);
 begin
@@ -118,13 +135,13 @@ end;
 
 function Contains(Contents: string; const str: array of const): boolean;
 var
-  i: integer;
+  I: integer;
 begin
   Result := False;
 
-  for i := 0 to High(str) do
+  for I := 0 to High(str) do
   begin
-    if Pos(str[i].VPWideChar, Contents) = 0 then
+    if Pos(str[I].VPWideChar, Contents) = 0 then
       Exit;
   end;
 
@@ -233,7 +250,7 @@ end;
 
 function HexStrToBytes(const ASource: string; const AIndex: integer): TIdBytes;
 var
-  i, j, n: integer;
+  I, j, n: integer;
   c: char;
   b: Byte;
 begin
@@ -243,9 +260,9 @@ begin
   b := 0;
   n := 0;
 
-  for i := AIndex to Length(ASource) do
+  for I := AIndex to Length(ASource) do
   begin
-    c := ASource[i];
+    c := ASource[I];
     case c of
       '0' .. '9':
         n := ord(c) - ord('0');
