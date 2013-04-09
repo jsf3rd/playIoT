@@ -55,9 +55,7 @@ begin
   for I := AObject.Size - 1 downto 0 do
   begin
     Pair := AObject.Get(I);
-    AObject.RemovePair(Pair.JsonString.Value);
-    if Assigned(Pair.JsonValue) then
-      Pair.JsonValue.Free;
+    AObject.RemovePair(Pair.JsonString.Value).Free;
   end;
 end;
 
