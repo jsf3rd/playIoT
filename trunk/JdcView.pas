@@ -6,9 +6,6 @@ uses
   ObserverList, ValueList,
   Classes, SysUtils;
 
-const
-  MAX_MESSAGE = 10;
-
 type
   TView = class(TObserverList)
   protected
