@@ -5,7 +5,7 @@ interface
 uses SysUtils, Classes, Generics.Defaults, Generics.Collections;
 
 const
-  DEFAULT_MESSAGE_COUNT = 10;
+  DEFAULT_MESSAGE_COUNT = 30;
 
 type
   TProc<T> = procedure(const AMessage: T) of object;
@@ -52,18 +52,17 @@ end;
 
 destructor TMessageRepeater<T>.Destroy;
 begin
-
   inherited;
 end;
 
 procedure TMessageRepeater<T>._Excute;
 begin
-  if not Empty then
-  begin
-    FOnExcute(Dequeue);
-    Sleep(1);
-    _Excute;
-  end;
+  if Empty then
+    Exit;
+
+  FOnExcute(Dequeue);
+  Sleep(1);
+  _Excute;
 end;
 
 procedure TMessageRepeater<T>.Excute;
@@ -81,9 +80,10 @@ begin
   if (Active) and (FExcutionCount < FNormalMessageCount) then
   begin
     inc(FExcutionCount);
-    exit;
+    Exit;
   end;
 
+  FExcutionCount := 1;
   if Assigned(FOnBeforeExcute) then
   begin
     FOnBeforeExcute(Self);
