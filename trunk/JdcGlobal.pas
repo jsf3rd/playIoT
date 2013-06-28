@@ -28,8 +28,8 @@ function Rev4Bytes(Value: LongInt): LongInt;
 
 function HexStrToByte(const ASource: String; const AIndex: integer = 1): Byte;
 function HexStrToWord(const ASource: string; const AIndex: integer = 1): Word;
-function HexStrToBytes(const ASource: string;
-  const AIndex: integer = 1): TBytes;
+function HexStrToBytes(const ASource: string; const AIndex: integer = 1)
+  : TIdBytes;
 
 // Clear JSONObject Members
 procedure ClearJSONObject(AObject: TJSONObject);
@@ -207,7 +207,7 @@ end;
 function HexStrToByte(const ASource: String; const AIndex: integer): Byte;
 var
   str: String;
-  tmp: TBytes;
+  tmp: TIdBytes;
 begin
 
   str := ASource;
