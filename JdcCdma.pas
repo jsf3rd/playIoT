@@ -248,7 +248,13 @@ begin
     SMS.Add('16'); // message encode - 0: octet(8bits),
     SMS.Add('0'); // reply - 기지국의 응답 메시지 요구(0: not
     SMS.Add('0'); // priority - 0: normal
+{$IFDEF VER250}
+    // XE4
+    SMS.Add(ToHex(ToBytes(AMessage, IndyTextEncoding_Default)));
+{$ELSE}
     SMS.Add(ToHex(ToBytes(AMessage, TEncoding.Default))); // Message Hex code
+{$ENDIF}
+    // Message Hex code
     result := SMS.CommaText;
   finally
     SMS.Free;
