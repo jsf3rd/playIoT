@@ -31,6 +31,10 @@ function HexStrToWord(const ASource: string; const AIndex: integer = 1): Word;
 function HexStrToBytes(const ASource: string; const AIndex: integer = 1)
   : TIdBytes;
 
+function IdBytesToHex(const AValue: TIdBytes;
+  const ASpliter: String = ' '): String;
+function BytesToHex(const AValue: TBytes; const ASpliter: String = ' '): String;
+
 // Clear JSONObject Members
 procedure ClearJSONObject(AObject: TJSONObject);
 
@@ -46,6 +50,28 @@ type
   End;
 
 implementation
+
+function IdBytesToHex(const AValue: TIdBytes; const ASpliter: String): String;
+var
+  I: integer;
+begin
+  result := '';
+  for I := 0 to Length(AValue) - 1 do
+  begin
+    result := result + ByteToHex(AValue[I]) + ASpliter;
+  end;
+end;
+
+function BytesToHex(const AValue: TBytes; const ASpliter: String): String;
+var
+  I: integer;
+begin
+  result := '';
+  for I := 0 to Length(AValue) - 1 do
+  begin
+    result := result + ByteToHex(AValue[I]) + ASpliter;
+  end;
+end;
 
 procedure ClearJSONObject(AObject: TJSONObject);
 var
@@ -125,7 +151,7 @@ begin
     // 완료시 한번 더 이벤트를 불러준다.
     if Assigned(OnProgress) then
       OnProgress(CS);
-    Result := True;
+    result := True;
   finally
     CS.Free;
   end;
@@ -135,7 +161,7 @@ function Contains(Contents: string; const str: array of const): boolean;
 var
   I: integer;
 begin
-  Result := False;
+  result := False;
 
   for I := 0 to High(str) do
   begin
@@ -143,7 +169,7 @@ begin
       Exit;
   end;
 
-  Result := True;
+  result := True;
 end;
 
 function IsGoodResponse(Text, Command: string;
@@ -155,7 +181,7 @@ begin
   try
     SL.Text := Text;
 
-    Result := (SL.Strings[0] = Command) and (Contains(Text, Response));
+    result := (SL.Strings[0] = Command) and (Contains(Text, Response));
   finally
     SL.Free;
   end;
@@ -190,7 +216,7 @@ begin
       until ReadSize < BuffSize;
       if Assigned(OnProgress) then
         OnProgress(DS); // Compress와 같은이유
-      Result := True;
+      result := True;
     finally
       FreeMem(Buff)
     end;
@@ -217,13 +243,13 @@ begin
 
   if Length(str) < AIndex + 1 then
   begin
-    Result := $00;
+    result := $00;
     Exit;
   end;
 
   str := Copy(str, AIndex, 2);
   tmp := HexStrToBytes(str);
-  CopyMemory(@Result, tmp, 1);
+  CopyMemory(@result, tmp, 1);
 end;
 
 function HexStrToWord(const ASource: string; const AIndex: integer): Word;
@@ -238,12 +264,12 @@ begin
 
   if Length(str) < AIndex + 3 then
   begin
-    Result := $00;
+    result := $00;
     Exit;
   end;
 
   str := Copy(str, AIndex, 4);
-  Result := BytesToWord(HexStrToBytes(str));
+  result := BytesToWord(HexStrToBytes(str));
 end;
 
 function HexStrToBytes(const ASource: string; const AIndex: integer): TIdBytes;
@@ -252,7 +278,7 @@ var
   c: char;
   b: Byte;
 begin
-  SetLength(Result, 0);
+  SetLength(result, 0);
 
   j := 0;
   b := 0;
@@ -282,7 +308,7 @@ begin
       b := (b shl 4) + n;
       j := 0;
 
-      AppendBytes(Result, ToBytes(b));
+      AppendBytes(result, ToBytes(b));
     end
   end;
 
