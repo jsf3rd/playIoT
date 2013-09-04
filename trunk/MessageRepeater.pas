@@ -2,51 +2,52 @@ unit MessageRepeater;
 
 interface
 
-uses SysUtils, Classes, Generics.Defaults, Generics.Collections;
+uses SysUtils, Classes, Generics.Defaults, Generics.Collections, Windows;
 
 const
-  DEFAULT_MESSAGE_COUNT = 30;
+  DEFAULT_MESSAGE_COUNT = 99;
 
 type
   TProc<T> = procedure(const AMessage: T) of object;
   TOnCompleteEvent = procedure(const ACount: Integer) of Object;
 
   TMessageRepeater<T> = class(TQueue<T>)
-  private
+  strict private
     FOnBeforeExcute: TNotifyEvent;
     FOnExcute: TProc<T>;
     FOnCompleted: TOnCompleteEvent;
+    FActive: Boolean;
     FExcutionCount: Integer;
-    FNormalMessageCount: Integer;
-    function GetEmpty: boolean;
-    function GetActive: boolean;
-
-    procedure _Excute;
+    function GetEmpty: Boolean;
+    function GetActive: Boolean;
+    procedure ExcuteLoop;
+  private
   protected
 
   public
-    constructor Create(ACount: Integer = DEFAULT_MESSAGE_COUNT);
+    constructor Create;
     destructor Destroy; override;
 
     procedure Excute;
 
-    property Empty: boolean read GetEmpty;
+    property Empty: Boolean read GetEmpty;
+    property Active: Boolean read GetActive;
+
     property OnExcute: TProc<T> read FOnExcute write FOnExcute;
     property OnCompleted: TOnCompleteEvent read FOnCompleted write FOnCompleted;
     property OnBeforeExcute: TNotifyEvent read FOnBeforeExcute
       write FOnBeforeExcute;
 
-    property Active: boolean read GetActive;
   end;
 
 implementation
 
 { TMessageRepeater<T> }
 
-constructor TMessageRepeater<T>.Create(ACount: Integer);
+constructor TMessageRepeater<T>.Create;
 begin
-  FNormalMessageCount := ACount;
-  Capacity := ACount;
+  inherited;
+  FActive := False;
   FExcutionCount := 0;
 end;
 
@@ -55,61 +56,53 @@ begin
   inherited;
 end;
 
-procedure TMessageRepeater<T>._Excute;
-begin
-  if Empty then
-    Exit;
-
-  FOnExcute(Dequeue);
-  Sleep(1);
-  _Excute;
-end;
-
 procedure TMessageRepeater<T>.Excute;
-var
-  tmp: Integer;
 begin
   if not Assigned(FOnExcute) then
   begin
     raise Exception.Create('Not assigned OnExcute');
   end;
 
-  // 기본적으로 FExcutionCount > 0 크면 Queue 가 실행 중임으로 exit 한다.
-  // FExcutionCount 값이 FNormalMessageCount를 초과했다면 Queue가 실행 중 오류가 발생한 것으로 판단하고
-  // 작업을 진행한다.
-  if (Active) and (FExcutionCount < FNormalMessageCount) then
-  begin
-    inc(FExcutionCount);
+  if FActive then
     Exit;
-  end;
 
-  FExcutionCount := 1;
+  FActive := True;
   if Assigned(FOnBeforeExcute) then
   begin
     FOnBeforeExcute(Self);
   end;
 
   try
-    _Excute;
+    ExcuteLoop;
   finally
-    tmp := FExcutionCount;
-    FExcutionCount := 0;
-
     if Assigned(FOnCompleted) then
     begin
-      FOnCompleted(tmp);
+      FOnCompleted(FExcutionCount);
     end;
+    FExcutionCount := 0;
+    FActive := False;
   end;
+
 end;
 
-function TMessageRepeater<T>.GetActive: boolean;
+procedure TMessageRepeater<T>.ExcuteLoop;
 begin
-  result := FExcutionCount > 0;
+  if Self.Empty then
+    Exit;
+
+  FOnExcute(Dequeue);
+  inc(FExcutionCount);
+  ExcuteLoop;
 end;
 
-function TMessageRepeater<T>.GetEmpty: boolean;
+function TMessageRepeater<T>.GetEmpty: Boolean;
 begin
-  result := Count = 0;
+  result := Self.Count = 0;
+end;
+
+function TMessageRepeater<T>.GetActive: Boolean;
+begin
+  result := FActive;
 end;
 
 end.
