@@ -21,6 +21,9 @@ type
       ADefault: Integer): Integer;
     procedure SetIntegerValue(const ASec, AIdent: String; AValue: Integer);
 
+    function GetFloatValue(const ASec, AIdent: String; ADefault: real): real;
+    procedure SetFloatValue(const ASec, AIdent: String; AValue: real);
+
     function GetBoolValue(const ASec, AIdent: String;
       ADefault: Boolean): Boolean;
     procedure SetBoolValue(const ASec, AIdent: String; AValue: Boolean);
@@ -50,6 +53,18 @@ begin
     begin
 
       AIni.EraseSection(ASec);
+
+    end);
+end;
+
+procedure TOptionAbstract.SetFloatValue(const ASec, AIdent: String;
+AValue: real);
+begin
+  IniTemplete(
+    procedure(AIni: TIniFile)
+    begin
+
+      AIni.WriteFloat(ASec, AIdent, AValue);
 
     end);
 end;
@@ -134,6 +149,22 @@ begin
 
   result := Value;
 
+end;
+
+function TOptionAbstract.GetFloatValue(const ASec, AIdent: String;
+ADefault: real): real;
+var
+  Value: real;
+begin
+
+  IniTemplete(
+
+    procedure(AIni: TIniFile)
+    begin
+      Value := AIni.ReadFloat(ASec, AIdent, ADefault);
+    end);
+
+  result := Value;
 end;
 
 function TOptionAbstract.GetIntegerValue(const ASec, AIdent: String;
