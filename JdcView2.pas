@@ -1,13 +1,13 @@
-unit JdcView;
+unit JdcView2;
 
 interface
 
 uses
-  ObserverList, ValueList,
+  JdcView2.ObserverListEx, ValueList,
   Classes, SysUtils;
 
 type
-  TView = class(TObserverList)
+  TView = class(TObserverListEx)
   protected
     constructor Create(AOwner: TComponent); reintroduce;
   public
