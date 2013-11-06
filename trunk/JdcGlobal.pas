@@ -110,7 +110,7 @@ begin
     try
       SL.LoadFromFile(AFile);
 
-      if SL.Count > 100000 then
+      if SL.Count > 1000000 then
       begin
         SL.Clear;
         SL.SaveToFile(AFile);
