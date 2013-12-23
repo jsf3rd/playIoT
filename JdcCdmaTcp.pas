@@ -2,7 +2,7 @@ unit JdcCdmaTcp;
 
 interface
 
-uses System.Classes, System.SysUtils, IdGlobal, JdcGlobal, JdcCDMA,
+uses System.Classes, System.SysUtils, IdGlobal, JdcGlobal, JdcCdma,
   SerialNG;
 
 type
@@ -82,7 +82,7 @@ implementation
 
 { TState }
 
-uses JdcView, Common;
+uses JdcView2, Common;
 
 constructor TState.Create(AContext: TCdmaTcpContext);
 begin
@@ -275,7 +275,6 @@ begin
   end;
 
 end;
-
 
 { TCDMA }
 
