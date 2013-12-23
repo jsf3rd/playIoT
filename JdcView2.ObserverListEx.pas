@@ -80,9 +80,13 @@ begin
 end;
 
 procedure TObserverListEx.BroadCast(APacket: TValueList);
+var
+  PacketText: string;
 begin
   if not Active then
     Exit;
+
+  PacketText := APacket.Text;
 
   TThread.Synchronize(nil,
     procedure
@@ -92,7 +96,7 @@ begin
     begin
       Packet := TValueList.Create;
       try
-        Packet.Text := APacket.Text;
+        Packet.Text := PacketText;
         for Loop := FList.Count - 1 downto 0 do
           do_Notify(FList[Loop], Packet);
       finally
@@ -110,22 +114,26 @@ begin
 
   PacketText := APacket.Text;
 
-  TThread.Queue(nil,
+  TThread.CreateAnonymousThread(
     procedure
-    var
-      Loop: Integer;
-      Packet: TValueList;
     begin
-      Packet := TValueList.Create;
-      try
-        Packet.Text := PacketText;
-        for Loop := FList.Count - 1 downto 0 do
-          do_Notify(FList[Loop], Packet);
-      finally
-        Packet.Free;
-      end;
-    end);
 
+      TThread.Queue(nil,
+        procedure
+        var
+          Loop: Integer;
+          Packet: TValueList;
+        begin
+          Packet := TValueList.Create;
+          try
+            Packet.Text := PacketText;
+            for Loop := FList.Count - 1 downto 0 do
+              do_Notify(FList[Loop], Packet);
+          finally
+            Packet.Free;
+          end;
+        end);
+    end).Start;
 end;
 
 procedure TObserverListEx.AsyncBroadcast(AText: string);
