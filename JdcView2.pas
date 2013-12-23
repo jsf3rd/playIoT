@@ -71,7 +71,7 @@ end;
 
 procedure TView.sp_ErrorMessage(Msg: String);
 begin
-  sp_SyncMessage('ErrorMessage', Msg);
+  sp_AsyncMessage('ErrorMessage', Msg);
 end;
 
 procedure TView.sp_ShowMessage(Msg: String);
