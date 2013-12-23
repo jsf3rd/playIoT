@@ -25,7 +25,7 @@ type
     FCheckCount: Integer;
 
     FFileIndex: Integer;
-    FFileBytes: TBytes;
+    FFileBytes: TIdBytes;
 
     FBufferSize: Integer;
 
@@ -54,7 +54,7 @@ implementation
 
 { TFileClient }
 
-uses Option, Common, JdcView;
+uses Option, Common, JdcView2;
 
 procedure TFileTransfer.Cancel;
 begin
@@ -138,7 +138,6 @@ begin
     FActive := false;
     exit; // zip 파일 없음..
   end;
-
 
   TView.Obj.sp_AsyncMessage('PrepareSendFile');
 
