@@ -76,7 +76,7 @@ end;
 
 procedure TView.sp_ShowMessage(Msg: String);
 begin
-  sp_SyncMessage('ShowMessage', Msg);
+  sp_AsyncMessage('ShowMessage', Msg);
 end;
 
 procedure TView.sp_SyncPacket(APacket: String);
