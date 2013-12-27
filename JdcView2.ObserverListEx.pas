@@ -114,26 +114,21 @@ begin
 
   PacketText := APacket.Text;
 
-  TThread.CreateAnonymousThread(
+  TThread.Queue(nil,
     procedure
+    var
+      Loop: Integer;
+      Packet: TValueList;
     begin
-
-      TThread.Queue(nil,
-        procedure
-        var
-          Loop: Integer;
-          Packet: TValueList;
-        begin
-          Packet := TValueList.Create;
-          try
-            Packet.Text := PacketText;
-            for Loop := FList.Count - 1 downto 0 do
-              do_Notify(FList[Loop], Packet);
-          finally
-            Packet.Free;
-          end;
-        end);
-    end).Start;
+      Packet := TValueList.Create;
+      try
+        Packet.Text := PacketText;
+        for Loop := FList.Count - 1 downto 0 do
+          do_Notify(FList[Loop], Packet);
+      finally
+        Packet.Free;
+      end;
+    end);
 end;
 
 procedure TObserverListEx.AsyncBroadcast(AText: string);
