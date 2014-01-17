@@ -3,8 +3,7 @@ unit JdcGlobal;
 interface
 
 uses
-  ValueList,
-  Classes, SysUtils, Windows, ZLib, IdGlobal, IOUtils, StdCtrls, DBXJSON;
+  Classes, SysUtils, Windows, ZLib, IdGlobal, IOUtils, StdCtrls;
 
 // ·Î±× Âï±â..
 procedure PrintLog(AFile, AMessage: String); overload;
@@ -34,9 +33,6 @@ function HexStrToBytes(const ASource: string; const AIndex: integer = 1)
 function IdBytesToHex(const AValue: TIdBytes;
   const ASpliter: String = ' '): String;
 function BytesToHex(const AValue: TBytes; const ASpliter: String = ' '): String;
-
-// Clear JSONObject Members
-procedure ClearJSONObject(AObject: TJSONObject);
 
 type
   IExecuteFunc<T> = Interface
@@ -70,18 +66,6 @@ begin
   for I := 0 to Length(AValue) - 1 do
   begin
     result := result + ByteToHex(AValue[I]) + ASpliter;
-  end;
-end;
-
-procedure ClearJSONObject(AObject: TJSONObject);
-var
-  Pair: TJSONPair;
-  I: integer;
-begin
-  for I := AObject.Size - 1 downto 0 do
-  begin
-    Pair := AObject.Get(I);
-    AObject.RemovePair(Pair.JsonString.Value).Free;
   end;
 end;
 
