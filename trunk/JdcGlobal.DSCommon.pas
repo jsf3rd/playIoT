@@ -11,6 +11,9 @@ type
     // Clear JSONObject Members
     class procedure ClearJSONObject(AObject: TJSONObject);
 
+    // FDQuery를 TSream으로 변환
+    class function DataSetToStream(AQuery: TFDQuery): TStream;
+
     // DataSnap으로 전달된 TStream데이터를 TBytesStream으로 변환
     class function DSStreamToBytesStream(AValue: TStream): TBytesStream;
 
@@ -21,6 +24,16 @@ type
 implementation
 
 { TDSCommon }
+
+class function TDSCommon.DataSetToStream(AQuery: TFDQuery): TStream;
+begin
+  result := TBytesStream.Create;
+  AQuery.Open;
+  AQuery.FetchAll;
+  AQuery.SaveToStream(result, sfBinary);
+  result.Position := 0;
+  AQuery.Close;
+end;
 
 class procedure TDSCommon.ClearJSONObject(AObject: TJSONObject);
 var
