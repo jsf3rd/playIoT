@@ -70,7 +70,6 @@ begin
   end
   else
   begin
-    result := TBytesStream.Create;
     result.LoadFromStream(AValue);
   end;
 
