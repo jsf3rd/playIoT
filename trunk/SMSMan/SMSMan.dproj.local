@@ -1,0 +1,11 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<BorlandProject>
+	<Transactions>
+    <Transaction>1899-12-30 00:00:00.000.402,C:\Users\KTB_IT\Documents\RAD Studio\Projects\Unit2.pas=D:\project\01.광양wim\src\SMSMan\_fmMain.pas</Transaction>
+    <Transaction>1899-12-30 00:00:00.000.482,C:\Users\KTB_IT\Documents\RAD Studio\Projects\Project3.dproj=D:\project\01.광양wim\src\SMSMan\SMSMan.dproj</Transaction>
+    <Transaction>1899-12-30 00:00:00.000.317,=D:\project\01.광양wim\src\SMSMan\Global.pas</Transaction>
+    <Transaction>1899-12-30 00:00:00.000.334,=D:\project\01.광양wim\src\SMSMan\Option.pas</Transaction>
+    <Transaction>1899-12-30 00:00:00.000.402,C:\Users\KTB_IT\Documents\RAD Studio\Projects\Unit2.dfm=D:\project\01.광양wim\src\SMSMan\_fmMain.dfm</Transaction>
+    <Transaction>1899-12-30 00:00:00.000.482,=C:\Users\KTB_IT\Documents\RAD Studio\Projects\Unit2.pas</Transaction>
+  </Transactions>
+</BorlandProject>
