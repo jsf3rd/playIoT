@@ -20,7 +20,7 @@ implementation
 
 {$R *.dfm}
 
-uses ServerContainerUnit, Option, JdcGlobal, JdcView, Global;
+uses ServerContainerUnit, Option, JdcGlobal, JdcView2, Global;
 
 { TsmDataProvider }
 

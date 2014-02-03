@@ -32,7 +32,7 @@ var
 
 implementation
 
-uses Winapi.Windows, _smDataLoader, _smDataProvider, JdcView,
+uses Winapi.Windows, _smDataLoader, _smDataProvider, JdcView2,
   Global, Option;
 
 {$R *.dfm}

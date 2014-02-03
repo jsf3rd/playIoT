@@ -29,7 +29,6 @@ object fmMain: TfmMain
     ReadOnly = True
     ScrollBars = ssVertical
     TabOrder = 0
-    ExplicitTop = 8
   end
   object StatusBar: TStatusBar
     Left = 0
