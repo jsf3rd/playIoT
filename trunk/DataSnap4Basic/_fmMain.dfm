@@ -16,6 +16,7 @@ object fmMain: TfmMain
   OldCreateOrder = False
   Position = poScreenCenter
   OnCreate = FormCreate
+  OnShow = FormShow
   PixelsPerInch = 96
   TextHeight = 13
   object mmLog: TMemo
@@ -28,6 +29,7 @@ object fmMain: TfmMain
     ReadOnly = True
     ScrollBars = ssVertical
     TabOrder = 0
+    ExplicitTop = 8
   end
   object StatusBar: TStatusBar
     Left = 0
