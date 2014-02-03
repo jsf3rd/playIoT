@@ -29,7 +29,6 @@ type
     procedure FormShow(Sender: TObject);
     procedure btnCancleClick(Sender: TObject);
   private
-    FDBInfo: TConnectionParam;
   public
     { Public declarations }
   end;
