@@ -20,14 +20,6 @@ const
   CHANNEL_DEFAULT = 'CH_DataSnap';
 
 type
-  TConnectionParam = record
-    Host: String;
-    DataBase: String;
-    User: String;
-    PWD: String;
-    Port: Integer;
-  end;
-
   TGlobal = class(TComponent)
   strict private
     FInitialized: boolean;

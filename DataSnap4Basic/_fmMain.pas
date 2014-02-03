@@ -17,9 +17,6 @@ type
     lbUserList: TListBox;
     Panel1: TPanel;
     GroupBox1: TGroupBox;
-    GroupBox2: TGroupBox;
-    chkMeaDataLog: TCheckBox;
-    chkEventLog: TCheckBox;
     MainMenu: TMainMenu;
     File1: TMenuItem;
     ools1: TMenuItem;
@@ -33,13 +30,8 @@ type
     N1: TMenuItem;
     Exit1: TMenuItem;
     StaticText1: TStaticText;
-    chkErrorLog: TCheckBox;
     procedure FormCreate(Sender: TObject);
     procedure actClearLogExecute(Sender: TObject);
-    procedure chkMeaDataLogClick(Sender: TObject);
-    procedure chkEventLogClick(Sender: TObject);
-    procedure chkErrorLogClick(Sender: TObject);
-    procedure FormShow(Sender: TObject);
     procedure actOptionsExecute(Sender: TObject);
     procedure actExitExecute(Sender: TObject);
     procedure actAboutExecute(Sender: TObject);
@@ -94,32 +86,10 @@ begin
   fmOptions.Free;
 end;
 
-procedure TfmMain.chkErrorLogClick(Sender: TObject);
-begin
-  TOption.Obj.ErrorLog := chkErrorLog.Checked;
-end;
-
-procedure TfmMain.chkEventLogClick(Sender: TObject);
-begin
-  TOption.Obj.EventLog := chkEventLog.Checked;
-end;
-
-procedure TfmMain.chkMeaDataLogClick(Sender: TObject);
-begin
-  TOption.Obj.MeaDataLog := chkMeaDataLog.Checked;
-end;
-
 procedure TfmMain.FormCreate(Sender: TObject);
 begin
   TView.Obj.Add(Self);
   TGlobal.Obj.ExeName := Application.ExeName;
-end;
-
-procedure TfmMain.FormShow(Sender: TObject);
-begin
-  chkMeaDataLog.Checked := TOption.Obj.MeaDataLog;
-  chkEventLog.Checked := TOption.Obj.EventLog;
-  chkErrorLog.Checked := TOption.Obj.ErrorLog;
 end;
 
 procedure TfmMain.rp_ChannelStateChanged(APacket: TValueList);

@@ -16,7 +16,6 @@ object fmMain: TfmMain
   OldCreateOrder = False
   Position = poScreenCenter
   OnCreate = FormCreate
-  OnShow = FormShow
   PixelsPerInch = 96
   TextHeight = 13
   object mmLog: TMemo
@@ -72,54 +71,13 @@ object fmMain: TfmMain
         TabOrder = 0
       end
     end
-    object GroupBox2: TGroupBox
-      Left = 9
-      Top = 232
-      Width = 185
-      Height = 95
-      Caption = 'View Log'
-      Font.Charset = DEFAULT_CHARSET
-      Font.Color = clWindowText
-      Font.Height = -11
-      Font.Name = 'Tahoma'
-      Font.Style = []
-      ParentFont = False
-      TabOrder = 1
-      object chkMeaDataLog: TCheckBox
-        Left = 16
-        Top = 23
-        Width = 129
-        Height = 17
-        Caption = 'Measure Data Log'
-        TabOrder = 0
-        OnClick = chkMeaDataLogClick
-      end
-      object chkEventLog: TCheckBox
-        Left = 16
-        Top = 46
-        Width = 129
-        Height = 17
-        Caption = 'Event Log'
-        TabOrder = 1
-        OnClick = chkEventLogClick
-      end
-      object chkErrorLog: TCheckBox
-        Left = 16
-        Top = 69
-        Width = 129
-        Height = 17
-        Caption = 'Error Log'
-        TabOrder = 2
-        OnClick = chkErrorLogClick
-      end
-    end
     object StaticText1: TStaticText
       Left = 117
       Top = 350
       Width = 77
       Height = 17
       Caption = #9426' ENBGROUP.'
-      TabOrder = 2
+      TabOrder = 1
     end
   end
   object ActionList: TActionList

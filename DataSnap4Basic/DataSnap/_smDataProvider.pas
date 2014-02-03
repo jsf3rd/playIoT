@@ -12,7 +12,7 @@ type
   TsmDataProvider = class(TDSServerModule)
   private
   public
-    function GetData(AValue: TJSONValue): TDBXReader;
+    function GetData(AValue: TJSONValue): TStream;
   public
   end;
 
@@ -24,9 +24,10 @@ uses ServerContainerUnit, Option, JdcGlobal, JdcView, Global;
 
 { TsmDataProvider }
 
-function TsmDataProvider.GetData(AValue: TJSONValue): TDBXReader;
+function TsmDataProvider.GetData(AValue: TJSONValue): TStream;
 begin
   //
+  result := nil;
 end;
 
 end.
