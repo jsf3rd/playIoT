@@ -3,7 +3,7 @@
 interface
 
 uses
-  Classes, SysUtils, JdcView, JdcGlobal, DBXJSON;
+  Classes, SysUtils, JdcView2, JdcGlobal, DBXJSON;
 
 const
   APPLICATION_TITLE = 'DataSnap for Basic v1.0';

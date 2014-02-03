@@ -26,7 +26,7 @@ implementation
 
 {$R *.dfm}
 
-uses System.StrUtils, JdcView, _fmMain, Global, Option, JdcGlobal,
+uses System.StrUtils, JdcView2, _fmMain, Global, Option, JdcGlobal,
   DBXCommon;
 
 procedure TsmDataLoader.DSServerModuleCreate(Sender: TObject);
