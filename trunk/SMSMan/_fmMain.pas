@@ -69,10 +69,9 @@ begin
           + NEXT_LINE + '공백 (_),  줄바꿈 (@), 수신자 구분(/)');
     end;
 
-  finally
     RawMessage.free;
+  finally
     Application.Terminate;
-
   end;
 end;
 
