@@ -35,6 +35,7 @@ type
     procedure actOptionsExecute(Sender: TObject);
     procedure actExitExecute(Sender: TObject);
     procedure actAboutExecute(Sender: TObject);
+    procedure FormShow(Sender: TObject);
   private
     procedure DeleteItem(AIP: string);
   public
@@ -90,6 +91,11 @@ procedure TfmMain.FormCreate(Sender: TObject);
 begin
   TView.Obj.Add(Self);
   TGlobal.Obj.ExeName := Application.ExeName;
+end;
+
+procedure TfmMain.FormShow(Sender: TObject);
+begin
+  Caption := APPLICATION_TITLE;
 end;
 
 procedure TfmMain.rp_ChannelStateChanged(APacket: TValueList);
