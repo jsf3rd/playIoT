@@ -24,8 +24,10 @@ type
     RzGroupBox3: TGroupBox;
     RzLabel6: TLabel;
     edtDBPort: TEdit;
-    edtDSPort: TEdit;
-    procedure btnConfirmClick(Sender: TObject);
+    edtTcpPort: TEdit;
+    Label1: TLabel;
+    edtHttpPort: TEdit;
+    procedure btnConfirmClick(TCPPort: TObject);
     procedure FormShow(Sender: TObject);
     procedure btnCancleClick(Sender: TObject);
   private
@@ -47,7 +49,7 @@ begin
   Close;
 end;
 
-procedure TfmOption.btnConfirmClick(Sender: TObject);
+procedure TfmOption.btnConfirmClick(TCPPort: TObject);
 var
   params: TStringList;
 begin
@@ -60,7 +62,8 @@ begin
   TOption.Obj.DBInfo := params.CommaText;
   params.Free;
 
-  TOption.Obj.DSPort := StrToIntDef(edtDSPort.Text, 211);
+  TOption.Obj.TcpPort := StrToIntDef(edtTcpPort.Text, 211);
+  TOption.Obj.HttpPort := StrToIntDef(edtHttpPort.Text, 80);
   Close;
 end;
 
@@ -77,7 +80,8 @@ begin
   edtPass.Text := params.Values[DB_PASSWORD];
   edtDBPort.Text := params.Values[DB_PORT];
 
-  edtDSPort.Text := IntToStr(TOption.Obj.DSPort);
+  edtTcpPort.Text := IntToStr(TOption.Obj.TcpPort);
+  edtHttpPort.Text := IntToStr(TOption.Obj.HttpPort);
 
   edtHost.SetFocus;
 end;

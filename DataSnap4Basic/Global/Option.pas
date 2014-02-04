@@ -10,27 +10,17 @@ type
   private
     function GetDBInfo: String;
     procedure SetDBInfo(ADBInfo: String);
-    function GetDSPort: Integer;
-    procedure SetDSPort(const Value: Integer);
-    function GetConnStateLog: boolean;
-    procedure SetConnStateLog(const Value: boolean);
-    function GetMeaDataLog: boolean;
-    procedure SetMeaDataLog(const Value: boolean);
-    function GetEventLog: boolean;
-    procedure SetEventLog(const Value: boolean);
-    function GetErrorLog: boolean;
-    procedure SetErrorLog(const Value: boolean);
+    function GetTcpPort: Integer;
+    procedure SetTcpPort(const Value: Integer);
+    procedure SetHttpPort(const Value: Integer);
+    function GetHttpPort: Integer;
 
   public
     class function Obj: TOption;
 
-    property DSPort: Integer read GetDSPort write SetDSPort;
+    property TcpPort: Integer read GetTcpPort write SetTcpPort;
+    property HttpPort: Integer read GetHttpPort write SetHttpPort;
     property DBInfo: String read GetDBInfo write SetDBInfo;
-    property ConnStateLog: boolean read GetConnStateLog write SetConnStateLog;
-    property MeaDataLog: boolean read GetMeaDataLog write SetMeaDataLog;
-    property EventLog: boolean read GetEventLog write SetEventLog;
-    property ErrorLog: boolean read GetErrorLog write SetErrorLog;
-
   end;
 
 implementation
@@ -40,44 +30,19 @@ var
 
   { TOption }
 
-function TOption.GetConnStateLog: boolean;
-begin
-  result := GetBoolValue('ViewLog', 'ConnStateLog', True);
-end;
-
-function TOption.GetMeaDataLog: boolean;
-begin
-  result := GetBoolValue('ViewLog', 'MeaDataLog', False);
-end;
-
 function TOption.GetDBInfo: String;
 begin
   result := GetStringValue('DB', 'Params', '');
 end;
 
-function TOption.GetDSPort: Integer;
+function TOption.GetTcpPort: Integer;
 begin
-  result := GetIntegerValue('DSServer', 'Port', 211);
+  result := GetIntegerValue('DSServer', 'TCPPort', 211);
 end;
 
-function TOption.GetErrorLog: boolean;
+function TOption.GetHttpPort: Integer;
 begin
-  result := GetBoolValue('ViewLog', 'ErrorLog', True);
-end;
-
-function TOption.GetEventLog: boolean;
-begin
-  result := GetBoolValue('ViewLog', 'EventLog', False);
-end;
-
-procedure TOption.SetConnStateLog(const Value: boolean);
-begin
-  SetBoolValue('ViewLog', 'ConnStateLog', Value);
-end;
-
-procedure TOption.SetMeaDataLog(const Value: boolean);
-begin
-  SetBoolValue('ViewLog', 'MeaDataLog', Value);
+  result := GetIntegerValue('DSServer', 'HTTPPort', 80);
 end;
 
 procedure TOption.SetDBInfo(ADBInfo: String);
@@ -85,19 +50,14 @@ begin
   SetStringValue('DB', 'Params', ADBInfo);
 end;
 
-procedure TOption.SetDSPort(const Value: Integer);
+procedure TOption.SetTcpPort(const Value: Integer);
 begin
-  SetIntegerValue('DSServer', 'Port', Value);
+  SetIntegerValue('DSServer', 'TCPPort', Value);
 end;
 
-procedure TOption.SetErrorLog(const Value: boolean);
+procedure TOption.SetHttpPort(const Value: Integer);
 begin
-  SetBoolValue('ViewLog', 'ErrorLog', Value);
-end;
-
-procedure TOption.SetEventLog(const Value: boolean);
-begin
-  SetBoolValue('ViewLog', 'EventLog', Value);
+  SetIntegerValue('DSServer', 'HTTPPort', Value);
 end;
 
 class function TOption.Obj: TOption;

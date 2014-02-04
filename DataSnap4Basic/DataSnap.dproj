@@ -1,6 +1,6 @@
 ﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
     <PropertyGroup>
-        <ProjectGuid>{AE590BAD-FBE0-4B2F-805C-F2579E566254}</ProjectGuid>
+        <ProjectGuid>{B96D8091-D070-42ED-B1F3-165DECF628E4}</ProjectGuid>
         <ProjectVersion>15.3</ProjectVersion>
         <FrameworkType>VCL</FrameworkType>
         <MainSource>DataSnap.dpr</MainSource>
