@@ -28,4 +28,9 @@ object ServerContainer: TServerContainer
     Left = 224
     Top = 72
   end
+  object DSHTTPService: TDSHTTPService
+    Filters = <>
+    Left = 96
+    Top = 136
+  end
 end

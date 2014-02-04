@@ -139,18 +139,34 @@ object fmOption: TfmOption
     object RzLabel6: TLabel
       Left = 10
       Top = 29
-      Width = 46
+      Width = 42
       Height = 13
-      Caption = 'Port(211)'
+      Caption = 'TCP Port'
       Transparent = False
     end
-    object edtDSPort: TEdit
+    object Label1: TLabel
+      Left = 10
+      Top = 56
+      Width = 48
+      Height = 13
+      Caption = 'HTTP Port'
+      Transparent = False
+    end
+    object edtTcpPort: TEdit
       Left = 62
       Top = 25
       Width = 120
       Height = 21
       ImeName = 'Microsoft Office IME 2007'
       TabOrder = 0
+    end
+    object edtHttpPort: TEdit
+      Left = 62
+      Top = 52
+      Width = 120
+      Height = 21
+      ImeName = 'Microsoft Office IME 2007'
+      TabOrder = 1
     end
   end
 end
