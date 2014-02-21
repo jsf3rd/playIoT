@@ -3,7 +3,7 @@ unit JdcGlobal;
 interface
 
 uses
-  Classes, SysUtils, Windows, ZLib, IdGlobal, IOUtils, StdCtrls;
+  Classes, SysUtils, Windows, ZLib, IdGlobal, IOUtils, StdCtrls, JclFileUtils;
 
 // 로그 찍기..
 procedure PrintLog(AFile, AMessage: String); overload;
@@ -84,26 +84,18 @@ procedure PrintLog(AFile, AMessage: String);
 var
   FileHandle: integer;
   S: AnsiString;
-
-  SL: TStringList;
 begin
 
   if FileExists(AFile) then
   begin
-    SL := TStringList.Create;
-    try
-      SL.LoadFromFile(AFile);
-
-      if SL.Count > 1000000 then
-      begin
-        SL.Clear;
-        SL.SaveToFile(AFile);
-      end;
-    finally
-      SL.Free;
-    end;
-
-    FileHandle := FileOpen(AFile, fmOpenWrite);
+    if FileGetSize(AFile) > 1024 * 1024 * 5 then
+    begin
+      FileMove(AFile, ChangeFileExt(AFile, FormatDateTime('_YYYYMMDD_HHNNSS',
+        now) + '.bak'), true);
+      FileHandle := FileCreate(AFile);
+    end
+    else
+      FileHandle := FileOpen(AFile, fmOpenWrite);
   end
   else
   begin
@@ -135,7 +127,7 @@ begin
     // 완료시 한번 더 이벤트를 불러준다.
     if Assigned(OnProgress) then
       OnProgress(CS);
-    result := True;
+    result := true;
   finally
     CS.Free;
   end;
@@ -153,7 +145,7 @@ begin
       Exit;
   end;
 
-  result := True;
+  result := true;
 end;
 
 function IsGoodResponse(Text, Command: string;
@@ -200,7 +192,7 @@ begin
       until ReadSize < BuffSize;
       if Assigned(OnProgress) then
         OnProgress(DS); // Compress와 같은이유
-      result := True;
+      result := true;
     finally
       FreeMem(Buff)
     end;
