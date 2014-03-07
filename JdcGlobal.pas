@@ -82,35 +82,25 @@ end;
 
 procedure PrintLog(AFile, AMessage: String);
 var
-  FileHandle: integer;
-  S: AnsiString;
+  Stream: TStreamWriter;
 begin
-
   if FileExists(AFile) then
   begin
-    if FileGetSize(AFile) > 1024 * 1024 * 5 then
+    if JclFileUtils.FileGetSize(AFile) > 1024 * 1024 * 5 then
     begin
       FileMove(AFile, ChangeFileExt(AFile, FormatDateTime('_YYYYMMDD_HHNNSS',
         now) + '.bak'), true);
-      FileHandle := FileCreate(AFile);
-    end
-    else
-      FileHandle := FileOpen(AFile, fmOpenWrite);
-  end
-  else
-  begin
-    FileHandle := FileCreate(AFile);
+    end;
   end;
 
+  Stream := TFile.AppendText(AFile);
   try
-    FileSeek(FileHandle, 0, 2);
-    S := AnsiString(FormatDateTime('YYYY-MM-DD, HH:NN:SS.zzz, ', now) +
-      AMessage) + #13#10;
-    FileWrite(FileHandle, S[1], Length(S));
+    Stream.WriteLine(FormatDateTime('YYYY-MM-DD, HH:NN:SS.zzz, ', now) +
+      AMessage);
   finally
-    FileClose(FileHandle);
+    Stream.Close;
+    FreeAndNil(Stream);
   end;
-
 end;
 
 function CompressStream(Stream: TStream; OutStream: TStream;
