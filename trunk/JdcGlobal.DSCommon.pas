@@ -3,13 +3,15 @@ unit JdcGlobal.DSCommon;
 interface
 
 uses
-  Classes, SysUtils, FireDAC.Comp.Client, FireDAC.Stan.Intf, DBXJSON;
+  Classes, SysUtils, FireDAC.Comp.Client, FireDAC.Stan.Intf, DBXJSON,
+  Data.DBXPlatform;
 
 type
   TDSCommon = class
   public
     // Clear JSONObject Members
-    class procedure ClearJSONObject(AObject: TJSONObject);
+    class procedure ClearJSONObject(AObject: TJSONObject); overload;
+    class procedure ClearJSONObject(AObject: TJSONArray); overload;
 
     // FDQuery를 TSream으로 변환
     class function DataSetToStream(AQuery: TFDQuery): TStream;
@@ -25,6 +27,16 @@ implementation
 
 { TDSCommon }
 
+class procedure TDSCommon.ClearJSONObject(AObject: TJSONArray);
+var
+  I: integer;
+begin
+  for I := AObject.Size - 1 downto 0 do
+  begin
+    AObject.Remove(I).Free;
+  end;
+end;
+
 class function TDSCommon.DataSetToStream(AQuery: TFDQuery): TStream;
 begin
   result := TBytesStream.Create;
@@ -37,15 +49,12 @@ end;
 
 class procedure TDSCommon.ClearJSONObject(AObject: TJSONObject);
 var
-  Pair: TJSONPair;
-  I: integer;
+  MyElem: TJSONPair;
 begin
-  for I := AObject.Size - 1 downto 0 do
+  for MyElem in AObject do
   begin
-    Pair := AObject.Get(I);
-    AObject.RemovePair(Pair.JsonString.Value).Free;
+    AObject.RemovePair(MyElem.JsonString.Value).Free;
   end;
-
 end;
 
 class function TDSCommon.DSStreamToBytesStream(AValue: TStream): TBytesStream;
