@@ -196,16 +196,20 @@ asm
   BSWAP    EAX;
 end;
 
+function CheckHexStr(ASource: String): String;
+begin
+  if (Length(ASource) mod 2) = 0 then
+    result := ASource
+  else
+    result := '0' + ASource;
+end;
+
 function HexStrToByte(const ASource: String; const AIndex: integer): Byte;
 var
   str: String;
   tmp: TIdBytes;
 begin
-
-  str := ASource;
-
-  if Length(str) = 1 then
-    str := '0' + str;
+  str := CheckHexStr(ASource);
 
   if Length(str) < AIndex + 1 then
   begin
@@ -222,11 +226,10 @@ function HexStrToWord(const ASource: string; const AIndex: integer): Word;
 var
   str: string;
 begin
+  str := CheckHexStr(ASource);
 
-  str := ASource;
-
-  if Length(str) = 1 then
-    str := '000' + str;
+  if Length(str) = 2 then
+    str := '00' + str;
 
   if Length(str) < AIndex + 3 then
   begin
@@ -243,14 +246,17 @@ var
   I, j, n: integer;
   c: char;
   b: Byte;
+  str: string;
 begin
+  str := CheckHexStr(ASource);
+
   SetLength(result, 0);
 
   j := 0;
   b := 0;
   n := 0;
 
-  for I := AIndex to Length(ASource) do
+  for I := AIndex to Length(str) do
   begin
     c := ASource[I];
     case c of
