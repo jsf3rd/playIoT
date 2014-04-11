@@ -22,11 +22,22 @@ function Contains(Contents: string; const str: array of const): boolean;
 function IsGoodResponse(Text, Command: string;
   Response: array of const): boolean;
 
-// Reverse 4Btye..
+// Reverse 2Btyes..
+function Rev2Bytes(w: WORD): WORD;
+
+// Reverse 4Btyes..
 function Rev4Bytes(Value: LongInt): LongInt;
 
+// Big endian
+function WordToBytes(AValue: WORD): TIdBytes;
+
+// Big endian
+function DWordToBytes(AValue: DWORD): TIdBytes;
+
+// little endian
+function HexStrToWord(const ASource: string; const AIndex: integer = 1): WORD;
+
 function HexStrToByte(const ASource: String; const AIndex: integer = 1): Byte;
-function HexStrToWord(const ASource: string; const AIndex: integer = 1): Word;
 function HexStrToBytes(const ASource: string; const AIndex: integer = 1)
   : TIdBytes;
 
@@ -191,6 +202,11 @@ begin
   end;
 end;
 
+function Rev2Bytes(w: WORD): WORD;
+asm
+  xchg   al, ah
+end;
+
 function Rev4Bytes(Value: LongInt): LongInt;
 asm
   BSWAP    EAX;
@@ -222,7 +238,17 @@ begin
   CopyMemory(@result, tmp, 1);
 end;
 
-function HexStrToWord(const ASource: string; const AIndex: integer): Word;
+function WordToBytes(AValue: WORD): TIdBytes;
+begin
+  result := ToBytes(Rev2Bytes(AValue));
+end;
+
+function DWordToBytes(AValue: DWORD): TIdBytes;
+begin
+  result := ToBytes(Rev4Bytes(AValue));
+end;
+
+function HexStrToWord(const ASource: string; const AIndex: integer): WORD;
 var
   str: string;
 begin
