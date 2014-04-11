@@ -20,7 +20,8 @@ type
     procedure sp_AsyncMessage(ACode: String; AMsg: String = '');
     destructor Destroy; override;
 
-    procedure sp_ErrorMessage(Msg: String);
+    procedure sp_ErrorMessage(Msg: String); overload;
+    procedure sp_ErrorMessage(UserMsg, ErrorMsg: String); overload;
     procedure sp_ShowMessage(Msg: String);
     procedure sp_Terminate(Msg: string);
   end;
@@ -72,6 +73,21 @@ end;
 procedure TView.sp_ErrorMessage(Msg: String);
 begin
   sp_AsyncMessage('ErrorMessage', Msg);
+end;
+
+procedure TView.sp_ErrorMessage(UserMsg, ErrorMsg: String);
+var
+  ValueList: TValueList;
+begin
+  ValueList := TValueList.Create;
+  try
+    ValueList.Values['Code'] := 'ErrorMessage';
+    ValueList.Values['Msg'] := UserMsg;
+    ValueList.Values['ErrorMsg'] := ErrorMsg;
+    AsyncBroadcast(ValueList);
+  finally
+    ValueList.Free;
+  end;
 end;
 
 procedure TView.sp_ShowMessage(Msg: String);
