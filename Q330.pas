@@ -235,7 +235,6 @@ var
 begin
   Sec := Rev4Bytes(SecondsOffset);
   Sec := Sec + ADataSeq;
-  // Sec := Sec + 2000;
 
   result := IncSecond(StrToDateTime('2000-01-01 09:00:00'), Sec);
 end;
