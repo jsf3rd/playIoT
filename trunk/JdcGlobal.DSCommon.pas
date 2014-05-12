@@ -28,12 +28,10 @@ implementation
 { TDSCommon }
 
 class procedure TDSCommon.ClearJSONObject(AObject: TJSONArray);
-var
-  I: integer;
 begin
-  for I := AObject.Size - 1 downto 0 do
+  while AObject.Size > 0 do
   begin
-    AObject.Remove(I).Free;
+    AObject.Remove(0).Free;
   end;
 end;
 
@@ -49,11 +47,12 @@ end;
 
 class procedure TDSCommon.ClearJSONObject(AObject: TJSONObject);
 var
-  MyElem: TJSONPair;
+  Name: String;
 begin
-  for MyElem in AObject do
+  while AObject.Size > 0 do
   begin
-    AObject.RemovePair(MyElem.JsonString.Value).Free;
+    Name := AObject.Get(0).JsonString.Value;
+    AObject.RemovePair(Name).Free;
   end;
 end;
 
