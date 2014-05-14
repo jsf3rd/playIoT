@@ -45,6 +45,9 @@ function IdBytesToHex(const AValue: TIdBytes;
   const ASpliter: String = ' '): String;
 function BytesToHex(const AValue: TBytes; const ASpliter: String = ' '): String;
 
+function IdBytesPos(const SubIdBytes, IdBytes: TIdBytes;
+  const AIndex: integer = 0): integer;
+
 type
   IExecuteFunc<T> = Interface
     ['{48E4B912-AE21-4201-88E0-4835432FEE69}']
@@ -57,6 +60,24 @@ type
   End;
 
 implementation
+
+function IdBytesPos(const SubIdBytes, IdBytes: TIdBytes;
+  const AIndex: integer = 0): integer;
+var
+  Index: integer;
+  I: integer;
+begin
+  Index := ByteIndex(SubIdBytes[0], IdBytes, AIndex);
+  if Index = -1 then
+    Exit(-1);
+
+  for I := 0 to Length(SubIdBytes) - 1 do
+  begin
+    if IdBytes[Index + I] <> SubIdBytes[I] then
+      Exit(IdBytesPos(SubIdBytes, IdBytes, Index + I));
+  end;
+  result := Index;
+end;
 
 function IdBytesToHex(const AValue: TIdBytes; const ASpliter: String): String;
 var
@@ -176,7 +197,8 @@ begin
   if Stream = OutStream then
     // 입력 스트림과 출력스트림이 같으면 문제가 발생한다
     raise Exception.Create('입력 스트림과 출력 스트림이 같습니다');
-  Stream.Position := 0; // 스트림 커서 초기화
+  Stream.Position := 0;
+  // 스트림 커서 초기화
   OutStream.Position := 0;
   // 인풋 스트림을 옵션으로 객체 생성.
   DS := TZDeCompressionStream.Create(Stream);
@@ -192,7 +214,8 @@ begin
           OutStream.Write(Buff^, ReadSize);
       until ReadSize < BuffSize;
       if Assigned(OnProgress) then
-        OnProgress(DS); // Compress와 같은이유
+        OnProgress(DS);
+      // Compress와 같은이유
       result := true;
     finally
       FreeMem(Buff)
