@@ -130,7 +130,6 @@ begin
     Stream.WriteLine(FormatDateTime('YYYY-MM-DD, HH:NN:SS.zzz, ', now) +
       AMessage);
   finally
-    Stream.Close;
     FreeAndNil(Stream);
   end;
 end;
