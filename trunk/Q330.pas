@@ -39,6 +39,25 @@ type
     Data: TIdBytes;
   end;
 
+  TQdpPacket = record
+    QdpHeader: TQdpHeader;
+    Buffer: TIdBytes;
+    constructor Create(AQdpHeader: TQdpHeader; ABuffer: TIdBytes);
+  end;
+
+  TQ330Error = class
+  const
+    NO_ERROR = -1;
+    NO_PERMISSION = 0;
+    TOO_MANY_CONFIGURATION = 1;
+    NOT_REGISTERED = 2;
+    INVALID_REGISTRATION_RESPONSE = 3;
+    PARAMETER_ERROR = 4;
+    STURCTURE_NOT_VALID = 5;
+    CONFIGURATION_ONLY = 6;
+    UNKNOWN = 7;
+  end;
+
   TQ330 = class
   const
     C1_CACK = $A0; // * Command Acknowledge * /
@@ -51,19 +70,20 @@ type
     DT_OPEN = $0B; // Open Data Port
     DT_DATA = $00; // Data Record
     DT_DACK = $0A; // Data Acknowlege
+
+    Q330ControlPort: array [0 .. 2] of Integer = (5332, 5334, 5336);
+    Q330DataPort: array [0 .. 2] of Integer = (5333, 5335, 5337);
   public
     class function BuilderPacket(AQdpHeader: TQdpHeader; AData: Pointer)
       : TIdBytes;
-
     class function BuildRawData(ARawData: TIdBytes): TJSONArray;
-
     class function GetCommandString(ACommand: Byte): String;
   end;
 
 const
   DecompTab: array [0 .. 6, 0 .. 4] of DWord = //
-    (( { samps } 4, { postshift } 8, { mask } 255, { hibit } 128, { neg } 256),
-    (1, 0, 1073741823, 536870912, 1073741824), //
+    (( { samps } 4, { postshift } 8, { mask } 255, { hibit } 128,
+    { neg } 256), (1, 0, 1073741823, 536870912, 1073741824), //
     (2, 15, 32767, { } 16384, { neg } 32768), //
     (3, 10, 1023, { } 512, { neg } 1024), //
     (5, 6, 63, { } 32, { neg } 64), //
@@ -237,6 +257,12 @@ begin
   Sec := Sec + ADataSeq;
 
   result := IncSecond(StrToDateTime('2000-01-01 09:00:00'), Sec);
+end;
+
+constructor TQdpPacket.Create(AQdpHeader: TQdpHeader; ABuffer: TIdBytes);
+begin
+  Self.QdpHeader := AQdpHeader;
+  Self.Buffer := ABuffer;
 end;
 
 end.
