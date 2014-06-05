@@ -63,7 +63,6 @@ var
   Buffer: TBytes;
   BytesReadCount: integer;
 begin
-
   result := TBytesStream.Create;
 
   if AValue.Size < 0 then
@@ -89,15 +88,19 @@ class procedure TDSCommon.StreamToMemTable(AStream: TStream;
 var
   BytesStream: TBytesStream;
 begin
-
   BytesStream := DSStreamToBytesStream(AStream);
+  try
+    if BytesStream.Size = 0 then
+      raise Exception.Create('Reveiced Null Stream, ' + ATable.Name);
 
-  ATable.Close;
-  ATable.DisableControls;
-  ATable.LoadFromStream(BytesStream, sfBinary);
-  ATable.EnableControls;
+    ATable.Close;
+    ATable.DisableControls;
+    ATable.LoadFromStream(BytesStream, sfBinary);
+    ATable.EnableControls;
+  finally
+    BytesStream.Free;
+  end;
 
-  BytesStream.Free;
 end;
 
 end.
