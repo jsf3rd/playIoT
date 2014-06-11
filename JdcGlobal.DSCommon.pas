@@ -98,7 +98,7 @@ begin
     ATable.LoadFromStream(BytesStream, sfBinary);
     ATable.EnableControls;
   finally
-    BytesStream.Free;
+    FreeAndNil(BytesStream);
   end;
 
 end;
