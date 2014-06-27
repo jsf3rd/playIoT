@@ -181,8 +181,8 @@ begin
 
   CurrValue := Rev4Bytes(BytesToLongInt(ARawData));
   RemoveBytes(ARawData, 4);
-  // InitValue
 
+  // InitValue
   Offset := BytesToWord(ARawData);
   RemoveBytes(ARawData, 2); // Offset
 
