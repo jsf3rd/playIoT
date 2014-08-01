@@ -2,9 +2,9 @@ unit JdcMSeed;
 
 interface
 
-uses System.classes, System.SysUtils, Winapi.Windows, JdcGlobal, IdGlobal,
+uses System.classes, System.SysUtils, Winapi.Windows, JdcGlobal,
   System.DateUtils, System.Generics.Collections, Math,
-  JdcSteim, JdcMSeed.Common, System.IOUtils;
+  JdcMSeed.Steim, JdcMSeed.Common, System.IOUtils;
 
 type
   TMSeedFile = class
@@ -165,8 +165,7 @@ begin
     raise Exception.Create('This format is not surpported. ' +
       AParam.encoding.ToString);
 
-  result := TSteimDecoder.Create(TSteimType(Format),
-    TByteOrder(AParam.byteorder));
+  result := TSteimDecoder.Create(TSteimType(Format), AParam.byteorder);
 end;
 
 function TMSeedFile._ExtractRawData(AStream: TStream; APeriod: TPeriod)
