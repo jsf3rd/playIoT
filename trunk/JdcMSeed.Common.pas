@@ -16,7 +16,12 @@ type
   TEncodingFormat = (efAscii = 0, efInt16 = 1, efInt24 = 2, efInt32 = 3,
     efFloat = 4, efDouble = 5, efStaim1 = 10, efStaim2 = 11);
 
-  TByteOrder = (boLittle, boBig);
+  TDataFrame = packed record
+    ctrl: UInt32;
+    w: array [0 .. 14] of DWORD;
+  end;
+
+  TBlockette = array [0 .. 6] of TDataFrame;
 
   TPeriod = record
     StartDateTime: TDateTime;
