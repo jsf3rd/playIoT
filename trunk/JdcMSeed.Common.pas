@@ -1,77 +1,36 @@
+// *******************************************************
+//
+// Judico miniseed & steim common file
+//
+// Copyright(c) 2014 ENBGroup.
+//
+// jsf3rd@enbgroup.co.kr
+//
+// *******************************************************
+
 unit JdcMSeed.Common;
 
 interface
 
 uses System.classes, System.SysUtils, Winapi.Windows, JdcGlobal, IdGlobal,
-  System.DateUtils, System.Generics.Collections;
+  System.DateUtils, System.Generics.Collections, System.Math;
 
 const
   BLOCKETTE_CODE_1000 = $E803;
   BLOCKETTE_CODE_1001 = $E903;
-
   BLOCKETTE1001_OFFSET = $3800;
-
-  MAXSAMPPERWORD = 7;
-
-  B1X32 = 0;
-  B2X16 = 0;
-
-  B7X4 = 2 shl 2; // * level 2 compression code bits, within each block */
-  B6X5 = 1;
-  B5X6 = 0;
-  B4X8 = 0;
-  B3X10 = 3;
-  B2X15 = 2;
-  B1X30 = 1;
-
-  HUGE = $7FFFFFFF;
-  LARGE = $3FFFFFFF;
-  BIG = $1FFFFFFF;
 
   WORDS_PER_FRAME = 15;
   FRAME_SIZE = (WORDS_PER_FRAME * 4 + 4);
-  FRAMES_PER_RECORD = 7; //
-
-  Compseq: array [0 .. 9, 0 .. 5] of Integer = //
-    ( //
-    // Steim1
-    (4, 1, B4X8, 8, $FF, $7F), // 1Byte
-    (2, 2, B2X16, $10, $FFFF, $7FFF), // 2Byte
-    (1, 3, B1X32, $20, -1, HUGE), // 4Byte
-
-    // Steim2
-    (7, 3, B7X4, 4, $F, 7), // 4bit
-    (6, 3, B6X5, 5, $1F, $F), // 5bit
-    (5, 3, B5X6, 6, $3F, $1F), // 6bit
-    (4, 1, B4X8, 8, $FF, $7F), // 8bit
-    (3, 2, B3X10, $A, $3FF, $1FF), // 10bit
-    (2, 2, B2X15, $F, $7FFF, $3FFF), // 15bit
-    (1, 2, B1X30, $1E, LARGE, BIG) // 30bit
-    );
-
-  DecompTab: array [0 .. 9, 0 .. 4] of Integer = //
-    ( //
-    // Steim1
-    (1, $0, -1, 0, 0), // Ref Value
-    (4, $8, $FF, $80, $100), // 1Byte
-    (2, $10, $FFFF, $8000, $10000), // 2Byte
-    (1, $0, -1, 0, 0), // 4Byte
-
-    // Steim2
-    (1, $0, LARGE, $20000000, $40000000), // 30bit
-    (2, $F, $7FFF, $4000, $8000), // 15bit
-    (3, $A, $3FF, $200, $400), // 10bit
-    (5, $6, $3F, $20, $40), // 6bit
-    (6, $5, $1F, $10, $20), // 5bit
-    (7, $4, $F, $8, $10) // 4bit
-    );
+  FRAMES_PER_RECORD = 7;
+  RECORD_SIZE = FRAME_SIZE * (FRAMES_PER_RECORD + 1);
 
 type
   TBlocketteTypeException = class(Exception)
+    //
   end;
 
-  TRecord = TPair<TDateTime, Integer>;
-  TRawData = TList<TRecord>;
+  TPeeks = TArray<Integer>;
   TMSeedContainer = TDictionary<String, TStream>;
 
   TEncodingFormat = (efAscii = 0, efInt16 = 1, efInt24 = 2, efInt32 = 3,
@@ -80,14 +39,22 @@ type
   TSteimType = (stLevel1 = 10, stLevel2 = 11);
   TByteOrder = (boLittle, boBig);
 
-  TDataFrame = packed record
-    ctrl: UInt32;
-    w: array [0 .. 14] of DWORD;
+  TPeekValue = record
+    DateTime: TDateTime;
+    Peek: Integer;
 
-    procedure Reset;
+    constructor Create(ADateTime: TDateTime; APeek: Integer);
   end;
 
-  TBlockette = Array [0 .. 6] of TDataFrame;
+  TDataFrame = packed record
+    ctrl: UInt32;
+    w: array [0 .. WORDS_PER_FRAME - 1] of DWORD;
+
+    procedure Reset;
+    constructor Create(AStream: TStream); overload;
+  end;
+
+  TDataRecord = Array [0 .. FRAMES_PER_RECORD - 1] of TDataFrame;
 
   TPeriod = record
     StartDateTime: TDateTime;
@@ -127,14 +94,16 @@ type
     io_flags: Byte;
     dq_flags: Byte;
     numblockettes: Byte;
-    time_correct: Int32;
+    time_correct: Integer;
     data_offset: Word;
     blockette_offset: Word;
 
     function ChannelCode: String;
     function ToString: String;
     function Interval: Integer;
-    constructor Create(station, location, channel, network: Ansistring);
+    constructor Create(AStream: TStream); overload;
+    constructor Create(station, location, channel, network: Ansistring;
+      samprate_fact: Word); overload;
   end;
 
   TBlockette1000 = packed record
@@ -145,8 +114,11 @@ type
     reclen: Byte;
     reserved: Byte;
 
+    constructor Create(AStream: TStream); overload;
+    constructor Create(AType: TSteimType); overload;
+    function IsValid: boolean;
+    function RecordLength: Integer;
     function ToString: String;
-    constructor Create(AType: TSteimType);
   end;
 
   TBlockette1001 = packed record
@@ -158,12 +130,35 @@ type
     framecnt: Byte;
 
     function ToString: String;
-    constructor Create(ATemp: Integer);
+    constructor Create(AStream: TStream); overload;
+    constructor Create(ATemp: Integer); overload;
+    function IsValid: boolean;
+  end;
+
+  TFixedHeader = packed record
+    Header: TMSeedHeader;
+    Blkt1000: TBlockette1000;
+    Blkt1001: TBlockette1001;
+
+    constructor Create(AStream: TStream); overload;
+    constructor Create(AHeader: TMSeedHeader; AType: TSteimType); overload;
+    function IsValid: boolean;
+    function DataLength: Integer;
+    procedure WriteTo(ASteram: TStream);
+  end;
+
+  TCompPacket = record
+    frame: Word;
+    block: Integer;
+    frame_buffer: TDataFrame;
+
+    constructor Create(frame: Word);
+    function IsFirstBlock: boolean;
   end;
 
   TCompSeqType = record
     scan: Integer;
-    bc: Integer;
+    bc: Cardinal;
     cbits: Integer;
     shift: Integer;
     mask: Integer;
@@ -178,14 +173,73 @@ type
     neg: Integer;
   end;
 
+  TRawData = class(TList<TPeekValue>)
+  public
+    function Peeks: TPeeks;
+  end;
+
   TMSeedCommon = class
   private
     class function CalcSteim2SubCode(dnib: Byte; accum: Integer): Byte;
   public
-    class function GetRecordCount(AFrame: TDataFrame;
+    class function GetRecordCount(ARecord: TDataRecord;
       AType: TSteimType): Integer;
     class function GetSubCode(steim: TSteimType; dnib: Byte;
       accum: Integer): Byte;
+
+  const
+    B1X32 = 0;
+    B2X16 = 0;
+
+    B7X4 = 2 shl 2; // * level 2 compression code bits, within each block */
+    B6X5 = 1;
+    B5X6 = 0;
+    B4X8 = 0;
+    B3X10 = 3;
+    B2X15 = 2;
+    B1X30 = 1;
+
+    HUGE = $7FFFFFFF;
+    LARGE = $3FFFFFFF;
+    BIG = $1FFFFFFF;
+
+    SIGN_MASK = $80000000;
+    NEGATIVE = $100000000;
+
+    CompTab: array [0 .. 9, 0 .. 5] of Integer = //
+      ( //
+      // Steim1
+      (4, 1, B4X8, 8, $FF, $7F), // 1Byte
+      (2, 2, B2X16, $10, $FFFF, $7FFF), // 2Byte
+      (1, 3, B1X32, $20, -1, HUGE), // 4Byte
+
+      // Steim2
+      (7, 3, B7X4, 4, $F, 7), // 4bit
+      (6, 3, B6X5, 5, $1F, $F), // 5bit
+      (5, 3, B5X6, 6, $3F, $1F), // 6bit
+      (4, 1, B4X8, 8, $FF, $7F), // 8bit
+      (3, 2, B3X10, $A, $3FF, $1FF), // 10bit
+      (2, 2, B2X15, $F, $7FFF, $3FFF), // 15bit
+      (1, 2, B1X30, $1E, LARGE, BIG) // 30bit
+      );
+
+    DecompTab: array [0 .. 9, 0 .. 4] of Integer = //
+      ( //
+      // Steim1
+      (1, 0, -1, 0, 0), // Ref Value
+      (4, $8, $FF, $80, $100), // 1Byte
+      (2, $10, $FFFF, $8000, $10000), // 2Byte
+      (1, 0, -1, 0, 0), // 4Byte
+
+      // Steim2
+      (1, $0, LARGE, $20000000, $40000000), // 30bit
+      (2, $F, $7FFF, $4000, $8000), // 15bit
+      (3, $A, $3FF, $200, $400), // 10bit
+      (5, $6, $3F, $20, $40), // 6bit
+      (6, $5, $1F, $10, $20), // 5bit
+      (7, $4, $F, $8, $10) // 4bit
+      );
+
   end;
 
 implementation
@@ -211,12 +265,17 @@ begin
   SetLength(Bytes, 3);
   CopyMemory(Bytes, @Self.channel, 3);
   result := result + BytesToString(Bytes);
+
+  result := result.Replace(' ', '');
 end;
 
-constructor TMSeedHeader.Create(station, location, channel,
-  network: Ansistring);
+constructor TMSeedHeader.Create(station, location, channel, network: Ansistring;
+  samprate_fact: Word);
+var
+  I: Integer;
 begin
-  FillMemory(@Self.sequence_number, SizeOf(Self.sequence_number), $30);
+  for I := Low(Self.sequence_number) to High(Self.sequence_number) do
+    Self.sequence_number[I] := $30;
   Self.dataquality := $44;
   Self.reserved := $20;
 
@@ -227,7 +286,7 @@ begin
 
   Self.start_time.SetDateTime(0);
   Self.numsamples := 0;
-  Self.samprate_fact := 0;
+  Self.samprate_fact := Rev2Bytes(samprate_fact);
   Self.samprate_mult := Rev2Bytes(1);
   Self.act_flags := 0;
   Self.io_flags := 0;
@@ -236,6 +295,11 @@ begin
   Self.time_correct := 0;
   Self.data_offset := Rev2Bytes(64);
   Self.blockette_offset := Rev2Bytes(48);
+end;
+
+constructor TMSeedHeader.Create(AStream: TStream);
+begin
+  AStream.Read(Self, SizeOf(Self));
 end;
 
 function TMSeedHeader.Interval: Integer;
@@ -319,6 +383,25 @@ begin
   Self.reserved := 0;
 end;
 
+function TBlockette1000.RecordLength: Integer;
+begin
+  result := Trunc(power(2, Self.reclen));
+end;
+
+constructor TBlockette1000.Create(AStream: TStream);
+begin
+  AStream.Read(Self, SizeOf(Self));
+
+  if Self.blockette_code <> BLOCKETTE_CODE_1000 then
+    raise TBlocketteTypeException.Create('Blockette 1000 Code Error, ' +
+      IntToStr(Rev2Bytes(Self.blockette_code)));
+end;
+
+function TBlockette1000.IsValid: boolean;
+begin
+  result := Self.blockette_code = BLOCKETTE_CODE_1000;
+end;
+
 function TBlockette1000.ToString: String;
 begin
   result := 'BlocketteCode=' + IntToStr(Rev2Bytes(Self.blockette_code));
@@ -326,7 +409,7 @@ begin
     IntToStr(Rev2Bytes(Self.next_blockette_offset));
   result := result + ',Encoding=' + Self.encoding.ToString;
   result := result + ',ByteOrder=' + Self.byteorder.ToString;
-  result := result + ',RecordLength=' + Self.reclen.ToString;
+  result := result + ',RecordLength=' + Self.RecordLength.ToString;
 end;
 
 { TBlockette1001 }
@@ -339,6 +422,16 @@ begin
   Self.usec := 0;
   Self.reserved := 0;
   Self.framecnt := 7;
+end;
+
+constructor TBlockette1001.Create(AStream: TStream);
+begin
+  AStream.Read(Self, SizeOf(Self));
+end;
+
+function TBlockette1001.IsValid: boolean;
+begin
+  result := Self.blockette_code = BLOCKETTE_CODE_1001;
 end;
 
 function TBlockette1001.ToString: String;
@@ -379,9 +472,6 @@ begin
   end
   else
     result := dnib;
-
-  if result > 9 then
-    result := 9;
 end;
 
 class function TMSeedCommon.GetSubCode(steim: TSteimType; dnib: Byte;
@@ -389,39 +479,56 @@ class function TMSeedCommon.GetSubCode(steim: TSteimType; dnib: Byte;
 begin
   case steim of
     stLevel1:
-      result := dnib;
+      begin
+        result := dnib;
+        if result > 3 then
+          raise Exception.Create('Steim SubCode Error. ' + result.ToString);
+      end;
     stLevel2:
-      result := TMSeedCommon.CalcSteim2SubCode(dnib, accum);
+      begin
+        result := TMSeedCommon.CalcSteim2SubCode(dnib, accum);
+        if result > 9 then
+          raise Exception.Create('Steim SubCode Error. ' + result.ToString);
+      end;
+
   else
     raise Exception.Create('Unknown Steim Type. ' + Integer(steim).ToString);
   end;
 end;
 
-class function TMSeedCommon.GetRecordCount(AFrame: TDataFrame;
+class function TMSeedCommon.GetRecordCount(ARecord: TDataRecord;
   AType: TSteimType): Integer;
 var
   Flag: DWORD;
   SubCode, dnib: Byte;
   I: Integer;
   dcp: TDecompBitType;
+  MyFrame: TDataFrame;
 begin
-  Flag := Rev4Bytes(AFrame.ctrl);
   result := 0;
-
-  for I := Low(AFrame.w) to High(AFrame.w) do
+  for MyFrame in ARecord do
   begin
-    dnib := (Flag shr (28 - I * 2)) and 3;
-    SubCode := GetSubCode(AType, dnib, Rev4Bytes(AFrame.w[I]));
+    Flag := Rev4Bytes(MyFrame.ctrl);
+    for I := Low(MyFrame.w) to High(MyFrame.w) do
+    begin
+      dnib := (Flag shr (28 - I * 2)) and 3;
+      SubCode := GetSubCode(AType, dnib, Rev4Bytes(MyFrame.w[I]));
 
-    if SubCode = 0 then
-      Continue;
+      if SubCode = 0 then
+        Continue;
 
-    CopyMemory(@dcp, @DecompTab[SubCode], SizeOf(TDecompBitType));
-    result := result + dcp.samps;
+      CopyMemory(@dcp, @DecompTab[SubCode], SizeOf(TDecompBitType));
+      result := result + dcp.samps;
+    end;
   end;
 end;
 
 { TDataFrame }
+
+constructor TDataFrame.Create(AStream: TStream);
+begin
+  AStream.Read(Self, SizeOf(Self));
+end;
 
 procedure TDataFrame.Reset;
 var
@@ -430,6 +537,71 @@ begin
   Self.ctrl := 0;
   for I := Low(Self.w) to High(Self.w) do
     Self.w[I] := 0;
+end;
+
+{ TFixedHeader }
+
+constructor TFixedHeader.Create(AStream: TStream);
+begin
+  AStream.Read(Self.Header, SizeOf(TMSeedHeader));
+  AStream.Read(Self.Blkt1000, SizeOf(TBlockette1000));
+  AStream.Read(Self.Blkt1001, SizeOf(TBlockette1001));
+end;
+
+constructor TFixedHeader.Create(AHeader: TMSeedHeader; AType: TSteimType);
+begin
+  Self.Header := AHeader;
+  Self.Blkt1000 := TBlockette1000.Create(AType);
+  Self.Blkt1001 := TBlockette1001.Create(0);
+end;
+
+function TFixedHeader.DataLength: Integer;
+begin
+  result := Self.Blkt1000.RecordLength - SizeOf(Self);
+end;
+
+function TFixedHeader.IsValid: boolean;
+begin
+  result := Self.Blkt1001.IsValid;
+end;
+
+procedure TFixedHeader.WriteTo(ASteram: TStream);
+begin
+  ASteram.Write(Self, SizeOf(Self));
+end;
+
+{ TRawData }
+
+function TRawData.Peeks: TPeeks;
+var
+  I: Integer;
+begin
+  SetLength(result, Self.count);
+
+  for I := 0 to Self.count - 1 do
+    result[I] := Self.Items[I].Peek;
+end;
+
+{ TPeekValue }
+
+constructor TPeekValue.Create(ADateTime: TDateTime; APeek: Integer);
+begin
+  Self.DateTime := ADateTime;
+  Self.Peek := APeek;
+end;
+
+{ TCompPacket }
+
+constructor TCompPacket.Create(frame: Word);
+begin
+  Self.frame := frame;
+  Self.block := 0;
+  Self.frame_buffer.Reset;
+end;
+
+function TCompPacket.IsFirstBlock: boolean;
+begin
+  result := (Self.frame = 0) and (Self.block = 0);
 end;
 
 end.
