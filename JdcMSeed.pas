@@ -1,3 +1,13 @@
+// *******************************************************
+//
+// Judico miniSeed file parser
+//
+// Copyright(c) 2014 ENBGroup.
+//
+// jsf3rd@enbgroup.co.kr
+//
+// *******************************************************
+
 unit JdcMSeed;
 
 interface
@@ -11,11 +21,6 @@ type
   private
     FDateTime: TDateTime;
     FContainer: TMSeedContainer;
-
-    function ReadHeader(AStream: TStream): TMSeedHeader;
-    function ReadBlockette1000(AStream: TStream): TBlockette1000;
-    function ReadBlockette1001(AStream: TStream): TBlockette1001;
-    function ReadDataFrame(AStream: TStream): TDataFrame;
   private
     procedure _AddFile(AFile: String);
     procedure SaveEachChannel(AStream: TStream);
@@ -23,36 +28,51 @@ type
     function _ExtractRawData(AStream: TStream; APeriod: TPeriod): TRawData;
     function ExtractRawData(ACode: String; APeriod: TPeriod): TRawData;
 
-    procedure _ExtractToASCii(AFolder, ACode: String; APeriod: TPeriod);
-    procedure SaveToASCiiFile(AFolder, ACode: String; RawData: TRawData);
+    procedure _ExtractToASCii(APath, ACode: String; APeriod: TPeriod);
+    procedure SaveToASCiiFile(APath: String; RawData: TRawData);
+    procedure SaveToBinaryFile(APath, ACode: String);
 
-    procedure _ExtractToMSeed(AFolder, ACode: String; AType: TSteimType;
+    procedure _ExtractToMSeed(APath, ACode: String; AType: TSteimType;
       APeriod: TPeriod);
+    procedure SaveToMSeed(APath: String; ARawData: TRawData;
+      AFixedHeader: TFixedHeader);
   public
     constructor Create(AFile: String = '');
     destructor Destroy; override;
 
     procedure AddFile(AFile: String);
 
+    procedure Clear;
+    procedure RevemoveChannel(AChannel: String);
+
     function GetChannelList: TArray<String>;
 
-    procedure ExtractToASCii(AFolder, ACode: String); overload;
-    procedure ExtractToASCii(AFolder, ACode: String;
+    procedure AsciiToMSeed(ASource: String; AHeader: TMSeedHeader;
+      AType: TSteimType);
+
+    procedure ExtractToASCii(APath, ACode: String); overload;
+    procedure ExtractToASCii(APath, ACode: String;
       ABegin, AEnd: TDateTime); overload;
 
-    procedure ExtractToMSeed(AFolder, ACode: String;
-      AType: TSteimType); overload;
-    procedure ExtractToMSeed(AFolder, ACode: String; AType: TSteimType;
+    procedure ExtractToMSeed(APath, ACode: String; AType: TSteimType); overload;
+    procedure ExtractToMSeed(APath, ACode: String; AType: TSteimType;
       ABegin, AEnd: TDateTime); overload;
-
-    class procedure AsciiToMSeed(AFile: String; const AHeader: TMSeedHeader;
-      const AType: TSteimType);
-
   end;
 
 implementation
 
 { TMSeedFile }
+
+procedure TMSeedFile.Clear;
+var
+  MyElem: TPair<String, TStream>;
+begin
+  for MyElem in FContainer do
+  begin
+    MyElem.Value.Free;
+  end;
+  FContainer.Clear;
+end;
 
 constructor TMSeedFile.Create(AFile: String = '');
 begin
@@ -68,93 +88,38 @@ begin
   begin
     MyElem.Value.Free;
   end;
-
   FreeAndNil(FContainer);
 
   inherited;
 end;
 
-function TMSeedFile.ReadHeader(AStream: TStream): TMSeedHeader;
-begin
-  AStream.Read(result, SizeOf(result));
-end;
-
-function TMSeedFile.ReadBlockette1000(AStream: TStream): TBlockette1000;
-begin
-  AStream.Read(result, SizeOf(result));
-
-  if result.blockette_code <> BLOCKETTE_CODE_1000 then
-    raise TBlocketteTypeException.Create('Blockette 1000 Code Error, ' +
-      IntToStr(Rev2Bytes(result.blockette_code)));
-end;
-
-function TMSeedFile.ReadBlockette1001(AStream: TStream): TBlockette1001;
-begin
-  AStream.Read(result, SizeOf(result));
-
-  if result.blockette_code <> BLOCKETTE_CODE_1001 then
-    raise TBlocketteTypeException.Create('Blockette 1001 Code Error, ' +
-      IntToStr(Rev2Bytes(result.blockette_code)));
-end;
-
-function TMSeedFile.ReadDataFrame(AStream: TStream): TDataFrame;
-begin
-  AStream.Read(result, SizeOf(result));
-end;
-
 procedure TMSeedFile.SaveEachChannel(AStream: TStream);
 var
-  Header: TMSeedHeader;
-  Blkt1000: TBlockette1000;
-  Blkt1001: TBlockette1001;
+  tmp: TBytes;
 
-  Buffer: TStream;
-  DataFrame: TDataFrame;
-
-  I: Integer;
   Channel: String;
+  Buffer: TStream;
+  FixedHeader: TFixedHeader;
 begin
-  Header := ReadHeader(AStream);
+  FixedHeader := TFixedHeader.Create(AStream);
 
-  Blkt1000 := ReadBlockette1000(AStream);
-  try
-    Blkt1001 := ReadBlockette1001(AStream);
-  except
-    on E: TBlocketteTypeException do
-    begin
-      AStream.Position := AStream.Position +
-        Trunc(power(2, Blkt1000.reclen) - SizeOf(Header) - SizeOf(Blkt1000) -
-        SizeOf(Blkt1001));
-      Exit;
-    end;
-    on E: Exception do
-    begin
-      raise Exception.Create(E.Message);
-    end;
-  end;
-
-  Channel := Header.ChannelCode;
+  Channel := FixedHeader.Header.ChannelCode;
   if not FContainer.ContainsKey(Channel) then
     FContainer.Add(Channel, TBytesStream.Create);
 
   Buffer := FContainer.Items[Channel];
-  Buffer.Write(Header, SizeOf(Header));
-  Buffer.Write(Blkt1000, SizeOf(Blkt1000));
-  Buffer.Write(Blkt1001, SizeOf(Blkt1001));
+  FixedHeader.WriteTo(Buffer);
 
-  for I := 0 to Blkt1001.framecnt - 1 do
-  begin
-    DataFrame := ReadDataFrame(AStream);
-    Buffer.Write(DataFrame, SizeOf(DataFrame));
-  end;
-
+  SetLength(tmp, FixedHeader.DataLength);
+  AStream.Read(tmp, Length(tmp));
+  Buffer.Write(tmp, Length(tmp));
 end;
 
 procedure TMSeedFile._AddFile(AFile: String);
 var
-  Stream: TFileStream;
+  Stream: TStream;
 begin
-  Stream := TFileStream.Create(AFile, fmOpenRead);
+  Stream := TFile.OpenRead(AFile);
   try
     Stream.Position := 0;
     while Stream.Position < Stream.Size do
@@ -172,7 +137,7 @@ var
 begin
   Format := TEncodingFormat(AParam.encoding);
   if (Format <> efStaim1) and (Format <> efStaim2) then
-    raise Exception.Create('This format is not surpported. ' +
+    raise Exception.Create('This encoding format is not surpported. ' +
       AParam.encoding.ToString);
 
   result := TSteimDecoder.Create(TSteimType(Format),
@@ -182,58 +147,41 @@ end;
 function TMSeedFile._ExtractRawData(AStream: TStream; APeriod: TPeriod)
   : TRawData;
 var
-  Header: TMSeedHeader;
-  Blkt1000: TBlockette1000;
-  Blkt1001: TBlockette1001;
-
   I: Integer;
-  DataFrame: TDataFrame;
-  RawData: TArray<Integer>;
-  SteimDecoder: TSteimDecoder;
+  Peeks: TPeeks;
   MyElem: Integer;
+  FixedHeader: TFixedHeader;
+  SteimDecoder: TSteimDecoder;
+  DataRecord: TArray<TDataFrame>;
 begin
   result := TRawData.Create;
 
   AStream.Position := 0;
   while AStream.Position < AStream.Size do
   begin
-    Header := ReadHeader(AStream);
-    Blkt1000 := ReadBlockette1000(AStream);
-
-    try
-      Blkt1001 := ReadBlockette1001(AStream);
-    except
-      on E: TBlocketteTypeException do
-      begin
-        AStream.Position := AStream.Position +
-          Trunc(power(2, Blkt1000.reclen) - SizeOf(Header) - SizeOf(Blkt1000) -
-          SizeOf(Blkt1001));
-
-        Continue;
-      end;
-      on E: Exception do
-      begin
-        raise Exception.Create(E.Message);
-      end;
+    FixedHeader := TFixedHeader.Create(AStream);
+    if not FixedHeader.IsValid then
+    begin
+      AStream.Position := AStream.Position + FixedHeader.DataLength;
+      Continue;
     end;
 
-    FDateTime := Header.start_time.DateTime;
-    Header.start_time.DateTime := FDateTime;
-    FDateTime := Header.start_time.DateTime;
+    SetLength(DataRecord, FixedHeader.Blkt1001.framecnt);
+    for I := Low(DataRecord) to High(DataRecord) do
+    begin
+      DataRecord[I] := TDataFrame.Create(AStream);
+    end;
 
-    SteimDecoder := SteimDecoderFactory(Blkt1000);
+    SteimDecoder := SteimDecoderFactory(FixedHeader.Blkt1000);
     try
-      for I := 0 to Blkt1001.framecnt - 1 do
+      Peeks := SteimDecoder.DecodeData(DataRecord);
+      FDateTime := FixedHeader.Header.start_time.DateTime;
+      for MyElem in Peeks do
       begin
-        DataFrame := ReadDataFrame(AStream);
-        RawData := SteimDecoder.DecodeData(DataFrame);
-        for MyElem in RawData do
-        begin
-          if APeriod.InRange(FDateTime) then
-            result.Add(TRecord.Create(FDateTime, MyElem));
+        if APeriod.InRange(FDateTime) then
+          result.Add(TPeekValue.Create(FDateTime, MyElem));
 
-          FDateTime := IncMilliSecond(FDateTime, Header.Interval);
-        end;
+        FDateTime := IncMilliSecond(FDateTime, FixedHeader.Header.Interval);
       end;
     finally
       SteimDecoder.Free;
@@ -241,196 +189,150 @@ begin
   end;
 end;
 
-procedure TMSeedFile._ExtractToASCii(AFolder, ACode: String; APeriod: TPeriod);
+procedure TMSeedFile._ExtractToASCii(APath, ACode: String; APeriod: TPeriod);
 var
   RawData: TRawData;
 begin
   RawData := ExtractRawData(ACode, APeriod);
   try
-    SaveToASCiiFile(AFolder, ACode, RawData);
+    if RawData.Count > 0 then
+      SaveToASCiiFile(APath, RawData)
+    else
+      SaveToBinaryFile(APath, ACode);
   finally
     RawData.Free;
   end;
 end;
 
-procedure TMSeedFile.SaveToASCiiFile(AFolder, ACode: String; RawData: TRawData);
+procedure TMSeedFile.SaveToASCiiFile(APath: String; RawData: TRawData);
 var
+  I: Integer;
   StringList: TStringList;
-  MyElem: TRecord;
 begin
   StringList := TStringList.Create;
   try
-    for MyElem in RawData do
-      StringList.Add(FormatDateTime('YYYY-MM-DD HH:NN:SS.zzz', MyElem.Key) + ' '
-        + MyElem.Value.ToString);
-    StringList.SaveToFile(AFolder + '\' + ACode + '_' +
-      FormatDateTime('YYYYMMDD', now) + '.txt');
+    for I := 0 to RawData.Count - 1 do
+      StringList.Add(FormatDateTime('YYYY-MM-DD HH:NN:SS.zzz',
+        RawData.Items[I].DateTime) + ' ' + RawData.Items[I].Peek.ToString);
+    StringList.SaveToFile(APath);
   finally
     StringList.Free;
   end;
 end;
 
-function Test: TRawData;
+procedure TMSeedFile.SaveToBinaryFile(APath, ACode: String);
 var
-  I: Integer;
-  DateTime: TDateTime;
+  Stream: TStream;
 begin
-  result := TRawData.Create;
-  DateTime := StrToDate('2014-08-04');
-  for I := 0 to 1000 do
-  begin
-    result.Add(TRecord.Create(DateTime, Random(MAXBYTE * 2)));
-    DateTime := IncMilliSecond(DateTime, 50);
-  end;
+  Stream := FContainer.Items[ACode];
+  if Stream.Size = 0 then
+    Exit;
+
+  Stream.Position := 0;
+  TBytesStream(Stream).SaveToFile(APath);
 end;
 
-class procedure TMSeedFile.AsciiToMSeed(AFile: String;
-  const AHeader: TMSeedHeader; const AType: TSteimType);
+procedure TMSeedFile.SaveToMSeed(APath: String; ARawData: TRawData;
+  AFixedHeader: TFixedHeader);
 var
-  Header: TMSeedHeader;
-  Blkt1000: TBlockette1000;
-  Blkt1001: TBlockette1001;
-
-  RawData: TRawData;
-  RawList: TStringList;
-  MyRecord: String;
-  DateTime: TDateTime;
-
-  SteimEncoder: TSteimEncoder;
   Index: Integer;
+  Stream: TStream;
   SampleNum: Integer;
-  I: Integer;
-  Blockette: TBlockette;
-
-  FileStream: TFileStream;
-
-  tmp: String;
+  SteimType: TSteimType;
+  DataRecord: TDataRecord;
+  SteimEncoder: TSteimEncoder;
 begin
-  Blkt1000 := TBlockette1000.Create(AType);
-  Blkt1001 := TBlockette1001.Create(0);
+  SteimType := TSteimType(AFixedHeader.Blkt1000.encoding);
 
-  RawData := TRawData.Create;
+  Stream := TFile.Create(APath);
   try
-    RawList := TStringList.Create;
+    SteimEncoder := TSteimEncoder.Create(SteimType, boBig);
     try
-      RawList.LoadFromFile(AFile);
-      for MyRecord in RawList do
+      Index := 0;
+      while Index < ARawData.Count do
       begin
-        tmp := MyRecord.Split([' '])[0] + ' ' + MyRecord.Split([' '])[1];
-        DateTime := StrToDateTimeDef(tmp, 0);
-        if DateTime = 0 then
-          Continue;
+        AFixedHeader.Header.start_time.DateTime :=
+          ARawData.Items[Index].DateTime;
 
-        tmp := MyRecord.Split([' '])[2];
-        RawData.Add(TRecord.Create(DateTime, tmp.ToInteger));
-      end;
-    finally
-      RawList.Free;
-    end;
+        DataRecord := SteimEncoder.EncodeData(ARawData.Peeks, Index);
+        SampleNum := TMSeedCommon.GetRecordCount(DataRecord, SteimType);
+        Index := Index + SampleNum;
 
-    SteimEncoder := TSteimEncoder.Create(AType, boBig);
-    try
-
-      FileStream := TFileStream.Create('D:\' + AHeader.ChannelCode + '.mseed',
-        fmCreate);
-      try
-        Index := 0;
-        while Index < RawData.Count do
-        begin
-          Blockette := SteimEncoder.EncodeData(RawData.ToArray, Index);
-          SampleNum := 0;
-          for I := Low(Blockette) to High(Blockette) do
-          begin
-            SampleNum := SampleNum + TMSeedCommon.GetRecordCount
-              (Blockette[I], AType);
-          end;
-          Header := AHeader;
-          Header.start_time.DateTime := RawData.Items[Index].Key;
-          Index := Index + SampleNum;
-
-          Header.numsamples := Rev2Bytes(SampleNum);
-          Blkt1000.reclen := 9; // Length(Blockette) * FRAME_SIZE;
-          Blkt1001.framecnt := 7;
-          Blkt1000.encoding := Byte(AType);
-
-          FileStream.Write(Header, SizeOf(TMSeedHeader));
-          FileStream.Write(Blkt1000, SizeOf(TBlockette1000));
-          FileStream.Write(Blkt1001, SizeOf(TBlockette1001));
-          FileStream.Write(Blockette[0], 512 - 64);
-        end;
-      finally
-        FileStream.Free;
+        AFixedHeader.Header.numsamples := Rev2Bytes(SampleNum);
+        AFixedHeader.WriteTo(Stream);
+        Stream.Write(@DataRecord, SizeOf(TDataRecord));
       end;
     finally
       SteimEncoder.Free;
     end;
   finally
-    RawData.Free;
+    Stream.Free;
   end;
-
 end;
 
-procedure TMSeedFile._ExtractToMSeed(AFolder, ACode: String; AType: TSteimType;
-  APeriod: TPeriod);
+procedure TMSeedFile.AsciiToMSeed(ASource: String; AHeader: TMSeedHeader;
+  AType: TSteimType);
+
+  function ReadFile(AFile: String): TRawData;
+  var
+    tmp: String;
+    MyRecord: String;
+    DateTime: TDateTime;
+    RawList: TStringList;
+  begin
+    result := TRawData.Create;
+
+    RawList := TStringList.Create;
+    try
+      RawList.LoadFromFile(AFile);
+      result.Capacity := RawList.Count;
+
+      for MyRecord in RawList do
+      begin
+        tmp := MyRecord.Split([' '])[0] + ' ' + MyRecord.Split([' '])[1];
+        DateTime := StrToDateTime(tmp);
+
+        tmp := MyRecord.Split([' '])[2];
+        result.Add(TPeekValue.Create(DateTime, tmp.ToInteger));
+      end;
+    finally
+      RawList.Free;
+    end;
+  end;
+
 var
   RawData: TRawData;
-  SteimEncoder: TSteimEncoder;
-  Index: Integer;
-  SampleNum: Integer;
-  I: Integer;
-  Blockette: TBlockette;
+  FileName: String;
+begin
+  RawData := ReadFile(ASource);
+  try
+    FileName := ChangeFileExt(ASource, '.mseed');
+    SaveToMSeed(FileName, RawData, TFixedHeader.Create(AHeader, AType));
+  finally
+    RawData.Free;
+  end;
+end;
 
-  Header: TMSeedHeader;
-  Blkt1000: TBlockette1000;
-  Blkt1001: TBlockette1001;
-
+procedure TMSeedFile._ExtractToMSeed(APath, ACode: String; AType: TSteimType;
+  APeriod: TPeriod);
+var
   Stream: TStream;
-  FileStream: TFileStream;
+  RawData: TRawData;
+  FixedHeader: TFixedHeader;
 begin
   Stream := FContainer.Items[ACode];
   Stream.Position := 0;
-  Header := ReadHeader(Stream);
-  Blkt1000 := ReadBlockette1000(Stream);
-  Blkt1001 := ReadBlockette1001(Stream);
+  FixedHeader := TFixedHeader.Create(TMSeedHeader.Create(Stream), AType);
+
+  if not FixedHeader.IsValid then
+  begin
+    SaveToBinaryFile(APath, ACode);
+    Exit;
+  end;
 
   RawData := ExtractRawData(ACode, APeriod);
-
   try
-    SteimEncoder := TSteimEncoder.Create(AType, boBig);
-    try
-      FileStream := TFileStream.Create('D:\' + ACode + '.mseed', fmCreate);
-      try
-        Index := 0;
-        while Index < RawData.Count do
-        begin
-          Header.start_time.DateTime := RawData.Items[Index].Key;
-
-          Blockette := SteimEncoder.EncodeData(RawData.ToArray, Index);
-          SampleNum := 0;
-          for I := Low(Blockette) to High(Blockette) do
-          begin
-            SampleNum := SampleNum + TMSeedCommon.GetRecordCount
-              (Blockette[I], AType);
-          end;
-          Index := Index + SampleNum;
-
-          Header.numsamples := Rev2Bytes(SampleNum);
-          Blkt1000.reclen := 9; // Length(Blockette) * FRAME_SIZE;
-          Blkt1001.framecnt := 7;
-          Blkt1000.encoding := Byte(AType);
-
-          FileStream.Write(Header, SizeOf(TMSeedHeader));
-          FileStream.Write(Blkt1000, SizeOf(TBlockette1000));
-          FileStream.Write(Blkt1001, SizeOf(TBlockette1001));
-          FileStream.Write(Blockette[0], 512 - 64);
-        end;
-      finally
-        FileStream.Free;
-      end;
-
-    finally
-      SteimEncoder.Free;
-    end;
+    SaveToMSeed(APath, RawData, FixedHeader)
   finally
     RawData.Free;
   end;
@@ -438,6 +340,9 @@ end;
 
 procedure TMSeedFile.AddFile(AFile: String);
 begin
+  if AFile = '' then
+    Exit;
+
   if not TFile.Exists(AFile) then
     raise Exception.Create('File not exist. ' + AFile);
 
@@ -445,53 +350,53 @@ begin
     _AddFile(AFile);
   except
     on E: Exception do
-      raise Exception.Create('Can not Add File. ' + E.Message);
+      raise Exception.Create('Can not add file. ' + E.Message);
   end;
 end;
 
 function TMSeedFile.ExtractRawData(ACode: String; APeriod: TPeriod): TRawData;
 begin
   if not FContainer.ContainsKey(ACode) then
-    raise Exception.Create('Channel Code Error. ' + ACode);
+    raise Exception.Create('Channel code error. ' + ACode);
 
   try
     result := _ExtractRawData(FContainer.Items[ACode], APeriod);
   except
     on E: Exception do
-      raise Exception.Create('Extract RawData Error.' + E.Message);
+      raise Exception.Create('Extract rawData error.' + E.Message);
   end;
 end;
 
-procedure TMSeedFile.ExtractToASCii(AFolder, ACode: String;
+procedure TMSeedFile.ExtractToASCii(APath, ACode: String;
   ABegin, AEnd: TDateTime);
 begin
   try
-    _ExtractToASCii(AFolder, ACode, TPeriod.Create(ABegin, AEnd));
+    _ExtractToASCii(APath, ACode, TPeriod.Create(ABegin, AEnd));
   except
     on E: Exception do
-      raise Exception.Create('Extract To ASCii Error. ' + ACode + ', ' +
+      raise Exception.Create('Extract to ascii error. ' + ACode + ', ' +
         E.Message);
   end;
 end;
 
-procedure TMSeedFile.ExtractToMSeed(AFolder, ACode: String; AType: TSteimType);
+procedure TMSeedFile.ExtractToMSeed(APath, ACode: String; AType: TSteimType);
 begin
-  ExtractToMSeed(AFolder, ACode, AType, MinDateTime, MaxDateTime);
+  ExtractToMSeed(APath, ACode, AType, MinDateTime, MaxDateTime);
 end;
 
-procedure TMSeedFile.ExtractToASCii(AFolder, ACode: String);
+procedure TMSeedFile.ExtractToASCii(APath, ACode: String);
 begin
-  ExtractToASCii(AFolder, ACode, MinDateTime, MaxDateTime);
+  ExtractToASCii(APath, ACode, MinDateTime, MaxDateTime);
 end;
 
-procedure TMSeedFile.ExtractToMSeed(AFolder, ACode: String; AType: TSteimType;
+procedure TMSeedFile.ExtractToMSeed(APath, ACode: String; AType: TSteimType;
   ABegin, AEnd: TDateTime);
 begin
   try
-    _ExtractToMSeed(AFolder, ACode, AType, TPeriod.Create(ABegin, AEnd));
+    _ExtractToMSeed(APath, ACode, AType, TPeriod.Create(ABegin, AEnd));
   except
     on E: Exception do
-      raise Exception.Create('Extract To MSeed Error. ' + ACode + ', ' +
+      raise Exception.Create('Extract to mseed error. ' + ACode + ', ' +
         E.Message);
   end;
 end;
@@ -499,6 +404,12 @@ end;
 function TMSeedFile.GetChannelList: TArray<String>;
 begin
   result := FContainer.Keys.ToArray;
+end;
+
+procedure TMSeedFile.RevemoveChannel(AChannel: String);
+begin
+  FContainer.Items[AChannel].Free;
+  FContainer.Remove(AChannel);
 end;
 
 end.

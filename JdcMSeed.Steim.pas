@@ -1,3 +1,16 @@
+// *******************************************************
+//
+// Judico steim compression/decompression at levels 1,2
+//
+// Copyright(c) 2014 ENBGroup.
+//
+// jsf3rd@enbgroup.co.kr
+//
+// Reference,
+// http://quake.geo.berkeley.edu/qug/software/steimdt1.tar
+//
+// *******************************************************
+
 unit JdcMSeed.Steim;
 
 interface
@@ -6,86 +19,120 @@ uses System.SysUtils, System.classes, Winapi.Windows,
   System.Generics.Collections, JdcGlobal, IdGlobal, JdcMSeed.Common,
   System.Math;
 
+const
+  MAXSAMPPERWORD = 7; // Steim2.
+
 type
+  TDiffsArray = array [0 .. MAXSAMPPERWORD - 1] of Integer;
+  TScanArray = array [0 .. MAXSAMPPERWORD] of Integer;
+
   TRefValue = record
-    InitValue: Integer;
-    LastValue: Integer;
     CurrValue: Integer;
-
+    LastValue: Integer;
     procedure Reset;
-    function Initialized: boolean;
   end;
 
-  TCompPacket = record
-    last_sample: Integer;
-    frame_buffer: TDataFrame;
-    frame: word;
-    block: Integer;
-    peeks: TArray<TRecord>;
-  end;
-
-  TSteim = class abstract
+  TSteimDecoder = class
   private
     FSteimType: TSteimType;
     FByteOrder: TByteOrder; // not used
-    FRefValue: TRefValue;
-  public
-    constructor Create(AType: TSteimType; AOrder: TByteOrder);
-  end;
 
-  TSteimDecoder = class(TSteim)
-  private
-    function _DecodeData(AFrame: TDataFrame): TArray<Integer>;
-    function DecompressSteim(subcode: Byte; accum: Integer): TArray<Integer>;
+    IsFirstDiff: boolean;
+    FRefValue: TRefValue;
+    FPeeks: TList<Integer>;
+    FDataRecord: TArray<TDataFrame>;
+    procedure _DecodeData(AIndex: Integer);
+    function DecompressSteim(subcode: Byte; accum: Integer): TPeeks;
     procedure SetRefValue(AIndex, AValue: Integer);
   public
-    function DecodeData(AFrame: TDataFrame): TArray<Integer>;
+    function DecodeData(ADataRecord: TArray<TDataFrame>): TPeeks;
+    constructor Create(AType: TSteimType; AOrder: TByteOrder);
+    destructor Destroy; override;
   end;
 
-  TSteimEncoder = class(TSteim)
+  TSteimEncoder = class
   private
-    function _EncodeData(var AValue: TCompPacket;
-      const AIndex: Integer): Integer;
+    FSteimType: TSteimType;
+    FByteOrder: TByteOrder; // not used
+
+    FPeeks: TPeeks;
+    FPeekIndex: Integer;
+    FLastSample: Integer;
+    function _EncodeData: TDataRecord;
+    procedure CompressSteim(var CompPacket: TCompPacket);
+    function GetCompressSeq(diffs: TDiffsArray; hiscan: Integer): TCompSeqType;
+    function BuildDataFrame(AIndex: Integer): TDataFrame;
+
   public
-    function EncodeData(ARawData: TArray<TRecord>; AIndex: Integer): TBlockette;
+    function EncodeData(APeeks: TPeeks; AIndex: Integer): TDataRecord;
+    constructor Create(AType: TSteimType; AOrder: TByteOrder);
   end;
 
 implementation
 
-{ TSteim }
-
-constructor TSteim.Create(AType: TSteimType; AOrder: TByteOrder);
-begin
-  FSteimType := AType;
-  FByteOrder := AOrder;
-  FRefValue.Reset;
-end;
-
 { TSteimDecoder }
 
-function TSteimDecoder.DecodeData(AFrame: TDataFrame): TArray<Integer>;
+constructor TSteimDecoder.Create(AType: TSteimType; AOrder: TByteOrder);
 begin
+  FSteimType := AType;
+  FByteOrder := AOrder; // Only Big Endian.
+
+  FRefValue.Reset;
+  IsFirstDiff := false;
+end;
+
+function TSteimDecoder.DecodeData(ADataRecord: TArray<TDataFrame>): TPeeks;
+var
+  I: Integer;
+begin
+  SetLength(FDataRecord, Length(ADataRecord));
+  FDataRecord := ADataRecord;
+
+  FPeeks := TList<Integer>.Create;
   try
-    result := _DecodeData(AFrame);
-  except
-    on E: Exception do
-      raise Exception.Create('Decode Steim Error. ' + E.Message);
+    try
+      for I := Low(ADataRecord) to High(ADataRecord) do
+      begin
+        _DecodeData(I);
+      end;
+    except
+      on E: Exception do
+        raise Exception.Create('Decode steim error. ' + E.Message);
+    end;
+
+    if FRefValue.LastValue <> FPeeks.Items[FPeeks.Count - 1] then
+      raise Exception.Create('Data Integrity Error. ' +
+        FRefValue.LastValue.ToString + ' <> ' + FPeeks.Items[FPeeks.Count - 1]
+        .ToString);
+
+    result := FPeeks.ToArray;
+  finally
+    FreeAndNil(FPeeks);
   end;
 end;
 
-function TSteimDecoder.DecompressSteim(subcode: Byte; accum: Integer)
-  : TArray<Integer>;
-var
-  dcp: TDecompBitType;
-  unpacked: array [0 .. 6] of Int32;
-  I: Integer;
-  Work: Int32;
-
-  curval: Integer;
+procedure TSteimDecoder.SetRefValue(AIndex, AValue: Integer);
 begin
-  curval := FRefValue.CurrValue;
+  if AIndex = 2 then
+    FRefValue.CurrValue := AValue
+  else if AIndex = 4 then
+  begin
+    FRefValue.LastValue := AValue;
+    IsFirstDiff := true;
+  end
+  else
+    // Header, Null
+      ;
+end;
 
-  CopyMemory(@dcp, @DecompTab[subcode], SizeOf(dcp));
+function TSteimDecoder.DecompressSteim(subcode: Byte; accum: Integer): TPeeks;
+var
+  I: Integer;
+  Work: Integer;
+  dcp: TDecompBitType;
+  unpacked: TDiffsArray;
+begin
+  CopyMemory(@dcp, @TMSeedCommon.DecompTab[subcode], SizeOf(dcp));
 
   SetLength(result, dcp.samps);
 
@@ -100,233 +147,228 @@ begin
     accum := accum shr dcp.postshift;
   end;
 
-  if FRefValue.Initialized then
-    unpacked[0] := FRefValue.InitValue;
+  if IsFirstDiff then
+  begin
+    IsFirstDiff := false;
+    unpacked[0] := 0;
+  end;
 
   for I := 0 to dcp.samps - 1 do
   begin
-    curval := curval + unpacked[I];
-    result[I] := curval;
+    FRefValue.CurrValue := FRefValue.CurrValue + unpacked[I];
+    result[I] := FRefValue.CurrValue;
   end;
-
 end;
 
-procedure TSteimDecoder.SetRefValue(AIndex, AValue: Integer);
+destructor TSteimDecoder.Destroy;
 begin
-  if AIndex = 2 then
-    FRefValue.InitValue := AValue
-  else if AIndex = 4 then
-    FRefValue.LastValue := AValue
-  else if AIndex = 0 then
-    // Header
-      ;
+  if Assigned(FPeeks) then
+    FreeAndNil(FPeeks);
+
+  inherited;
 end;
 
-function TSteimDecoder._DecodeData(AFrame: TDataFrame): TArray<Integer>;
+procedure TSteimDecoder._DecodeData(AIndex: Integer);
 var
-  CompressionMap: TIdBytes;
-  CurrMap, dnib: Byte;
-  I, J, MapIndex, bitIndex: Integer;
-  accum: Integer;
-  Datas: TArray<Integer>;
+  Peeks: TPeeks;
   subcode: Byte;
-  ResultData: TList<Integer>;
+  accum: Integer;
+
+  I, J: Integer;
+  CurrMap, dnib: Byte;
+  CompressionMap: TIdBytes;
+  MapIndex, bitIndex: Integer;
 begin
-  CompressionMap := ToBytes(AFrame.ctrl);
+  CompressionMap := ToBytes(FDataRecord[AIndex].ctrl);
   MapIndex := 0;
   bitIndex := 2;
 
-  ResultData := TList<Integer>.Create;
-  try
-    for I := Low(AFrame.w) to High(AFrame.w) do
-    begin
-      try
-        CopyMemory(@accum, @AFrame.w[I], SizeOf(accum));
-        accum := Rev4Bytes(accum);
+  for I := Low(FDataRecord[AIndex].w) to High(FDataRecord[AIndex].w) do
+  begin
+    try
+      CopyMemory(@accum, @FDataRecord[AIndex].w[I], SizeOf(accum));
+      accum := Rev4Bytes(accum);
 
-        CurrMap := CompressionMap[MapIndex];
-        dnib := CurrMap shr (6 - bitIndex) and 3;
-        subcode := TMSeedCommon.GetSubCode(FSteimType, dnib, accum);
+      CurrMap := CompressionMap[MapIndex];
+      dnib := CurrMap shr (6 - bitIndex) and 3;
+      subcode := TMSeedCommon.GetSubCode(FSteimType, dnib, accum);
 
-        Datas := DecompressSteim(subcode, accum);
+      if dnib = 0 then
+      begin
+        if (AIndex = 0) and (I < 2) then
+          SetRefValue(bitIndex, accum);
 
-        // Ref Data
-        if dnib = 0 then
-        begin
-          SetRefValue(bitIndex, Datas[0]);
-          Continue;
-        end;
-        FRefValue.CurrValue := Datas[Length(Datas) - 1];
-
-        for J := Low(Datas) to High(Datas) do
-        begin
-          ResultData.Add(Datas[J]);
-        end;
-      finally
-        bitIndex := (bitIndex + 2) mod 8;
-        if bitIndex = 0 then
-          inc(MapIndex);
+        Continue;
       end;
+      Peeks := DecompressSteim(subcode, accum);
+
+      for J := Low(Peeks) to High(Peeks) do
+      begin
+        FPeeks.Add(Peeks[J]);
+      end;
+    finally
+      bitIndex := (bitIndex + 2) mod 8;
+      if bitIndex = 0 then
+        inc(MapIndex);
     end;
-    result := ResultData.ToArray;
-  finally
-    ResultData.Free;
   end;
 end;
 
 { TRefValue }
-
-function TRefValue.Initialized: boolean;
-begin
-  result := (InitValue > Integer.MinValue) and (LastValue > Integer.MinValue)
-    and (CurrValue = Integer.MinValue);
-end;
-
 procedure TRefValue.Reset;
 begin
-  InitValue := Integer.MinValue;
-  LastValue := Integer.MinValue;
-  CurrValue := Integer.MinValue;
+  CurrValue := 0;
+  LastValue := 0;
 end;
 
 { TSteimEncoder }
 
-function TSteimEncoder._EncodeData(var AValue: TCompPacket;
-  const AIndex: Integer): Integer;
+function TSteimEncoder.GetCompressSeq(diffs: TDiffsArray; hiscan: Integer)
+  : TCompSeqType;
 var
-  hiscan: Integer;
-  ctabx: Integer;
-  sp: TCompSeqType;
-
-  done: boolean;
-  t_scan: Integer;
-  block_code: Cardinal;
-  accum: Integer;
-
-  value: Integer;
   I: Integer;
-
-  diffs: array [0 .. MAXSAMPPERWORD - 1] of Integer;
-  sc: array [0 .. MAXSAMPPERWORD] of Integer;
+  done: boolean;
+  ctabx: Integer;
 begin
-
-  if AValue.block = 0 then
-  begin
-    AValue.frame_buffer.ctrl := 0;
-
-    if AValue.frame = 0 then
-    begin
-      AValue.frame_buffer.w[0] := AValue.peeks[AIndex].value;
-      AValue.frame_buffer.w[1] := 0;
-      AValue.block := 2;
-    end;
-  end;
-
-  sc[0] := AValue.last_sample;
   ctabx := (Integer(FSteimType) and 1) * 3;
-
-  hiscan := 0;
   done := false;
-
   repeat
-    CopyMemory(@sp, @Compseq[ctabx], SizeOf(TCompSeqType));
-    t_scan := sp.scan;
+    CopyMemory(@result, @TMSeedCommon.CompTab[ctabx], SizeOf(TCompSeqType));
 
-    while (hiscan < t_scan) and (AIndex + hiscan < Length(AValue.peeks)) do
-    begin
-      value := AValue.peeks[AIndex + hiscan].value;
-      sc[hiscan + 1] := value;
-      diffs[hiscan] := value - sc[hiscan];
-      inc(hiscan);
-    end;
-
-    if hiscan = 0 then
-    begin
-      t_scan := hiscan;
-      break;
-    end;
-
-    if hiscan < t_scan then
+    if hiscan < result.scan then
     begin
       inc(ctabx);
       Continue;
     end;
 
-    for I := 0 to t_scan - 1 do
+    for I := 0 to result.scan - 1 do
     begin
-      if abs(diffs[I]) > sp.disc then
+      if abs(diffs[I]) > result.disc then
       begin
         if (FSteimType = stLevel1) and (ctabx > 2) then
-          raise Exception.Create('Overflow Steim1. ' + diffs[I].ToString)
+          raise Exception.Create('Overflow steim1. ' + diffs[I].ToString)
         else if (FSteimType = stLevel2) and (ctabx > 9) then
-          raise Exception.Create('Steim2 Overflow. ' + diffs[I].ToString)
+          raise Exception.Create('Overflow steim2. ' + diffs[I].ToString)
         else
           inc(ctabx);
         break;
       end
-      else if (I = t_scan - 1) then
+      else if (I = result.scan - 1) then
         done := true;
     end;
   until (done);
 
-  if t_scan > 0 then
-  begin
-    accum := sp.cbits;
-    block_code := sp.bc;
-  end
-  else
-  begin
-    accum := 0;
-    block_code := 0;
-  end;
-
-  for I := 0 to t_scan - 1 do
-  begin
-    accum := (accum shl sp.shift) or (sp.mask and diffs[I]);
-  end;
-
-  AValue.frame_buffer.w[AValue.block] := accum;
-  AValue.frame_buffer.ctrl := (AValue.frame_buffer.ctrl shl 2) + block_code;
-  AValue.last_sample := sc[t_scan];
-  result := t_scan;
 end;
 
-function TSteimEncoder.EncodeData(ARawData: TArray<TRecord>; AIndex: Integer)
-  : TBlockette;
+procedure TSteimEncoder.CompressSteim(var CompPacket: TCompPacket);
 var
-  ACompPacket: TCompPacket;
-  Index: Integer;
   I: Integer;
+
+  accum: Integer;
+  Value: Integer;
+  hiscan: Integer;
+
+  sp: TCompSeqType;
+  sc: TScanArray;
+  diffs: TDiffsArray;
 begin
-  Index := AIndex;
+  sc[0] := FLastSample;
 
-  ACompPacket.peeks := ARawData;
-  if AIndex = 0 then
-    ACompPacket.last_sample := 0
-  else
-    ACompPacket.last_sample := ARawData[AIndex - 1].value;
-
-  ACompPacket.frame := 0;
-  while ACompPacket.frame < FRAMES_PER_RECORD do
+  if CompPacket.IsFirstBlock then
   begin
-    ACompPacket.block := 0;
-    ACompPacket.frame_buffer.Reset;
-
-    while ACompPacket.block < WORDS_PER_FRAME do
-    begin
-      Index := Index + _EncodeData(ACompPacket, Index);
-      inc(ACompPacket.block);
-    end;
-    result[ACompPacket.frame].ctrl := Rev4Bytes(ACompPacket.frame_buffer.ctrl);
-
-    for I := 0 to WORDS_PER_FRAME do
-      result[ACompPacket.frame].w[I] :=
-        Rev4Bytes(ACompPacket.frame_buffer.w[I]);
-
-    inc(ACompPacket.frame);
+    CompPacket.frame_buffer.w[0] := FPeeks[FPeekIndex];
+    CompPacket.frame_buffer.w[1] := 0;
+    CompPacket.block := 2;
   end;
 
-  result[0].w[1] := Rev4Bytes(ACompPacket.last_sample);
+  hiscan := 0;
+  while (hiscan < MAXSAMPPERWORD) do
+  begin
+    if FPeekIndex + hiscan >= Length(FPeeks) then
+      break;
+
+    Value := FPeeks[FPeekIndex + hiscan];
+    sc[hiscan + 1] := Value;
+    diffs[hiscan] := Value - sc[hiscan];
+    inc(hiscan);
+  end;
+
+  sp.scan := 0;
+  sp.bc := 0;
+  accum := 0;
+  if hiscan > 0 then
+  begin
+    sp := GetCompressSeq(diffs, hiscan);
+    accum := sp.cbits;
+
+    for I := 0 to sp.scan - 1 do
+    begin
+      accum := (accum shl sp.shift) or (sp.mask and diffs[I]);
+    end;
+  end;
+
+  CompPacket.frame_buffer.w[CompPacket.block] := accum;
+  CompPacket.frame_buffer.ctrl := (CompPacket.frame_buffer.ctrl shl 2) + sp.bc;
+
+  FLastSample := sc[sp.scan];
+  FPeekIndex := FPeekIndex + sp.scan;
+end;
+
+constructor TSteimEncoder.Create(AType: TSteimType; AOrder: TByteOrder);
+begin
+  FSteimType := AType;
+  FByteOrder := AOrder; // Only Big Endian.
+end;
+
+function TSteimEncoder.EncodeData(APeeks: TPeeks; AIndex: Integer): TDataRecord;
+begin
+  FPeeks := APeeks;
+  FPeekIndex := AIndex;
+
+  if FPeekIndex = 0 then
+    FLastSample := 0
+  else
+    FLastSample := FPeeks[FPeekIndex - 1];
+
+  try
+    result := _EncodeData;
+  except
+    on E: Exception do
+      raise Exception.Create('Encode steim error. ' + E.Message);
+  end;
+end;
+
+function TSteimEncoder._EncodeData: TDataRecord;
+var
+  I: Integer;
+  FrameIndex: Integer;
+  DataFrame: TDataFrame;
+begin
+  FrameIndex := 0;
+  while FrameIndex < FRAMES_PER_RECORD do
+  begin
+    DataFrame := BuildDataFrame(FrameIndex);
+
+    result[FrameIndex].ctrl := Rev4Bytes(DataFrame.ctrl);
+    for I := 0 to WORDS_PER_FRAME - 1 do
+      result[FrameIndex].w[I] := Rev4Bytes(DataFrame.w[I]);
+
+    inc(FrameIndex);
+  end;
+  result[0].w[1] := Rev4Bytes(FLastSample);
+end;
+
+function TSteimEncoder.BuildDataFrame(AIndex: Integer): TDataFrame;
+var
+  CompPacket: TCompPacket;
+begin
+  CompPacket := TCompPacket.Create(AIndex);
+  while CompPacket.block < WORDS_PER_FRAME do
+  begin
+    CompressSteim(CompPacket);
+    inc(CompPacket.block);
+  end;
+  result := CompPacket.frame_buffer;
 end;
 
 end.
