@@ -28,6 +28,9 @@ function Rev2Bytes(w: WORD): WORD;
 // Reverse 4Btyes..
 function Rev4Bytes(Value: LongInt): LongInt;
 
+// Reverse 4Btyes..
+function Rev4BytesF(Value: LongInt): Single;
+
 // Big endian
 function WordToBytes(AValue: WORD): TIdBytes;
 
@@ -232,6 +235,14 @@ end;
 function Rev4Bytes(Value: LongInt): LongInt;
 asm
   BSWAP    EAX;
+end;
+
+function Rev4BytesF(Value: LongInt): Single;
+var
+  tmp: LongInt;
+begin
+  tmp := Rev4Bytes(Value);
+  CopyMemory(@result, @tmp, SizeOf(tmp));
 end;
 
 function CheckHexStr(ASource: String): String;
