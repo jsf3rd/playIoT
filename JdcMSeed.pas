@@ -147,7 +147,6 @@ end;
 function TMSeedFile._ExtractRawData(AStream: TStream; APeriod: TPeriod)
   : TRawData;
 var
-  I: Integer;
   Peeks: TPeeks;
   MyElem: Integer;
   FixedHeader: TFixedHeader;
@@ -167,14 +166,13 @@ begin
     end;
 
     SetLength(DataRecord, FixedHeader.Blkt1001.framecnt);
-    for I := Low(DataRecord) to High(DataRecord) do
-    begin
-      DataRecord[I] := TDataFrame.Create(AStream);
-    end;
+    AStream.Read(DataRecord[0], Length(DataRecord) * SizeOf(TDataFrame));
 
     SteimDecoder := SteimDecoderFactory(FixedHeader.Blkt1000);
     try
       Peeks := SteimDecoder.DecodeData(DataRecord);
+      result.Capacity := result.Capacity + Length(Peeks);
+
       FDateTime := FixedHeader.Header.start_time.DateTime;
       for MyElem in Peeks do
       begin
@@ -207,16 +205,16 @@ end;
 procedure TMSeedFile.SaveToASCiiFile(APath: String; RawData: TRawData);
 var
   I: Integer;
-  StringList: TStringList;
+  Stream: TStreamWriter;
 begin
-  StringList := TStringList.Create;
+  TFile.Create(APath).Free;
+  Stream := TFile.AppendText(APath);
   try
     for I := 0 to RawData.Count - 1 do
-      StringList.Add(FormatDateTime('YYYY-MM-DD HH:NN:SS.zzz',
+      Stream.WriteLine(FormatDateTime('YYYY-MM-DD HH:NN:SS.zzz',
         RawData.Items[I].DateTime) + ' ' + RawData.Items[I].Peek.ToString);
-    StringList.SaveToFile(APath);
   finally
-    StringList.Free;
+    FreeAndNil(Stream);
   end;
 end;
 
@@ -229,7 +227,7 @@ begin
     Exit;
 
   Stream.Position := 0;
-  TBytesStream(Stream).SaveToFile(APath);
+  TBytesStream(Stream).SaveToFile(ChangeFileExt(APath, ''));
 end;
 
 procedure TMSeedFile.SaveToMSeed(APath: String; ARawData: TRawData;
@@ -241,6 +239,8 @@ var
   SteimType: TSteimType;
   DataRecord: TDataRecord;
   SteimEncoder: TSteimEncoder;
+
+  Peeks: TPeeks;
 begin
   SteimType := TSteimType(AFixedHeader.Blkt1000.encoding);
 
@@ -249,12 +249,13 @@ begin
     SteimEncoder := TSteimEncoder.Create(SteimType, boBig);
     try
       Index := 0;
+      Peeks := ARawData.Peeks;
       while Index < ARawData.Count do
       begin
         AFixedHeader.Header.start_time.DateTime :=
           ARawData.Items[Index].DateTime;
 
-        DataRecord := SteimEncoder.EncodeData(ARawData.Peeks, Index);
+        DataRecord := SteimEncoder.EncodeData(Peeks, Index);
         SampleNum := TMSeedCommon.GetRecordCount(DataRecord, SteimType);
         Index := Index + SampleNum;
 
@@ -278,17 +279,18 @@ procedure TMSeedFile.AsciiToMSeed(ASource: String; AHeader: TMSeedHeader;
     tmp: String;
     MyRecord: String;
     DateTime: TDateTime;
-    RawList: TStringList;
+    Stream: TStreamReader;
   begin
     result := TRawData.Create;
 
-    RawList := TStringList.Create;
+    Stream := TFile.OpenText(AFile);
     try
-      RawList.LoadFromFile(AFile);
-      result.Capacity := RawList.Count;
-
-      for MyRecord in RawList do
+      while not Stream.EndOfStream do
       begin
+        MyRecord := Stream.ReadLine;
+        if MyRecord = '' then
+          break;
+
         tmp := MyRecord.Split([' '])[0] + ' ' + MyRecord.Split([' '])[1];
         DateTime := StrToDateTime(tmp);
 
@@ -296,7 +298,7 @@ procedure TMSeedFile.AsciiToMSeed(ASource: String; AHeader: TMSeedHeader;
         result.Add(TPeekValue.Create(DateTime, tmp.ToInteger));
       end;
     finally
-      RawList.Free;
+      Stream.Free;
     end;
   end;
 
