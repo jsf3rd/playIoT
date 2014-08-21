@@ -7,15 +7,21 @@ uses
   System.Classes, Vcl.Graphics,
   Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.ExtCtrls, Vcl.Menus, Vcl.AppEvnts,
   Vcl.ComCtrls, Vcl.StdCtrls, JvExStdCtrls, JvEdit, System.IOUtils,
-  System.DateUtils, System.Types, JdcGlobal, System.StrUtils;
+  System.DateUtils, System.Types, JdcGlobal, System.StrUtils, System.ZLib;
 
 type
   TfmMain = class(TForm)
     Label1: TLabel;
     procedure FormCreate(Sender: TObject);
   private
+    FDebug: boolean;
+    FSubFolder: boolean;
+    FBackUpFolder: string;
+
     procedure PrintLog(AValue: string);
-    procedure CleanData(APath: string; ADateTime: TDateTime);
+
+    procedure CheckDir(APath: string; ADateTime: TDateTime);
+    procedure CheckFile(MyFile: string; ADateTime: TDateTime);
   public
     { Public declarations }
   end;
@@ -61,10 +67,14 @@ begin
       DateTime := IncMinute(DateTime, -1 * TOption.Obj.Minute);
       DateTime := IncSecond(DateTime, -1 * TOption.Obj.Second);
 
-      CleanData(ExtractFilePath(TGlobal.Obj.ExeName), DateTime);
+      FDebug := TOption.Obj.Debug;
+      FSubFolder := TOption.Obj.SubDir;
+      FBackUpFolder := TOption.Obj.Backup;
+
+      CheckDir(ExtractFilePath(TGlobal.Obj.ExeName), DateTime);
     except
       on E: Exception do
-        PrintLog(E.Message);
+        PrintLog('Error - ' + E.Message);
     end;
 
   finally
@@ -77,81 +87,78 @@ begin
   JdcGlobal.PrintLog(ChangeFileExt(TGlobal.Obj.ExeName, '.log'), AValue);
 end;
 
-procedure TfmMain.CleanData(APath: string; ADateTime: TDateTime);
+procedure TfmMain.CheckDir(APath: string; ADateTime: TDateTime);
 var
   Files: TStringDynArray;
-  MyElem: string;
-  WriteTime: TDateTime;
-  BackUpFolder, BackUpPath: string;
-  Dirs: TStringDynArray;
+  MyDir, MyFile: String;
+  tmp: string;
 begin
-  Files := TDirectory.GetFiles(APath, TOption.Obj.SearchPattern,
-    TSearchOption.soAllDirectories);
+  if not TDirectory.Exists(APath) then
+    raise Exception.Create('Not exist. ' + APath);
 
-  BackUpFolder := TOption.Obj.Backup;
-  for MyElem in Files do
+  if (FBackUpFolder <> '') and StartsText(FBackUpFolder, APath) then
+    Exit;
+
+  for MyDir in TDirectory.GetDirectories(APath) do
+  begin
+    CheckDir(MyDir, ADateTime);
+  end;
+
+  tmp := ChangeFileExt(ExtractFileName(TGlobal.Obj.ExeName), '');
+  for MyFile in TDirectory.GetFiles(APath, TOption.Obj.SearchPattern) do
+  begin
+
+    if StartsText(tmp, ExtractFileName(MyFile)) then
+      Continue;
+
+    CheckFile(MyFile, ADateTime);
+    Sleep(1);
+  end;
+
+  Files := TDirectory.GetFiles(APath, '*', TSearchOption.soAllDirectories);
+  if Length(Files) = 0 then
+    TDirectory.Delete(APath, True);
+end;
+
+procedure TfmMain.CheckFile(MyFile: string; ADateTime: TDateTime);
+var
+  WriteTime: TDateTime;
+  BackUpPath: String;
+begin
+  WriteTime := TFile.GetLastWriteTime(MyFile);
+
+  if FDebug then
+    PrintLog(MyFile + '\ Time : ' + DateTimeToStr(WriteTime) + ', Check Time : '
+      + DateTimeToStr(ADateTime));
+
+  if WriteTime < ADateTime then
   begin
     try
-      // Backup 폴더 생략..
-      if StartsText(BackUpFolder, MyElem) then
-        Continue;
+      try
+        if FBackUpFolder = '' then
+          Exit;
 
-      WriteTime := TFile.GetLastWriteTime(MyElem);
+        if FSubFolder then
+          BackUpPath := FBackUpFolder + '\' + FormatDateTime('YYYYMM',
+            WriteTime) + '\' + FormatDateTime('DD', WriteTime)
+        else
+          BackUpPath := FBackUpFolder;
 
-      if TOption.Obj.Debug then
-        PrintLog(MyElem + '\ Time : ' + DateTimeToStr(WriteTime) +
-          ', Check Time : ' + DateTimeToStr(ADateTime));
-
-      if WriteTime < ADateTime then
-      begin
-        try
-          try
-            if TOption.Obj.Backup = '' then
-              Continue;
-
-            if TOption.Obj.SubDir then
-              BackUpPath := BackUpFolder + '\' + FormatDateTime('YYYYMM',
-                WriteTime) + '\' + FormatDateTime('DD', WriteTime)
-            else
-              BackUpPath := BackUpFolder;
-
-            TDirectory.CreateDirectory(BackUpPath);
-            BackUpPath := BackUpPath + '\' + ExtractFileName(MyElem);
-            TFile.Copy(MyElem, BackUpPath, True);
-          except
-            on E: Exception do
-            begin
-              PrintLog(BackUpPath + ', ' + E.Message);
-            end;
-          end;
-
-        finally
-          // TimeOver 파일 삭제..
-          if TFile.Exists(MyElem) then
-            TFile.Delete(MyElem);
+        TDirectory.CreateDirectory(BackUpPath);
+        BackUpPath := BackUpPath + '\' + ExtractFileName(MyFile);
+        TFile.Copy(MyFile, BackUpPath, True);
+      except
+        on E: Exception do
+        begin
+          PrintLog(BackUpPath + ', ' + E.Message);
         end;
       end;
 
     finally
-      Sleep(1);
+      if TFile.Exists(MyFile) then
+        TFile.Delete(MyFile);
     end;
   end;
-
-  // 빈폴더 삭제..
-  Dirs := TDirectory.GetDirectories(APath);
-  for MyElem in Dirs do
-  begin
-    if TOption.Obj.Debug then
-      PrintLog('Check Folder - ' + MyElem);
-
-    Files := TDirectory.GetFiles(MyElem, '*', TSearchOption.soAllDirectories);
-
-    if Length(Files) = 0 then
-      TDirectory.Delete(MyElem, True);
-
-    Sleep(1);
-  end;
-
 end;
 
 end.
