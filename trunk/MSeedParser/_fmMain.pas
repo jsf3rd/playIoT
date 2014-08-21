@@ -104,12 +104,13 @@ function CreateSampleData: String;
 var
   I: Integer;
   DateTime: TDateTime;
-  Sample: TStringList;
   SmapleCount: Integer;
+  Sample: TStreamWriter;
 begin
   result := 'D:\TEST\Sample1.txt';
 
-  Sample := TStringList.Create;
+  TFile.Create(result).Free;
+  Sample := TFile.AppendText(result);
   try
     DateTime := now;
 
@@ -117,54 +118,52 @@ begin
 
     for I := 0 to SmapleCount do
     begin
-      Sample.Add(FormatDateTime('YYYY-MM-DD HH:NN:SS.zzz', DateTime) + ' ' +
-        Random(8).ToString);
+      Sample.WriteLine(FormatDateTime('YYYY-MM-DD HH:NN:SS.zzz', DateTime) + ' '
+        + Random(8).ToString);
       DateTime := IncMilliSecond(DateTime, 10);
     end;
 
     for I := 0 to SmapleCount do
     begin
-      Sample.Add(FormatDateTime('YYYY-MM-DD HH:NN:SS.zzz', DateTime) + ' ' +
-        Random(32).ToString);
+      Sample.WriteLine(FormatDateTime('YYYY-MM-DD HH:NN:SS.zzz', DateTime) + ' '
+        + Random(32).ToString);
       DateTime := IncMilliSecond(DateTime, 10);
     end;
 
     for I := 0 to SmapleCount do
     begin
-      Sample.Add(FormatDateTime('YYYY-MM-DD HH:NN:SS.zzz', DateTime) + ' ' +
-        Random(128).ToString);
+      Sample.WriteLine(FormatDateTime('YYYY-MM-DD HH:NN:SS.zzz', DateTime) + ' '
+        + Random(128).ToString);
       DateTime := IncMilliSecond(DateTime, 10);
     end;
 
     for I := 0 to SmapleCount do
     begin
-      Sample.Add(FormatDateTime('YYYY-MM-DD HH:NN:SS.zzz', DateTime) + ' ' +
-        Random(256).ToString);
+      Sample.WriteLine(FormatDateTime('YYYY-MM-DD HH:NN:SS.zzz', DateTime) + ' '
+        + Random(256).ToString);
       DateTime := IncMilliSecond(DateTime, 10);
     end;
 
     for I := 0 to SmapleCount * 2 do
     begin
-      Sample.Add(FormatDateTime('YYYY-MM-DD HH:NN:SS.zzz', DateTime) + ' ' +
-        Random(500000000).ToString);
+      Sample.WriteLine(FormatDateTime('YYYY-MM-DD HH:NN:SS.zzz', DateTime) + ' '
+        + Random(500000000).ToString);
       DateTime := IncMilliSecond(DateTime, 10);
     end;
 
     for I := 0 to SmapleCount do
     begin
-      Sample.Add(FormatDateTime('YYYY-MM-DD HH:NN:SS.zzz', DateTime) + ' ' +
-        Random(65535).ToString);
+      Sample.WriteLine(FormatDateTime('YYYY-MM-DD HH:NN:SS.zzz', DateTime) + ' '
+        + Random(65535).ToString);
       DateTime := IncMilliSecond(DateTime, 10);
     end;
 
     for I := 0 to SmapleCount do
     begin
-      Sample.Add(FormatDateTime('YYYY-MM-DD HH:NN:SS.zzz', DateTime) + ' ' +
-        Random(16).ToString);
+      Sample.WriteLine(FormatDateTime('YYYY-MM-DD HH:NN:SS.zzz', DateTime) + ' '
+        + Random(16).ToString);
       DateTime := IncMilliSecond(DateTime, 10);
     end;
-
-    Sample.SaveToFile(result);
   finally
     Sample.Free;
   end;
@@ -172,19 +171,24 @@ end;
 
 procedure CompareFile(AFile1, AFile2: String);
 var
-  File1, File2: TStringList;
+  File1, File2: TStreamReader;
+  tmp1, tmp2: string;
 begin
 
-  File1 := TStringList.Create;
-  File2 := TStringList.Create;
+  File1 := TFile.OpenText(AFile1);
+  File2 := TFile.OpenText(AFile2);
   try
-    File1.LoadFromFile(AFile1);
-    File2.LoadFromFile(AFile2);
+    while True do
+    begin
+      tmp1 := File1.ReadLine;
+      tmp2 := File2.ReadLine;
 
-    if File1.Text = File2.Text then
-      Exit;
+      if tmp1 <> tmp2 then
+        raise Exception.Create('Test Fail');
 
-    raise Exception.Create('Test Fail');
+      if tmp1 = '' then
+        break;
+    end;
   finally
     File1.Free;
     File2.Free;
