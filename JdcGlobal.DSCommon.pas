@@ -18,13 +18,13 @@ type
     class procedure ClearJSONObject(AObject: TJSONObject); overload;
     class procedure ClearJSONObject(AObject: TJSONArray); overload;
 
-    // FDQuery를 TSream으로 변환
+    // FDQuery To TSream
     class function DataSetToStream(AQuery: TFDQuery): TStream;
 
-    // DataSnap으로 전달된 TStream데이터를 TBytesStream으로 변환
+    // TStream to TBytesStream
     class function DSStreamToBytesStream(AValue: TStream): TBytesStream;
 
-    // DataSnap으로 전달된 FDQuery의 TStream데이터를 FDMemTable로 변환
+    // FDQuery's TStream to FDMemTable
     class procedure StreamToMemTable(AStream: TStream; ATable: TFDMemTable);
   end;
 
