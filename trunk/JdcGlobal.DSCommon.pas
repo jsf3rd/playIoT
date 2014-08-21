@@ -3,8 +3,13 @@ unit JdcGlobal.DSCommon;
 interface
 
 uses
-  Classes, SysUtils, FireDAC.Comp.Client, FireDAC.Stan.Intf, DBXJSON,
-  Data.DBXPlatform;
+  Classes, SysUtils, FireDAC.Comp.Client, FireDAC.Stan.Intf, Data.DBXPlatform
+{$IF CompilerVersion  > 26}
+    , System.JSON
+{$ELSE}
+    , Data.DBXJSON
+{$ENDIF}
+    ;
 
 type
   TDSCommon = class
