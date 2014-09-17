@@ -54,6 +54,9 @@ class procedure TDSCommon.ClearJSONObject(AObject: TJSONObject);
 var
   Name: String;
 begin
+  if not Assigned(AObject) then
+    Exit;
+
   while AObject.Size > 0 do
   begin
     Name := AObject.Get(0).JsonString.Value;
@@ -109,3 +112,4 @@ begin
 end;
 
 end.
+
