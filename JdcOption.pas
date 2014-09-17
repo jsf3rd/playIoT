@@ -36,7 +36,9 @@ type
     function ReadSection(ASection: string): TStrings;
     function ReadSectionValues(ASection: string): TStrings;
 
-    procedure SetEraseValue(const ASec: String);
+    procedure EraseSection(const ASec: String);
+    procedure DeleteKey(const ASec, AKey: String);
+
   end;
 
 implementation
@@ -46,7 +48,19 @@ var
 
   { TOption }
 
-procedure TOptionAbstract.SetEraseValue(const ASec: String);
+procedure TOptionAbstract.DeleteKey(const ASec, AKey: String);
+begin
+  IniTemplete(
+    procedure(AIni: TIniFile)
+    begin
+
+      AIni.DeleteKey(ASec, AKey);
+
+    end);
+
+end;
+
+procedure TOptionAbstract.EraseSection(const ASec: String);
 begin
   IniTemplete(
     procedure(AIni: TIniFile)
