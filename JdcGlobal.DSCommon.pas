@@ -4,7 +4,7 @@ interface
 
 uses
   Classes, SysUtils, FireDAC.Comp.Client, FireDAC.Stan.Intf, Data.DBXPlatform
-{$IF CompilerVersion  > 26}
+{$IF CompilerVersion  > 26} // upper XE5
     , System.JSON
 {$ELSE}
     , Data.DBXJSON
@@ -34,7 +34,11 @@ implementation
 
 class procedure TDSCommon.ClearJSONObject(AObject: TJSONArray);
 begin
+{$IF CompilerVersion  > 26} // upper XE5
+  while AObject.Count > 0 do
+{$ELSE}
   while AObject.Size > 0 do
+{$ENDIF}
   begin
     AObject.Remove(0).Free;
   end;
@@ -57,9 +61,16 @@ begin
   if not Assigned(AObject) then
     Exit;
 
+{$IF CompilerVersion  > 26} // upper XE5
+  while AObject.Count > 0 do
+  begin
+    Name := AObject.Pairs[0].JsonString.Value;
+{$ELSE}
   while AObject.Size > 0 do
   begin
     Name := AObject.Get(0).JsonString.Value;
+{$ENDIF}
+    Name := AObject.Pairs[0].JsonString.Value;
     AObject.RemovePair(Name).Free;
   end;
 end;
@@ -112,4 +123,3 @@ begin
 end;
 
 end.
-
