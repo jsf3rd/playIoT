@@ -39,19 +39,16 @@ type
       ADataSet: TFDDataSet); static;
   end;
 
-  TFDDataSetHelper = class helper for TFDDataSet
-  public
-    procedure LoadFromDSStream(AStream: TStream); reintroduce;
-  end;
-
   TFDQueryHelper = class helper for TFDQuery
   public
     function ToStream: TStream;
+    procedure LoadFromDSStream(AStream: TStream);
   end;
 
   TFDMemTableHelper = class helper for TFDMemTable
   public
     function ToStream: TStream;
+    procedure LoadFromDSStream(AStream: TStream);
   end;
 
 implementation
@@ -170,12 +167,11 @@ end;
 
 { TFDDataSetHelper }
 
-procedure TFDDataSetHelper.LoadFromDSStream(AStream: TStream);
+{ TFDQueryHelper }
+procedure TFDQueryHelper.LoadFromDSStream(AStream: TStream);
 begin
   TDSCommon.StreamToFDDataSet(AStream, Self);
 end;
-
-{ TFDQueryHelper }
 
 function TFDQueryHelper.ToStream: TStream;
 begin
@@ -183,6 +179,11 @@ begin
 end;
 
 { TFDMemTableHelper }
+
+procedure TFDMemTableHelper.LoadFromDSStream(AStream: TStream);
+begin
+  TDSCommon.StreamToFDDataSet(AStream, Self);
+end;
 
 function TFDMemTableHelper.ToStream: TStream;
 begin
