@@ -3,7 +3,8 @@ unit JdcGlobal.DSCommon;
 interface
 
 uses
-  Classes, SysUtils, FireDAC.Comp.Client, FireDAC.Stan.Intf, Data.DBXPlatform
+  Classes, SysUtils, FireDAC.Comp.Client, FireDAC.Stan.Intf, Data.DBXPlatform,
+  FireDAC.Comp.DataSet
 {$IF CompilerVersion  > 26} // upper XE5
     , System.JSON
 {$ELSE}
@@ -13,19 +14,44 @@ uses
 
 type
   TDSCommon = class
+  private
+
   public
     // Clear JSONObject Members
     class procedure ClearJSONObject(AObject: TJSONObject); overload;
     class procedure ClearJSONObject(AObject: TJSONArray); overload;
 
-    // FDQuery To TSream
-    class function DataSetToStream(AQuery: TFDQuery): TStream;
+    // FDQuery to TSream
+    class function DataSetToStream(ADataSet: TFDQuery): TStream; overload;
+
+    // FDMemTable to TStream
+    class function DataSetToStream(ADataSet: TFDMemTable): TStream; overload;
 
     // TStream to TBytesStream
     class function DSStreamToBytesStream(AValue: TStream): TBytesStream;
 
     // FDQuery's TStream to FDMemTable
     class procedure StreamToMemTable(AStream: TStream; ATable: TFDMemTable);
+      deprecated 'Use StreamToFDDataSet';
+
+    // FDQuery's TStream to TFDDataSet
+    class procedure StreamToFDDataSet(AStream: TStream;
+      ADataSet: TFDDataSet); static;
+  end;
+
+  TFDDataSetHelper = class helper for TFDDataSet
+  public
+    procedure LoadFromDSStream(AStream: TStream); reintroduce;
+  end;
+
+  TFDQueryHelper = class helper for TFDQuery
+  public
+    function ToStream: TStream;
+  end;
+
+  TFDMemTableHelper = class helper for TFDMemTable
+  public
+    function ToStream: TStream;
   end;
 
 implementation
@@ -44,14 +70,21 @@ begin
   end;
 end;
 
-class function TDSCommon.DataSetToStream(AQuery: TFDQuery): TStream;
+class function TDSCommon.DataSetToStream(ADataSet: TFDQuery): TStream;
 begin
   result := TBytesStream.Create;
-  AQuery.Open;
-  AQuery.FetchAll;
-  AQuery.SaveToStream(result, sfBinary);
+  ADataSet.Open;
+  ADataSet.FetchAll;
+  ADataSet.SaveToStream(result, sfBinary);
   result.Position := 0;
-  AQuery.Close;
+  ADataSet.Close;
+end;
+
+class function TDSCommon.DataSetToStream(ADataSet: TFDMemTable): TStream;
+begin
+  result := TBytesStream.Create;
+  ADataSet.SaveToStream(result, sfBinary);
+  result.Position := 0;
 end;
 
 class procedure TDSCommon.ClearJSONObject(AObject: TJSONObject);
@@ -70,7 +103,6 @@ begin
   begin
     Name := AObject.Get(0).JsonString.Value;
 {$ENDIF}
-    Name := AObject.Pairs[0].JsonString.Value;
     AObject.RemovePair(Name).Free;
   end;
 end;
@@ -112,14 +144,49 @@ begin
     if BytesStream.Size = 0 then
       raise Exception.Create('Reveiced Null Stream, ' + ATable.Name);
 
-    ATable.Close;
-    ATable.DisableControls;
     ATable.LoadFromStream(BytesStream, sfBinary);
-    ATable.EnableControls;
   finally
     FreeAndNil(BytesStream);
   end;
 
+end;
+
+class procedure TDSCommon.StreamToFDDataSet(AStream: TStream;
+  ADataSet: TFDDataSet);
+var
+  BytesStream: TBytesStream;
+begin
+  BytesStream := DSStreamToBytesStream(AStream);
+  try
+    if BytesStream.Size = 0 then
+      raise Exception.Create('Reveiced Null Stream, ' + ADataSet.Name);
+
+    ADataSet.LoadFromStream(BytesStream, sfBinary);
+  finally
+    FreeAndNil(BytesStream);
+  end;
+
+end;
+
+{ TFDDataSetHelper }
+
+procedure TFDDataSetHelper.LoadFromDSStream(AStream: TStream);
+begin
+  TDSCommon.StreamToFDDataSet(AStream, Self);
+end;
+
+{ TFDQueryHelper }
+
+function TFDQueryHelper.ToStream: TStream;
+begin
+  result := TDSCommon.DataSetToStream(Self);
+end;
+
+{ TFDMemTableHelper }
+
+function TFDMemTableHelper.ToStream: TStream;
+begin
+  result := TDSCommon.DataSetToStream(Self);
 end;
 
 end.
