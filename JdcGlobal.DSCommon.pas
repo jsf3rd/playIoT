@@ -47,6 +47,7 @@ type
 
   TFDMemTableHelper = class helper for TFDMemTable
   public
+    function Clone: TFDMemTable;
     function ToStream: TStream;
     procedure LoadFromDSStream(AStream: TStream);
   end;
@@ -165,8 +166,6 @@ begin
 
 end;
 
-{ TFDDataSetHelper }
-
 { TFDQueryHelper }
 procedure TFDQueryHelper.LoadFromDSStream(AStream: TStream);
 begin
@@ -179,6 +178,26 @@ begin
 end;
 
 { TFDMemTableHelper }
+
+function TFDMemTableHelper.Clone: TFDMemTable;
+var
+  Stream: TStream;
+  StoreItems: TFDStoreItems;
+begin
+  result := TFDMemTable.Create(Self.Owner);
+
+  StoreItems := Self.ResourceOptions.StoreItems;
+  Self.ResourceOptions.StoreItems := [siData, siDelta, siMeta];
+  Stream := TMemoryStream.Create;
+  try
+    Self.SaveToStream(Stream);
+    Stream.Position := 0;
+    result.LoadFromStream(Stream);
+  finally
+    Self.ResourceOptions.StoreItems := StoreItems;
+    FreeAndNil(Stream);
+  end;
+end;
 
 procedure TFDMemTableHelper.LoadFromDSStream(AStream: TStream);
 begin
