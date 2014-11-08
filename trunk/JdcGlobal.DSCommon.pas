@@ -1,3 +1,15 @@
+// *******************************************************
+//
+// Judico DataSnap Common
+//
+// Copyright(c) 2014 ENBGroup.
+//
+// jsf3rd@enbgroup.co.kr
+//
+// Update 2014. 11. 09
+//
+// *******************************************************
+
 unit JdcGlobal.DSCommon;
 
 interface
@@ -114,6 +126,7 @@ var
 begin
   result := TBytesStream.Create;
 
+  // bug case in lower BDS Version XE5
   if AValue.Size < 0 then
   begin
     SetLength(Buffer, BufferSize);
@@ -128,25 +141,7 @@ begin
   begin
     result.LoadFromStream(AValue);
   end;
-
   result.Position := 0;
-end;
-
-class procedure TDSCommon.StreamToMemTable(AStream: TStream;
-  ATable: TFDMemTable);
-var
-  BytesStream: TBytesStream;
-begin
-  BytesStream := DSStreamToBytesStream(AStream);
-  try
-    if BytesStream.Size = 0 then
-      raise Exception.Create('Reveiced Null Stream, ' + ATable.Name);
-
-    ATable.LoadFromStream(BytesStream, sfBinary);
-  finally
-    FreeAndNil(BytesStream);
-  end;
-
 end;
 
 class procedure TDSCommon.StreamToFDDataSet(AStream: TStream;
@@ -163,7 +158,12 @@ begin
   finally
     FreeAndNil(BytesStream);
   end;
+end;
 
+class procedure TDSCommon.StreamToMemTable(AStream: TStream;
+  ATable: TFDMemTable);
+begin
+  StreamToFDDataSet(AStream, ATable);
 end;
 
 { TFDQueryHelper }
