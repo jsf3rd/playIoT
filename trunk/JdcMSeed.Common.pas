@@ -133,6 +133,7 @@ type
     constructor Create(AStream: TStream); overload;
     constructor Create(ATemp: Integer); overload;
     function IsValid: boolean;
+    function GetFrameCount: Integer;
   end;
 
   TFixedHeader = packed record
@@ -142,7 +143,8 @@ type
 
     constructor Create(AStream: TStream); overload;
     constructor Create(AHeader: TMSeedHeader; AType: TSteimType); overload;
-    function IsValid: boolean;
+    procedure Validate;
+    function IsSteimEncoding: boolean;
     function DataLength: Integer;
     procedure WriteTo(ASteram: TStream);
   end;
@@ -269,6 +271,11 @@ begin
   result := result.Replace(' ', '');
 end;
 
+constructor TMSeedHeader.Create(AStream: TStream);
+begin
+  AStream.Read(Self, SizeOf(Self));
+end;
+
 constructor TMSeedHeader.Create(station, location, channel, network: Ansistring;
   samprate_fact: Word);
 var
@@ -295,11 +302,6 @@ begin
   Self.time_correct := 0;
   Self.data_offset := Rev2Bytes(64);
   Self.blockette_offset := Rev2Bytes(48);
-end;
-
-constructor TMSeedHeader.Create(AStream: TStream);
-begin
-  AStream.Read(Self, SizeOf(Self));
 end;
 
 function TMSeedHeader.Interval: Integer;
@@ -424,6 +426,14 @@ begin
   Self.framecnt := 7;
 end;
 
+function TBlockette1001.GetFrameCount: Integer;
+begin
+  if IsValid then
+    result := framecnt
+  else
+    result := FRAMES_PER_RECORD;
+end;
+
 constructor TBlockette1001.Create(AStream: TStream);
 begin
   AStream.Read(Self, SizeOf(Self));
@@ -543,9 +553,9 @@ end;
 
 constructor TFixedHeader.Create(AStream: TStream);
 begin
-  AStream.Read(Self.Header, SizeOf(TMSeedHeader));
-  AStream.Read(Self.Blkt1000, SizeOf(TBlockette1000));
-  AStream.Read(Self.Blkt1001, SizeOf(TBlockette1001));
+  Self.Header := TMSeedHeader.Create(AStream);
+  Self.Blkt1000 := TBlockette1000.Create(AStream);
+  Self.Blkt1001 := TBlockette1001.Create(AStream);
 end;
 
 constructor TFixedHeader.Create(AHeader: TMSeedHeader; AType: TSteimType);
@@ -560,9 +570,24 @@ begin
   result := Self.Blkt1000.RecordLength - SizeOf(Self);
 end;
 
-function TFixedHeader.IsValid: boolean;
+function TFixedHeader.IsSteimEncoding: boolean;
+var
+  Format: TEncodingFormat;
 begin
-  result := Self.Blkt1001.IsValid;
+  Format := TEncodingFormat(Blkt1000.encoding);
+  result := (Format = TEncodingFormat.efStaim1) or
+    (Format = TEncodingFormat.efStaim2);
+end;
+
+procedure TFixedHeader.Validate;
+begin
+  if not((Self.Header.numblockettes = 1) or (Self.Header.numblockettes = 2))
+  then
+    raise Exception.Create('Blockettes number error ' +
+      Self.Header.numblockettes.ToString);
+
+  if not Self.Blkt1000.IsValid then
+    raise Exception.Create('Can not find Blockette 1000');
 end;
 
 procedure TFixedHeader.WriteTo(ASteram: TStream);
