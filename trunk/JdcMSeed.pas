@@ -159,13 +159,9 @@ begin
   while AStream.Position < AStream.Size do
   begin
     FixedHeader := TFixedHeader.Create(AStream);
-    if not FixedHeader.IsValid then
-    begin
-      AStream.Position := AStream.Position + FixedHeader.DataLength;
-      Continue;
-    end;
+    FixedHeader.Validate;
 
-    SetLength(DataRecord, FixedHeader.Blkt1001.framecnt);
+    SetLength(DataRecord, FixedHeader.Blkt1001.GetFrameCount);
     AStream.Read(DataRecord[0], Length(DataRecord) * SizeOf(TDataFrame));
 
     SteimDecoder := SteimDecoderFactory(FixedHeader.Blkt1000);
@@ -324,9 +320,9 @@ var
 begin
   Stream := FContainer.Items[ACode];
   Stream.Position := 0;
-  FixedHeader := TFixedHeader.Create(TMSeedHeader.Create(Stream), AType);
 
-  if not FixedHeader.IsValid then
+  FixedHeader := TFixedHeader.Create(Stream);
+  if not FixedHeader.IsSteimEncoding then
   begin
     SaveToBinaryFile(APath, ACode);
     Exit;
@@ -334,6 +330,7 @@ begin
 
   RawData := ExtractRawData(ACode, APeriod);
   try
+    FixedHeader.Blkt1000.encoding := Byte(AType);
     SaveToMSeed(APath, RawData, FixedHeader)
   finally
     RawData.Free;
