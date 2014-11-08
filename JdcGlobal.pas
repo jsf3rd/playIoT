@@ -116,8 +116,6 @@ begin
 end;
 
 procedure PrintLog(AFile, AMessage: String);
-var
-  Stream: TStreamWriter;
 begin
   if FileExists(AFile) then
   begin
@@ -128,13 +126,8 @@ begin
     end;
   end;
 
-  Stream := TFile.AppendText(AFile);
-  try
-    Stream.WriteLine(FormatDateTime('YYYY-MM-DD, HH:NN:SS.zzz, ', now) +
-      AMessage);
-  finally
-    FreeAndNil(Stream);
-  end;
+  TFile.WriteAllText(AFile, FormatDateTime('YYYY-MM-DD, HH:NN:SS.zzz, ', now) +
+    AMessage);
 end;
 
 function CompressStream(Stream: TStream; OutStream: TStream;
