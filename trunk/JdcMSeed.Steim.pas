@@ -326,7 +326,7 @@ begin
   FPeekIndex := AIndex;
 
   if FPeekIndex = 0 then
-    FLastSample := 0
+    FLastSample := FPeeks[FPeekIndex]
   else
     FLastSample := FPeeks[FPeekIndex - 1];
 
