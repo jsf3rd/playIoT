@@ -304,7 +304,7 @@ var
 begin
   RawData := ReadFile(ASource);
   try
-    FileName := ChangeFileExt(ASource, '.mseed');
+    FileName := ExtractFilePath(ASource) + AHeader.ChannelCode + '.mseed';
     SaveToMSeed(FileName, RawData, TFixedHeader.Create(AHeader, AType));
   finally
     RawData.Free;
