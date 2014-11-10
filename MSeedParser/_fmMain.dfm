@@ -1,7 +1,7 @@
-object Form1: TForm1
+object fmMain: TfmMain
   Left = 0
   Top = 0
-  Caption = 'MSeed Parser'
+  Caption = 'miniSeed Parser'
   ClientHeight = 300
   ClientWidth = 635
   Color = clBtnFace
@@ -12,37 +12,61 @@ object Form1: TForm1
   Font.Style = []
   OldCreateOrder = False
   Position = poScreenCenter
+  OnCreate = FormCreate
   PixelsPerInch = 96
   TextHeight = 13
   object Memo1: TMemo
     Left = 0
-    Top = 91
+    Top = 121
     Width = 635
-    Height = 209
+    Height = 179
     Align = alClient
     ImeName = 'Microsoft Office IME 2007'
     ScrollBars = ssVertical
     TabOrder = 0
+    ExplicitTop = 168
+    ExplicitHeight = 132
   end
   object Panel1: TPanel
     Left = 0
     Top = 0
     Width = 635
-    Height = 91
+    Height = 121
     Align = alTop
     TabOrder = 1
-    object edtFileName: TJvFilenameEdit
+    object Label1: TLabel
       Left = 16
-      Top = 22
-      Width = 218
+      Top = 19
+      Width = 36
+      Height = 13
+      Caption = #54028#51068#47749
+    end
+    object Label2: TLabel
+      Left = 16
+      Top = 52
+      Width = 48
+      Height = 13
+      Caption = #49884#51089#49884#44036
+    end
+    object Label3: TLabel
+      Left = 16
+      Top = 85
+      Width = 48
+      Height = 13
+      Caption = #51333#47308#49884#44036
+    end
+    object edtFileName: TJvFilenameEdit
+      Left = 74
+      Top = 16
+      Width = 187
       Height = 21
       ImeName = 'Microsoft Office IME 2007'
       TabOrder = 0
       Text = ''
     end
     object btnMSeed2MSeed_ST1: TButton
-      Left = 357
-      Top = 20
+      Left = 381
+      Top = 12
       Width = 100
       Height = 25
       Caption = 'MSeed2MSeed ST1'
@@ -50,8 +74,8 @@ object Form1: TForm1
       OnClick = btnMSeed2MSeed_ST1Click
     end
     object btnMSeed2ASCII: TButton
-      Left = 251
-      Top = 51
+      Left = 275
+      Top = 12
       Width = 100
       Height = 25
       Caption = 'MSeed2ASCII'
@@ -59,8 +83,8 @@ object Form1: TForm1
       OnClick = btnMSeed2ASCIIClick
     end
     object btnASCII2MSeed_ST1: TButton
-      Left = 463
-      Top = 20
+      Left = 487
+      Top = 12
       Width = 100
       Height = 25
       Caption = 'ASCII2MSeed ST1'
@@ -68,8 +92,8 @@ object Form1: TForm1
       OnClick = btnASCII2MSeed_ST1Click
     end
     object btnASCII2MSeed_ST2: TButton
-      Left = 463
-      Top = 51
+      Left = 487
+      Top = 47
       Width = 100
       Height = 25
       Caption = 'ASCII2MSeed ST2'
@@ -77,29 +101,31 @@ object Form1: TForm1
       OnClick = btnASCII2MSeed_ST2Click
     end
     object btnMSeed2MSeed_ST2: TButton
-      Left = 357
-      Top = 51
+      Left = 381
+      Top = 47
       Width = 100
       Height = 25
       Caption = 'MSeed2MSeed ST2'
       TabOrder = 5
       OnClick = btnMSeed2MSeed_ST2Click
     end
-    object btnTEST: TButton
-      Left = 251
-      Top = 20
-      Width = 100
-      Height = 25
-      Caption = 'TEST'
+    object edtBegin: TEdit
+      Left = 74
+      Top = 49
+      Width = 187
+      Height = 21
+      ImeName = 'Microsoft Office IME 2007'
       TabOrder = 6
-      OnClick = btnTESTClick
+      Text = '2014-11-05 03:30:30 '
     end
-  end
-  object TestTimer: TTimer
-    Enabled = False
-    Interval = 500
-    OnTimer = TestTimerTimer
-    Left = 32
-    Top = 240
+    object edtEnd: TEdit
+      Left = 74
+      Top = 82
+      Width = 187
+      Height = 21
+      ImeName = 'Microsoft Office IME 2007'
+      TabOrder = 7
+      Text = '2014-11-05 03:30:30 '
+    end
   end
 end
