@@ -8,10 +8,10 @@ uses
   Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls, Vcl.Mask, JvExMask,
   JvToolEdit, Vcl.ExtCtrls, IdGlobal, Math, JdcGlobal,
   System.Generics.Collections, DateUtils, JdcMSeed, JdcMSeed.Common,
-  System.IOUtils;
+  System.IOUtils, _fmHeaderInfo;
 
 type
-  TForm1 = class(TForm)
+  TfmMain = class(TForm)
     Memo1: TMemo;
     Panel1: TPanel;
     edtFileName: TJvFilenameEdit;
@@ -20,84 +20,87 @@ type
     btnASCII2MSeed_ST1: TButton;
     btnASCII2MSeed_ST2: TButton;
     btnMSeed2MSeed_ST2: TButton;
-    btnTEST: TButton;
-    TestTimer: TTimer;
+    edtBegin: TEdit;
+    edtEnd: TEdit;
+    Label1: TLabel;
+    Label2: TLabel;
+    Label3: TLabel;
     procedure btnMSeed2MSeed_ST1Click(Sender: TObject);
     procedure btnASCII2MSeed_ST1Click(Sender: TObject);
     procedure btnMSeed2MSeed_ST2Click(Sender: TObject);
     procedure btnASCII2MSeed_ST2Click(Sender: TObject);
-    procedure btnTESTClick(Sender: TObject);
     procedure btnMSeed2ASCIIClick(Sender: TObject);
     procedure TestTimerTimer(Sender: TObject);
+    procedure FormCreate(Sender: TObject);
   private
-    function ASCII2MSeed(AHeader: TMSeedHeader; AType: TSteimType): String;
+    FMSeedHeader: TMSeedHeader;
+    procedure ASCII2MSeed(AHeader: TMSeedHeader; AType: TSteimType);
     procedure Test;
-    { Private declarations }
+    procedure MSeed2MSeed(AType: TSteimType);
   public
-    { Public declarations }
+    property MSeedHeader: TMSeedHeader read FMSeedHeader write FMSeedHeader;
   end;
 
 var
-  Form1: TForm1;
+  fmMain: TfmMain;
 
 implementation
 
 {$R *.dfm}
 
-procedure TForm1.btnMSeed2MSeed_ST2Click(Sender: TObject);
-var
-  MSeedFile: TMSeedFile;
-  FileName: string;
-  MyElem: String;
+procedure TfmMain.btnMSeed2MSeed_ST2Click(Sender: TObject);
 begin
   Memo1.Lines.Add('>MSeed2MSeed st2');
-  Memo1.Lines.Add('Source - ' + edtFileName.Text);
-  MSeedFile := TMSeedFile.Create(edtFileName.Text);
-  for MyElem in MSeedFile.GetChannelList do
-  begin
-    FileName := ExtractFilePath(edtFileName.Text) + MyElem + '_' +
-      FormatDateTime('YYYYMMDD', now) + '.mseed';
-    MSeedFile.ExtractToMSeed(FileName, MyElem, stLevel2);
-    Memo1.Lines.Add('Created - ' + FileName);
-  end;
-  MSeedFile.Free;
-  Memo1.Lines.Add('');
+  MSeed2MSeed(stLevel2);
 end;
 
-procedure TForm1.btnMSeed2MSeed_ST1Click(Sender: TObject);
+procedure TfmMain.FormCreate(Sender: TObject);
+begin
+  edtBegin.Text := FormatDateTime('YYYY-MM-DD HH:NN:SS', MinDateTime);
+  edtEnd.Text := FormatDateTime('YYYY-MM-DD HH:NN:SS', MaxDateTime);
+end;
+
+procedure TfmMain.btnMSeed2MSeed_ST1Click(Sender: TObject);
+begin
+  Memo1.Lines.Add('>MSeed2MSeed st1');
+  MSeed2MSeed(stLevel1);
+end;
+
+procedure TfmMain.MSeed2MSeed(AType: TSteimType);
 var
   MSeedFile: TMSeedFile;
   FileName: string;
   MyElem: String;
+  BeginTime: TDateTime;
+  EndTime: TDateTime;
 begin
-  Memo1.Lines.Add('>MSeed2MSeed st1');
   Memo1.Lines.Add('Source - ' + edtFileName.Text);
   MSeedFile := TMSeedFile.Create(edtFileName.Text);
+
+  BeginTime := StrToDateTime(edtBegin.Text);
+  EndTime := StrToDateTime(edtEnd.Text);
+
   for MyElem in MSeedFile.GetChannelList do
   begin
     FileName := ExtractFilePath(edtFileName.Text) + MyElem + '_' +
       FormatDateTime('YYYYMMDD', now) + '.mseed';
-    MSeedFile.ExtractToMSeed(FileName, MyElem, stLevel1);
+    MSeedFile.ExtractToMSeed(FileName, MyElem, AType, BeginTime, EndTime);
     Memo1.Lines.Add('Created - ' + FileName);
   end;
   MSeedFile.Free;
   Memo1.Lines.Add('');
 end;
 
-procedure TForm1.btnASCII2MSeed_ST1Click(Sender: TObject);
-var
-  Header: TMSeedHeader;
+procedure TfmMain.btnASCII2MSeed_ST1Click(Sender: TObject);
 begin
-  Header := TMSeedHeader.Create('ENB02', 'LT', 'BHZ', 'NT', 100);
-  ASCII2MSeed(Header, stLevel1);
+  if fmHeaderInfo.ShowModal = mrOk then
+    ASCII2MSeed(FMSeedHeader, stLevel1);
 end;
 
-procedure TForm1.btnASCII2MSeed_ST2Click(Sender: TObject);
-var
-  Header: TMSeedHeader;
+procedure TfmMain.btnASCII2MSeed_ST2Click(Sender: TObject);
 begin
-  Header := TMSeedHeader.Create('ENB01', 'LT', 'BHZ', 'NT', 100);
-  ASCII2MSeed(Header, stLevel2);
+  if fmHeaderInfo.ShowModal = mrOk then
+    ASCII2MSeed(FMSeedHeader, stLevel2);
 end;
 
 function CreateSampleData: String;
@@ -195,7 +198,7 @@ begin
   end;
 end;
 
-procedure TForm1.Test;
+procedure TfmMain.Test;
 var
   File1, File2: String;
   Header: TMSeedHeader;
@@ -205,7 +208,8 @@ begin
   File1 := CreateSampleData;
   edtFileName.Text := File1;
   Header := TMSeedHeader.Create('TST01', 'MY', 'HHZ', 'UP', 100);
-  File2 := ASCII2MSeed(Header, stLevel1);
+  ASCII2MSeed(Header, stLevel1);
+  File2 := ExtractFilePath(edtFileName.Text) + Header.ChannelCode + '.mseed';
 
   edtFileName.Text := File2;
   btnMSeed2MSeed_ST2.Click;
@@ -222,7 +226,8 @@ begin
   CompareFile(File1, File2);
 
   edtFileName.Text := File2;
-  File2 := ASCII2MSeed(Header, stLevel2);
+  ASCII2MSeed(Header, stLevel2);
+  File2 := ExtractFilePath(edtFileName.Text) + Header.ChannelCode + '.mseed';
   edtFileName.Text := File2;
   btnMSeed2ASCII.Click;
   File2 := ExtractFilePath(edtFileName.Text) + Header.ChannelCode + '_' +
@@ -233,60 +238,51 @@ begin
   TDirectory.Delete('D:\TEST', True);
 end;
 
-procedure TForm1.TestTimerTimer(Sender: TObject);
+procedure TfmMain.TestTimerTimer(Sender: TObject);
 begin
   Test;
   if Memo1.Lines.Count > 10000 then
     Memo1.Clear;
 end;
 
-procedure TForm1.btnTESTClick(Sender: TObject);
-begin
-  Test;
-  Exit;
-
-  TestTimer.Enabled := not TestTimer.Enabled;
-
-  if TestTimer.Enabled then
-    Caption := 'Testing...'
-  else
-    Caption := 'MSeed Parser';
-
-end;
-
-procedure TForm1.btnMSeed2ASCIIClick(Sender: TObject);
+procedure TfmMain.btnMSeed2ASCIIClick(Sender: TObject);
 var
   MSeedFile: TMSeedFile;
   MyElem: String;
   FileName: string;
+  BeginTime: TDateTime;
+  EndTime: TDateTime;
 begin
   Memo1.Lines.Add('>MSeed2Ascii');
   Memo1.Lines.Add('Source - ' + edtFileName.Text);
   MSeedFile := TMSeedFile.Create(edtFileName.Text);
+
+  BeginTime := StrToDateTime(edtBegin.Text);
+  EndTime := StrToDateTime(edtEnd.Text);
+
   for MyElem in MSeedFile.GetChannelList do
   begin
     FileName := ExtractFilePath(edtFileName.Text) + MyElem + '_' +
       FormatDateTime('YYYYMMDD', now) + '.txt';
-    MSeedFile.ExtractToASCii(FileName, MyElem);
+    MSeedFile.ExtractToASCii(FileName, MyElem, BeginTime, EndTime);
     Memo1.Lines.Add('Created - ' + FileName);
   end;
   MSeedFile.Free;
   Memo1.Lines.Add('');
 end;
 
-function TForm1.ASCII2MSeed(AHeader: TMSeedHeader; AType: TSteimType): String;
+procedure TfmMain.ASCII2MSeed(AHeader: TMSeedHeader; AType: TSteimType);
 var
   MSeedFile: TMSeedFile;
 begin
   Memo1.Lines.Add('>AsciiToMSeed ' + Integer(AType).ToString);
   Memo1.Lines.Add('Source - ' + edtFileName.Text);
-  result := ChangeFileExt(edtFileName.Text, '.mseed');
   MSeedFile := TMSeedFile.Create;
   MSeedFile.AsciiToMSeed(edtFileName.Text, AHeader, AType);
   MSeedFile.Free;
-  Memo1.Lines.Add('Created - ' + result);
+  Memo1.Lines.Add('Created - ' + ExtractFilePath(edtFileName.Text) +
+    AHeader.ChannelCode + '.mseed');
   Memo1.Lines.Add('');
-
 end;
 
 end.
