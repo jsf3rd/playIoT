@@ -1,9 +1,9 @@
 object fmMain: TfmMain
   Left = 0
   Top = 0
-  Caption = 'miniSeed Parser'
-  ClientHeight = 300
-  ClientWidth = 635
+  Caption = 'miniSeed Parser v1.0'
+  ClientHeight = 362
+  ClientWidth = 634
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -15,45 +15,55 @@ object fmMain: TfmMain
   OnCreate = FormCreate
   PixelsPerInch = 96
   TextHeight = 13
-  object Memo1: TMemo
+  object mmLog: TMemo
     Left = 0
     Top = 121
-    Width = 635
-    Height = 179
+    Width = 634
+    Height = 241
     Align = alClient
     ImeName = 'Microsoft Office IME 2007'
+    Lines.Strings = (
+      'Do not use commercial purpose.'
+      ''
+      'jsf3rd@enbgroup.co.kr.'
+      ''
+      '(c)ENBGROUP 2014, JUDICO.'
+      ''
+      '----------------------------------------------------')
+    ReadOnly = True
     ScrollBars = ssVertical
     TabOrder = 0
-    ExplicitTop = 168
-    ExplicitHeight = 132
+    ExplicitWidth = 635
+    ExplicitHeight = 179
   end
   object Panel1: TPanel
     Left = 0
     Top = 0
-    Width = 635
+    Width = 634
     Height = 121
     Align = alTop
     TabOrder = 1
+    ExplicitWidth = 635
     object Label1: TLabel
       Left = 16
       Top = 19
-      Width = 36
+      Width = 46
       Height = 13
-      Caption = #54028#51068#47749
+      Caption = 'File Name'
     end
     object Label2: TLabel
       Left = 16
       Top = 52
-      Width = 48
+      Width = 51
       Height = 13
-      Caption = #49884#51089#49884#44036
+      Caption = 'Begin Time'
     end
     object Label3: TLabel
       Left = 16
       Top = 85
-      Width = 48
+      Width = 43
       Height = 13
-      Caption = #51333#47308#49884#44036
+      Caption = 'End Time'
     end
     object edtFileName: TJvFilenameEdit
       Left = 74
