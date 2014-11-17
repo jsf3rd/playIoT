@@ -126,7 +126,7 @@ begin
     end;
   end;
 
-  TFile.WriteAllText(AFile, FormatDateTime('YYYY-MM-DD, HH:NN:SS.zzz, ', now) +
+  TFile.AppendAllText(AFile, FormatDateTime('YYYY-MM-DD, HH:NN:SS.zzz, ', now) +
     AMessage);
 end;
 
