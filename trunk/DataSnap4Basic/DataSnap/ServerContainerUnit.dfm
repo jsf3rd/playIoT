@@ -29,6 +29,7 @@ object ServerContainer: TServerContainer
     Top = 72
   end
   object DSHTTPService: TDSHTTPService
+    Server = DSServer
     Filters = <>
     Left = 96
     Top = 136
