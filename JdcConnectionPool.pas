@@ -1,3 +1,15 @@
+// *******************************************************
+//
+// Judico DataSnap Common
+//
+// Copyright(c) 2014 ENBGroup.
+//
+// jsf3rd@enbgroup.co.kr
+//
+// Update 2014. 12. 04
+//
+// *******************************************************
+
 unit JdcConnectionPool;
 
 interface
@@ -12,7 +24,7 @@ const
   DEFAULT_EXPIRE_TIMEOUT = 90000;
 
 type
-  TConnectionPool = class
+  TJdcConnectionPool = class
   private
     FDManager: TFDManager;
     FMaxItems: Integer;
@@ -33,9 +45,9 @@ implementation
 
 uses JdcView2;
 
-{ TConnectionPool }
+{ TJdcConnectionPool }
 
-constructor TConnectionPool.Create(CommaText, DefName, DriverID: String;
+constructor TJdcConnectionPool.Create(CommaText, DefName, DriverID: String;
   MaximumItems, CleanupTimeout, ExpireTimeout: Integer);
 var
   List: TStringList;
@@ -57,24 +69,24 @@ begin
   FDManager.Open;
 end;
 
-destructor TConnectionPool.Destroy;
+destructor TJdcConnectionPool.Destroy;
 begin
   FDManager.Free;
 end;
 
-function TConnectionPool.GetIdleConnection: TFDConnection;
+function TJdcConnectionPool.GetIdleConnection: TFDConnection;
 begin
   result := TFDConnection.Create(nil);
   result.ConnectionDefName := FDefName;
   result.Connected := true;
 end;
 
-function TConnectionPool.GetIdleConnectionCount: Integer;
+function TJdcConnectionPool.GetIdleConnectionCount: Integer;
 begin
   result := FMaxItems - FDManager.ConnectionCount;
 end;
 
-procedure TConnectionPool.ReleaseConnection(AConnection: TFDConnection);
+procedure TJdcConnectionPool.ReleaseConnection(AConnection: TFDConnection);
 begin
   if Assigned(AConnection) then
     AConnection.Free;
