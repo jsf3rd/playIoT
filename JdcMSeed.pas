@@ -21,6 +21,7 @@ type
   private
     FDateTime: TDateTime;
     FContainer: TMSeedContainer;
+    procedure _AddStream(var Stream: TStream);
   private
     procedure _AddFile(AFile: String);
     procedure SaveEachChannel(AStream: TStream);
@@ -41,6 +42,7 @@ type
     destructor Destroy; override;
 
     procedure AddFile(AFile: String);
+    procedure AddStream(AStream: TStream);
 
     procedure Clear;
     procedure RevemoveChannel(AChannel: String);
@@ -121,11 +123,7 @@ var
 begin
   Stream := TFile.OpenRead(AFile);
   try
-    Stream.Position := 0;
-    while Stream.Position < Stream.Size do
-    begin
-      SaveEachChannel(Stream);
-    end;
+    _AddStream(Stream);
   finally
     Stream.Free;
   end;
@@ -267,6 +265,19 @@ begin
   end;
 end;
 
+procedure TMSeedFile.AddStream(AStream: TStream);
+begin
+  if not Assigned(AStream) then
+    Exit;
+
+  try
+    _AddStream(AStream);
+  except
+    on E: Exception do
+      raise Exception.Create('Can not add stream. ' + E.Message);
+  end;
+end;
+
 procedure TMSeedFile.AsciiToMSeed(ASource: String; AHeader: TMSeedHeader;
   AType: TSteimType);
 
@@ -397,6 +408,15 @@ begin
     on E: Exception do
       raise Exception.Create('Extract to mseed error. ' + ACode + ', ' +
         E.Message);
+  end;
+end;
+
+procedure TMSeedFile._AddStream(var Stream: TStream);
+begin
+  Stream.Position := 0;
+  while Stream.Position < Stream.Size do
+  begin
+    SaveEachChannel(Stream);
   end;
 end;
 
