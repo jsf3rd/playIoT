@@ -118,23 +118,38 @@ end;
 procedure PrintLog(AFile, AMessage: String);
 var
   Stream: TStreamWriter;
+  FileName: String;
 begin
-  if FileExists(AFile) then
+  FileName := AFile;
+
+  if FileExists(FileName) then
   begin
-    if JclFileUtils.FileGetSize(AFile) > 1024 * 1024 * 5 then
+    if JclFileUtils.FileGetSize(FileName) > 1024 * 1024 * 5 then
     begin
-      FileMove(AFile, ChangeFileExt(AFile, FormatDateTime('_YYYYMMDD_HHNNSS',
-        now) + '.bak'), true);
+      try
+        FileMove(AFile, ChangeFileExt(FileName,
+          FormatDateTime('_YYYYMMDD_HHNNSS', now) + '.bak'), true);
+      except
+        on E: Exception do
+          FileName := ChangeFileExt(FileName, FormatDateTime('_YYYYMMDD', now)
+            + '.tmp');
+      end;
     end;
   end;
 
-  Stream := TFile.AppendText(AFile);
   try
-    Stream.WriteLine(FormatDateTime('YYYY-MM-DD, HH:NN:SS.zzz, ', now) +
-      AMessage);
-  finally
-    FreeAndNil(Stream);
+    Stream := TFile.AppendText(FileName);
+    try
+      Stream.WriteLine(FormatDateTime('YYYY-MM-DD, HH:NN:SS.zzz, ', now) +
+        AMessage);
+    finally
+      FreeAndNil(Stream);
+    end;
+  except
+    on E: Exception do
+      //
   end;
+
 end;
 
 function CompressStream(Stream: TStream; OutStream: TStream;
