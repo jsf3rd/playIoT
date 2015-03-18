@@ -13,17 +13,17 @@ type
   public
     class function Obj: TView;
 
-    procedure sp_SyncPacket(APacket: String);
-    procedure sp_ASyncPacket(APacket: String);
+    procedure sp_SyncPacket(const APacket: String);
+    procedure sp_ASyncPacket(const APacket: String);
 
-    procedure sp_SyncMessage(ACode: String; AMsg: String = '');
-    procedure sp_AsyncMessage(ACode: String; AMsg: String = '');
+    procedure sp_SyncMessage(const ACode: String; AMsg: String = '');
+    procedure sp_AsyncMessage(const ACode: String; AMsg: String = '');
     destructor Destroy; override;
 
-    procedure sp_ErrorMessage(Msg: String); overload;
-    procedure sp_ErrorMessage(UserMsg, ErrorMsg: String); overload;
-    procedure sp_ShowMessage(Msg: String);
-    procedure sp_Terminate(Msg: string);
+    procedure sp_ErrorMessage(const Msg: String); overload;
+    procedure sp_ErrorMessage(const UserMsg, ErrorMsg: String); overload;
+    procedure sp_ShowMessage(const Msg: String);
+    procedure sp_Terminate(const Msg: string);
   end;
 
 implementation
@@ -43,7 +43,7 @@ begin
   inherited;
 end;
 
-procedure TView.sp_AsyncMessage(ACode, AMsg: String);
+procedure TView.sp_AsyncMessage(const ACode: String; AMsg: String = '');
 var
   ValueList: TValueList;
 begin
@@ -57,7 +57,7 @@ begin
   end;
 end;
 
-procedure TView.sp_ASyncPacket(APacket: String);
+procedure TView.sp_ASyncPacket(const APacket: String);
 var
   ValueList: TValueList;
 begin
@@ -70,12 +70,12 @@ begin
   end;
 end;
 
-procedure TView.sp_ErrorMessage(Msg: String);
+procedure TView.sp_ErrorMessage(const Msg: String);
 begin
   sp_AsyncMessage('ErrorMessage', Msg);
 end;
 
-procedure TView.sp_ErrorMessage(UserMsg, ErrorMsg: String);
+procedure TView.sp_ErrorMessage(const UserMsg, ErrorMsg: String);
 var
   ValueList: TValueList;
 begin
@@ -90,12 +90,12 @@ begin
   end;
 end;
 
-procedure TView.sp_ShowMessage(Msg: String);
+procedure TView.sp_ShowMessage(const Msg: String);
 begin
   sp_AsyncMessage('ShowMessage', Msg);
 end;
 
-procedure TView.sp_SyncPacket(APacket: String);
+procedure TView.sp_SyncPacket(const APacket: String);
 var
   ValueList: TValueList;
 begin
@@ -108,7 +108,7 @@ begin
   end;
 end;
 
-procedure TView.sp_SyncMessage(ACode, AMsg: String);
+procedure TView.sp_SyncMessage(const ACode: String; AMsg: String = '');
 var
   ValueList: TValueList;
 begin
@@ -118,13 +118,12 @@ begin
     ValueList.Values['Msg'] := AMsg;
 
     BroadCast(ValueList);
-
   finally
     ValueList.Free;
   end;
 end;
 
-procedure TView.sp_Terminate(Msg: string);
+procedure TView.sp_Terminate(const Msg: string);
 begin
   sp_SyncMessage('Terminate', Msg);
 end;
