@@ -6,8 +6,8 @@ uses
   Classes, SysUtils, Windows, ZLib, IdGlobal, IOUtils, StdCtrls, JclFileUtils;
 
 // 로그 찍기..
-procedure PrintLog(AFile, AMessage: String); overload;
-procedure PrintLog(AMemo: TMemo; AMsg: String); overload;
+procedure PrintLog(const AFile, AMessage: String); overload;
+procedure PrintLog(AMemo: TMemo; const AMsg: String); overload;
 
 // 데이터 압축..
 function CompressStream(Stream: TStream; OutStream: TStream;
@@ -104,7 +104,7 @@ begin
   end;
 end;
 
-procedure PrintLog(AMemo: TMemo; AMsg: String);
+procedure PrintLog(AMemo: TMemo; const AMsg: String);
 begin
   if AMemo.Lines.Count > 3000 then
     AMemo.Lines.Clear;
@@ -115,7 +115,7 @@ begin
     AMemo.Lines.Add(FormatDateTime('YYYY-MM-DD, HH:NN:SS.zzz, ', now) + AMsg);
 end;
 
-procedure PrintLog(AFile, AMessage: String);
+procedure PrintLog(const AFile, AMessage: String);
 var
   Stream: TStreamWriter;
   FileName: String;
