@@ -28,12 +28,13 @@ type
     procedure do_WM_ASYNC_BROADCAST(var Msg: TMessage);
       message WM_ASYNC_BROADCAST;
     procedure do_RemoveItems;
+    procedure _BroadCast(const PacketText: string);
   private
     FLastCommand: TSyncString;
     procedure set_LastCommand(const AValue: string);
   private
     FActive: boolean;
-    FLock: integer;
+    FLockCount: integer;
     function GetLastCommand: string;
     procedure SendMessage(PackdetText: string);
   public
@@ -53,7 +54,7 @@ type
     procedure BroadCast(APacket: TValueList); overload;
 
     /// Send synchronous message.
-    procedure BroadCast(AText: string); overload;
+    procedure BroadCast(const AText: string); overload;
 
     /// Send synchronous message to other observers but except Sender.
     procedure BroadCastToOther(Sender: TObject; APacket: TValueList); overload;
@@ -65,7 +66,7 @@ type
     procedure AsyncBroadcast(APacket: TValueList); overload;
 
     /// Send asynchronous message.
-    procedure AsyncBroadcast(AText: string); overload;
+    procedure AsyncBroadcast(const AText: string); overload;
 
     /// Send synchronous message to Observer.
     procedure Notify(Observer: TObject; APacket: TValueList); overload;
@@ -125,39 +126,11 @@ begin
 
   PacketText := APacket.Text;
 
-  Trace('CurrentThread.ThreadID : ' + TThread.CurrentThread.ThreadID.ToString +
-    ', ' + APacket.Values['Msg']);
-  Trace('MainThreadID : ' + MainThreadID.ToString);
-
-  if InterlockedCompareExchange(FLock, TThread.CurrentThread.ThreadID,
-    MainThreadID) <> MainThreadID then
-  begin
-    Trace('<<<< AsyncBroadcast ThreadID : ' +
-      TThread.CurrentThread.ThreadID.ToString + ', FLock : ' + FLock.ToString +
-      ', ' + APacket.Values['Msg']);
-
-    TTask.Run(
-      procedure
-      begin
-        Sleep(100);
-        AsyncBroadcast(PacketText);
-      end);
-
-    Exit;
-  end;
-
-  FCS.Acquire;
-  try
-    SendMessage(PacketText);
-  finally
-    FCS.Leave;
-  end;
-
-  InterlockedCompareExchange(FLock, MainThreadID,
-    TThread.CurrentThread.ThreadID);
-
-  Trace('>>>>>>> CurrentThread.ThreadID : ' +
-    TThread.CurrentThread.ThreadID.ToString + ', ' + APacket.Values['Msg']);
+  TTask.Run(
+    procedure
+    begin
+      _BroadCast(PacketText);
+    end);
 end;
 
 procedure TObserverListEx.AsyncBroadcast(APacket: TValueList);
@@ -173,7 +146,7 @@ begin
   PostMessage(Handle, WM_ASYNC_BROADCAST, integer(Packet), 0);
 end;
 
-procedure TObserverListEx.AsyncBroadcast(AText: string);
+procedure TObserverListEx.AsyncBroadcast(const AText: string);
 var
   Packet: TValueList;
 begin
@@ -186,7 +159,7 @@ begin
   PostMessage(Handle, WM_ASYNC_BROADCAST, integer(Packet), 0);
 end;
 
-procedure TObserverListEx.BroadCast(AText: string);
+procedure TObserverListEx.BroadCast(const AText: string);
 var
   Packet: TValueList;
 begin
@@ -254,7 +227,7 @@ begin
 
   FActive := true;
 
-  FLock := MainThreadID;
+  FLockCount := 0;
 
   FList := TList.Create;
   FCS := TCriticalSection.Create;
@@ -327,6 +300,27 @@ begin
     Notify(Observer, Packet);
   finally
     Packet.Free;
+  end;
+end;
+
+procedure TObserverListEx._BroadCast(const PacketText: string);
+begin
+  InterlockedIncrement(FLockCount);
+  try
+    Sleep(FLockCount * 10);
+
+    if FLockCount > 1 then
+      Trace('LockCount : ' + FLockCount.ToString);
+
+    FCS.Acquire;
+    try
+      SendMessage(PacketText);
+    finally
+      FCS.Leave;
+    end;
+
+  finally
+    InterlockedDecrement(FLockCount);
   end;
 end;
 
