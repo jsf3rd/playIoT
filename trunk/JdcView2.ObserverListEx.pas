@@ -113,17 +113,22 @@ begin
   end;
 end;
 
-procedure TObserverListEx.BroadCast(APacket: TValueList);
-var
-  Loop: integer;
-  PacketText: String;
-  I: integer;
+procedure TObserverListEx.BroadCast(const AText: string);
 begin
   if not Active then
     Exit;
 
-  set_LastCommand(APacket.Values['Code']);
+  TTask.Run(
+    procedure
+    begin
+      _BroadCast(AText);
+    end);
+end;
 
+procedure TObserverListEx.BroadCast(APacket: TValueList);
+var
+  PacketText: String;
+begin
   PacketText := APacket.Text;
 
   TTask.Run(
@@ -134,16 +139,8 @@ begin
 end;
 
 procedure TObserverListEx.AsyncBroadcast(APacket: TValueList);
-var
-  Packet: TValueList;
 begin
-  if not Active then
-    Exit;
-
-  Packet := TValueList.Create;
-  Packet.Text := APacket.Text;
-
-  PostMessage(Handle, WM_ASYNC_BROADCAST, integer(Packet), 0);
+  AsyncBroadcast(APacket.Text);
 end;
 
 procedure TObserverListEx.AsyncBroadcast(const AText: string);
@@ -157,22 +154,6 @@ begin
   Packet.Text := AText;
 
   PostMessage(Handle, WM_ASYNC_BROADCAST, integer(Packet), 0);
-end;
-
-procedure TObserverListEx.BroadCast(const AText: string);
-var
-  Packet: TValueList;
-begin
-  if not Active then
-    Exit;
-
-  Packet := TValueList.Create;
-  try
-    Packet.Text := AText;
-    BroadCast(Packet);
-  finally
-    Packet.Free;
-  end;
 end;
 
 procedure TObserverListEx.BroadCastToOther(Sender: TObject;
@@ -310,7 +291,10 @@ begin
     Sleep(FLockCount * 10);
 
     if FLockCount > 1 then
-      Trace('LockCount : ' + FLockCount.ToString);
+      Trace('Sync Inc LockCount : ' + FLockCount.ToString + ', ' + PacketText);
+
+    Trace('CurrentThread.ThreadID, ' + TThread.CurrentThread.ThreadID.ToString);
+    Trace('MainThreadID, ' + MainThreadID.ToString);
 
     FCS.Acquire;
     try
@@ -319,8 +303,12 @@ begin
       FCS.Leave;
     end;
 
+    Trace('>>>>>> CurrentThread.ThreadID, ' +
+      TThread.CurrentThread.ThreadID.ToString);
+
   finally
     InterlockedDecrement(FLockCount);
+    Trace('Sync Dec LockCount : ' + FLockCount.ToString);
   end;
 end;
 
