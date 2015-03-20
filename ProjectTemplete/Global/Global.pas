@@ -6,7 +6,9 @@ uses
   Classes, SysUtils;
 
 const
-  COPY_RIGHT_FILEMAN = 'JudicoApp v1.0 - ¨Ï 2014 ENB GROUP';
+  APPLICATION_TITLE = 'JudicoApp';
+  APPLICATION_VERSION = 'v1.0';
+  COPY_RIGHT_SIGN = '¨Ï 2015 ENBGROUP';
   HOME_PAGE_URL = 'http://www.enbgourp.co.kr';
 
 type
