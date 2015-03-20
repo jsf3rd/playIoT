@@ -2,7 +2,7 @@ program Templete;
 
 uses
   Vcl.Forms,
-  _fmMain in 'View\_fmMain.pas' {fmMain},
+  _fmMain in 'View\_fmMain.pas' {fmMain} ,
   Core in 'Core\Core.pas',
   Common in 'Global\Common.pas',
   Global in 'Global\Global.pas',
@@ -12,7 +12,9 @@ uses
 
 begin
   Application.Initialize;
+  Application.Title := APPLICATION_TITLE;
   Application.MainFormOnTaskbar := True;
   Application.CreateForm(TfmMain, fmMain);
   Application.Run;
+
 end.

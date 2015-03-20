@@ -5,12 +5,18 @@ interface
 uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants,
   System.Classes, Vcl.Graphics,
-  Vcl.Controls, Vcl.Forms, Vcl.ActnList, ValueList, Vcl.Dialogs, System.Actions;
+  Vcl.Controls, Vcl.Forms, Vcl.ActnList, ValueList, Vcl.Dialogs, System.Actions,
+  Vcl.Menus;
 
 type
   TfmMain = class(TForm)
     ActionList: TActionList;
     actAbout: TAction;
+    MainMenu: TMainMenu;
+    File1: TMenuItem;
+    ool1: TMenuItem;
+    Help1: TMenuItem;
+    About1: TMenuItem;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure FormShow(Sender: TObject);
@@ -36,8 +42,8 @@ uses Option, Global, JdcView2, Core, JdcGlobal, Common, System.UITypes;
 
 procedure TfmMain.actAboutExecute(Sender: TObject);
 begin
-  MessageDlg(COPY_RIGHT_FILEMAN + #13#10#13#10 + HOME_PAGE_URL, mtInformation,
-    [mbOK], 0);
+  MessageDlg(APPLICATION_TITLE + ' ' + APPLICATION_VERSION + ' ' +
+    COPY_RIGHT_SIGN + #13#10#13#10 + HOME_PAGE_URL, mtInformation, [mbOK], 0);
 end;
 
 procedure TfmMain.FormClose(Sender: TObject; var Action: TCloseAction);

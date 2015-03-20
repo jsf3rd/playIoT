@@ -10,6 +10,7 @@ object fmMain: TfmMain
   Font.Height = -11
   Font.Name = 'Tahoma'
   Font.Style = []
+  Menu = MainMenu
   OldCreateOrder = False
   Position = poScreenCenter
   OnClose = FormClose
@@ -24,6 +25,22 @@ object fmMain: TfmMain
     object actAbout: TAction
       Caption = '&About'
       OnExecute = actAboutExecute
+    end
+  end
+  object MainMenu: TMainMenu
+    Left = 136
+    Top = 24
+    object File1: TMenuItem
+      Caption = '&File'
+    end
+    object ool1: TMenuItem
+      Caption = '&Tool'
+    end
+    object Help1: TMenuItem
+      Caption = '&Help'
+      object About1: TMenuItem
+        Action = actAbout
+      end
     end
   end
 end
