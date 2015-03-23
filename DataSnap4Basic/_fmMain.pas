@@ -6,7 +6,7 @@ uses Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants,
   System.Classes, Vcl.Graphics, Vcl.Controls, Vcl.Forms, Vcl.Dialogs,
   Vcl.StdCtrls, Vcl.Mask, JvExMask, JvToolEdit, JvCombobox, JvExStdCtrls,
   JvDBCombobox, JdcView2, ValueList, Vcl.ActnList, Vcl.ComCtrls, Vcl.ExtCtrls,
-  JvTextListBox, Vcl.Menus, DBXJSON, System.Actions;
+  JvTextListBox, Vcl.Menus, DBXJSON, System.Actions, System.UITypes;
 
 type
   TfmMain = class(TForm)
@@ -64,8 +64,8 @@ uses Global, JdcGlobal, _fmOption, Option, ServerContainerUnit;
 
 procedure TfmMain.actAboutExecute(Sender: TObject);
 begin
-  ShowMessage(APPLICATION_TITLE + ' - ' + COPY_RIGHT + #13#10#13#10 +
-    HOME_PAGE_URL);
+  MessageDlg(APPLICATION_TITLE + ' ' + APPLICATION_VERSION + ' ' +
+    COPY_RIGHT_SIGN + #13#10#13#10 + HOME_PAGE_URL, mtInformation, [mbOK], 0);
 end;
 
 procedure TfmMain.actClearLogExecute(Sender: TObject);

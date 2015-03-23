@@ -6,8 +6,9 @@ uses
   Classes, SysUtils, JdcView2, JdcGlobal, DBXJSON;
 
 const
-  APPLICATION_TITLE = 'DataSnap for Basic v1.0';
-  COPY_RIGHT = 'ⓒ 2013 ENB GROUP';
+  APPLICATION_TITLE = 'DataSnap for Basic';
+  APPLICATION_VERSION = 'v1.0';
+  COPY_RIGHT_SIGN = 'ⓒ 2015 ENBGROUP';
   HOME_PAGE_URL = 'http://www.enbgourp.co.kr';
 
   DB_DRIVER_ID = 'DriverID';
@@ -25,6 +26,8 @@ type
     FInitialized: boolean;
   private
     FExeName: String;
+    FLogName: string;
+    procedure SetExeName(const Value: String);
 
   public
     constructor Create(AOwner: TComponent); override;
@@ -37,7 +40,8 @@ type
 
   published
     property Initialized: boolean read FInitialized;
-    property ExeName: String read FExeName write FExeName;
+    property ExeName: String read FExeName write SetExeName;
+    property LogName: string read FLogName;
   end;
 
 implementation
@@ -87,6 +91,12 @@ begin
   if MyObj = nil then
     MyObj := TGlobal.Create(nil);
   Result := MyObj;
+end;
+
+procedure TGlobal.SetExeName(const Value: String);
+begin
+  FExeName := Value;
+  FLogName := ChangeFileExt(FExeName, '.log');
 end;
 
 end.
