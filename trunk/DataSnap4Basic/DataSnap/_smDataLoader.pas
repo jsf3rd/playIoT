@@ -3,13 +3,14 @@ unit _smDataLoader;
 interface
 
 uses System.SysUtils, System.Classes, Datasnap.DSServer, Datasnap.DSAuth,
-  Data.DBXJSON, Data.FMTBcd, Data.DB, Data.SqlExpr, System.MaskUtils,
-  Datasnap.DBClient, Data.DBXDBReaders, ServerContainerUnit, Data.DBXJSONCommon,
+  Data.FMTBcd, Data.DB, Data.SqlExpr, System.MaskUtils,
+  Datasnap.DBClient, Data.DBXDBReaders, ServerContainerUnit,
   Vcl.Imaging.jpeg, System.IOUtils, IdGlobal, FireDAC.Stan.Intf,
   FireDAC.Stan.Option, FireDAC.Stan.Error, FireDAC.UI.Intf, FireDAC.Phys.Intf,
   FireDAC.Stan.Def, FireDAC.Stan.Pool, FireDAC.Stan.Async, FireDAC.Phys,
   FireDAC.Stan.Param, FireDAC.DatS, FireDAC.DApt.Intf, FireDAC.DApt,
-  FireDAC.Comp.DataSet, FireDAC.Comp.Client;
+  FireDAC.Comp.DataSet, FireDAC.Comp.Client,
+  Datasnap.DSProviderDataModuleAdapter, System.JSON;
 
 type
   TsmDataLoader = class(TDSServerModule)

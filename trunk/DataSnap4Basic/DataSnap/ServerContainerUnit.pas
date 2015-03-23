@@ -5,7 +5,8 @@ interface
 uses System.SysUtils, System.Classes, IPPeerServer, Data.DB,
   Datasnap.DSCommonServer,
   Datasnap.DSServer, Datasnap.DSTCPServerTransport, System.Generics.Collections,
-  Datasnap.DSSession, Data.DBXJSON, Datasnap.DSHTTP;
+  Datasnap.DSSession, Data.DBXJSON, Datasnap.DSHTTP, JdcConnectionPool,
+  FireDAC.Comp.Client;
 
 type
   TServerContainer = class(TDataModule)
@@ -22,9 +23,13 @@ type
     procedure DataModuleDestroy(Sender: TObject);
     procedure DSServerConnect(DSConnectEventObject: TDSConnectEventObject);
   private
+    FConnectionPool: TJdcConnectionPool;
     procedure OnChannelStateChanged(Sender: TObject;
       const EventItem: TDSCallbackTunnelEventItem);
+    procedure InitConnecitonPool;
   public
+    function GetIdleConenction: TFDConnection;
+    procedure ReleaseConnection(AConn: TFDConnection);
   end;
 
 var
@@ -40,6 +45,21 @@ uses Winapi.Windows, _smDataLoader, _smDataProvider, JdcView2,
 var
   SessionEvent: TDSSessionEvent;
 
+procedure TServerContainer.InitConnecitonPool;
+var
+
+  ConnStr: string;
+  DefName: string;
+  DriverName: string;
+begin
+  ConnStr :=
+    'Server=localhost,DataBase=mydb,User_Name=myid,Password=mypwd,Port=1433';
+  DefName := 'Test_Pooled'; // Unique Name
+  DriverName := 'MSSQL';
+
+  FConnectionPool := TJdcConnectionPool.Create(ConnStr, DefName, DriverName);
+end;
+
 procedure TServerContainer.DataModuleCreate(Sender: TObject);
 begin
   TDSCallbackTunnelManager.Instance.AddTunnelEvent(OnChannelStateChanged);
@@ -51,6 +71,8 @@ begin
 
   TView.Obj.sp_SyncMessage('StartDSServer',
     IntToStr(DSTCPServerTransport.Port));
+
+  InitConnecitonPool;
 end;
 
 procedure TServerContainer.DataModuleDestroy(Sender: TObject);
@@ -58,6 +80,8 @@ begin
   TDSSessionManager.Instance.RemoveSessionEvent(SessionEvent);
   TDSCallbackTunnelManager.Instance.RemoveTunnelEvent(OnChannelStateChanged);
   DSServer.Stop;
+
+  FConnectionPool.Free;
 end;
 
 procedure TServerContainer.dscDataLoaderGetClass(DSServerClass: TDSServerClass;
@@ -88,11 +112,21 @@ begin
   TView.Obj.sp_SyncMessage('UserConnected', UserIP + ' (' + SessionID + ')');
 end;
 
+function TServerContainer.GetIdleConenction: TFDConnection;
+begin
+  result := FConnectionPool.GetIdleConnection;
+end;
+
 procedure TServerContainer.OnChannelStateChanged(Sender: TObject;
   const EventItem: TDSCallbackTunnelEventItem);
 begin
   TView.Obj.sp_SyncMessage('ChannelStateChanged',
     IntToStr(DSServer.GetAllChannelClientId(CHANNEL_DEFAULT).Count));
+end;
+
+procedure TServerContainer.ReleaseConnection(AConn: TFDConnection);
+begin
+  FConnectionPool.ReleaseConnection(AConn);
 end;
 
 initialization

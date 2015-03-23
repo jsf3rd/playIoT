@@ -4,9 +4,10 @@ interface
 
 uses
   System.SysUtils, System.Classes, Datasnap.DSServer, Datasnap.DSAuth,
-  Data.DBXCommon, Data.DB, Datasnap.DBClient, Data.DBXDBReaders,
-  Datasnap.Provider, Data.DBXJSON, Data.FMTBcd, Data.SqlExpr, System.IOUtils,
-  Data.DBXJSONCommon, System.DateUtils, Data.SqlTimSt;
+  Data.DB, Datasnap.DBClient, Data.DBXDBReaders,
+  Datasnap.Provider, Data.FMTBcd, Data.SqlExpr, System.IOUtils,
+  Data.DBXJSONCommon, System.DateUtils, Data.SqlTimSt,
+  Datasnap.DSProviderDataModuleAdapter, System.JSON;
 
 type
   TsmDataProvider = class(TDSServerModule)

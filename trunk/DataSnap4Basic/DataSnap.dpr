@@ -18,7 +18,7 @@ uses
 begin
   Application.Initialize;
   Application.MainFormOnTaskbar := True;
-  Application.Title := 'DataSnap for Basic';
+  Application.Title := APPLICATION_TITLE;
   Application.CreateForm(TfmMain, fmMain);
   Application.CreateForm(TServerContainer, ServerContainer);
   Application.Run;
