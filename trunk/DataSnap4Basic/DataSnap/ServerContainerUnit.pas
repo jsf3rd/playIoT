@@ -52,8 +52,7 @@ var
   DefName: string;
   DriverName: string;
 begin
-  ConnStr :=
-    'Server=localhost,DataBase=mydb,User_Name=myid,Password=mypwd,Port=1433';
+  ConnStr := TOption.Obj.DBInfo;
   DefName := 'Test_Pooled'; // Unique Name
   DriverName := 'MSSQL';
 
