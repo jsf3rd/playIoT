@@ -16,7 +16,6 @@ object fmMain: TfmMain
   OnClose = FormClose
   OnCreate = FormCreate
   OnDestroy = FormDestroy
-  OnShow = FormShow
   PixelsPerInch = 96
   TextHeight = 13
   object ActionList: TActionList
@@ -42,5 +41,10 @@ object fmMain: TfmMain
         Action = actAbout
       end
     end
+  end
+  object ApplicationEvents: TApplicationEvents
+    OnException = ApplicationEventsException
+    Left = 240
+    Top = 24
   end
 end

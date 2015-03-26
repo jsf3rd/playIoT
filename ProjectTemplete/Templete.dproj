@@ -5,7 +5,7 @@
         <FrameworkType>VCL</FrameworkType>
         <MainSource>Templete.dpr</MainSource>
         <Base>True</Base>
-        <Config Condition="'$(Config)'==''">Debug</Config>
+        <Config Condition="'$(Config)'==''">Release</Config>
         <Platform Condition="'$(Platform)'==''">Win32</Platform>
         <TargetedPlatforms>1</TargetedPlatforms>
         <AppType>Application</AppType>
@@ -96,7 +96,7 @@
         <DCC_ExeOutput>..\bin\$(Config)</DCC_ExeOutput>
         <VerInfo_Locale>1033</VerInfo_Locale>
         <DCC_DcuOutput>.\DUCs</DCC_DcuOutput>
-        <VerInfo_Keys>CompanyName=ENBGROUP.;FileDescription=;FileVersion=1.0.0.0;InternalName=;LegalCopyright=(c)ENBGROUP 2015.;LegalTrademarks=;OriginalFilename=;ProductName=Code D;ProductVersion=1.0.0.0;Comments=Judico Application.</VerInfo_Keys>
+        <VerInfo_Keys>CompanyName=ENBGROUP.;FileDescription=Judico Application Default.;FileVersion=1.0.0.0;InternalName=;LegalCopyright=(c)ENBGROUP 2015.;LegalTrademarks=;OriginalFilename=;ProductName=Code D;ProductVersion=1.0.0.0;Comments=Judico Application.</VerInfo_Keys>
         <VerInfo_IncludeVerInfo>true</VerInfo_IncludeVerInfo>
     </PropertyGroup>
     <ItemGroup>
