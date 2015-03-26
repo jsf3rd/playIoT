@@ -76,8 +76,8 @@ end;
 procedure TfmMain.rp_ErrorMessage(APacket: TValueList);
 begin
   // TODO : Print Error Log..
-  // PrintDebug(mmLog, '<ERR> ' + APacket.Values['Msg']);
-  // PrintDebug(TGlobal.Obj.LogName, '<ERR> ' + APacket.Values['Msg']);
+  // PrintLog(mmLog, '<ERR> ' + APacket.Values['Msg']);
+  // PrintLog(TGlobal.Obj.LogName, '<ERR> ' + APacket.Values['Msg']);
 end;
 
 procedure TfmMain.rp_Init(APacket: TValueList);
@@ -89,13 +89,13 @@ procedure TfmMain.rp_LogMessage(APacket: TValueList);
 begin
   // TODO : Print Debug Log
   // PrintDebug('::LOG:: ' + APacket.Values['Msg']);
-  // PrintDebug(TGlobal.Obj.LogName, '<LOG> ' + APacket.Values['Msg']);
+  // PrintLog(TGlobal.Obj.LogName, '<LOG> ' + APacket.Values['Msg']);
 end;
 
 procedure TfmMain.rp_ShowMessage(APacket: TValueList);
 begin
   // TODO : Print User Message..
-  // PrintDebug(mmLog, '<MSG> ' + APacket.Values['Msg']);
+  // PrintLog(mmLog, '<MSG> ' + APacket.Values['Msg']);
 end;
 
 procedure TfmMain.rp_Terminate(APacket: TValueList);
