@@ -9,6 +9,10 @@ uses
 procedure PrintLog(const AFile, AMessage: String); overload;
 procedure PrintLog(AMemo: TMemo; const AMsg: String); overload;
 
+procedure PrintDebug(const Format: string; const Args: array of const);
+  overload;
+procedure PrintDebug(const str: string); overload;
+
 // 데이터 압축..
 function CompressStream(Stream: TStream; OutStream: TStream;
   OnProgress: TNotifyEvent): boolean;
@@ -150,6 +154,20 @@ begin
       //
   end;
 
+end;
+
+procedure PrintDebug(const Format: string; const Args: array of const);
+  overload;
+var
+  str: string;
+begin
+  FmtStr(str, Format, Args);
+  OutputDebugString(PChar('[JDC] ' + str));
+end;
+
+procedure PrintDebug(const str: string); overload;
+begin
+  PrintDebug(str, []);
 end;
 
 function CompressStream(Stream: TStream; OutStream: TStream;
