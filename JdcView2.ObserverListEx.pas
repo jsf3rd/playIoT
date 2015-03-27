@@ -1,12 +1,15 @@
-/// ObserverList unit
+/// ObserverListEx unit
+///
+/// Remove Critical Section.
+/// Add TThread.Synchronize, TThread.Queue.
+
 unit JdcView2.ObserverListEx;
 
 interface
 
 uses
-  DebugTools, ValueList, HandleComponent, SyncValues,
-  Windows, Messages, Classes, SysUtils, Types, SyncObjs, System.Threading,
-  Vcl.Forms;
+  ValueList, HandleComponent,
+  Windows, Messages, Classes, SysUtils, SyncObjs, Types, JdcGlobal;
 
 const
   WM_ASYNC_BROADCAST = WM_USER + 1;
@@ -23,119 +26,60 @@ type
   TObserverListEx = class(THandleComponent)
   private
     FList: TList;
-    FCS: TCriticalSection;
-    procedure do_Notify(Observer: TObject; Packet: TValueList);
-    procedure do_WM_ASYNC_BROADCAST(var Msg: TMessage);
-      message WM_ASYNC_BROADCAST;
-    procedure do_RemoveItems;
-    procedure _BroadCast(const PacketText: string);
-  private
-    FLastCommand: TSyncString;
-    procedure set_LastCommand(const AValue: string);
-  private
     FActive: boolean;
+    procedure do_Notify(Observer: TObject; Packet: TValueList);
+    procedure do_RemoveItems;
+  private
     FLockCount: integer;
-    function GetLastCommand: string;
-    procedure SendMessage(PackdetText: string);
+
+    procedure _BroadCast(const AText: string);
+    procedure _AsyncBroadCast(const AText: string);
+    procedure SendMessage(PacketText: string);
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
 
-    /// Unregister all observers
     procedure Clear;
-
-    /// Register an observer.
+    /// Unregister all observers
     procedure Add(Observer: TObject);
-
-    /// Unregister an observer.
+    /// Register an observer.
     procedure Remove(Observer: TObject);
+    /// Unregister an observer.
 
-    /// Send synchronous message.
     procedure BroadCast(APacket: TValueList); overload;
-
     /// Send synchronous message.
-    procedure BroadCast(const AText: string); overload;
+    procedure BroadCast(AText: string); overload;
+    /// Send synchronous message.
 
-    /// Send synchronous message to other observers but except Sender.
-    procedure BroadCastToOther(Sender: TObject; APacket: TValueList); overload;
-
-    /// Send synchronous message to other observers but except Sender.
-    procedure BroadCastToOther(Sender: TObject; AText: string); overload;
-
-    /// Send asynchronous message.
     procedure AsyncBroadcast(APacket: TValueList); overload;
-
     /// Send asynchronous message.
-    procedure AsyncBroadcast(const AText: string); overload;
-
-    /// Send synchronous message to Observer.
-    procedure Notify(Observer: TObject; APacket: TValueList); overload;
-
-    /// Send synchronous message to Observer.
-    procedure Notify(Observer: TObject; AText: string); overload;
+    procedure AsyncBroadcast(AText: string); overload;
+    /// Send asynchronous message.
   published
-    /// Message won't be sent when Active is false.
     property Active: boolean read FActive write FActive;
-
-    { *
-      가장 최근에 전송한 View 명령어가 무엇인지 알려준다.
-      디버깅에 사용된다.
-    }
-    property LastCommand: string read GetLastCommand;
+    /// Message won't be sent when Active is false.
   end;
 
 implementation
 
-{ TObserverList }
+const
+  LOCK_COUNT_LIMIT = 100;
+  ALARM_COUNT = 10;
+
+  { TObserverListEx }
 
 procedure TObserverListEx.Add(Observer: TObject);
 begin
-  FCS.Enter;
-  try
-    FList.Add(Observer);
-  finally
-    FCS.Leave;
-  end;
-end;
-
-procedure TObserverListEx.SendMessage(PackdetText: string);
-var
-  Packet: TValueList;
-  Loop: integer;
-begin
-  Packet := TValueList.Create;
-  try
-    Packet.Text := PackdetText;
-    for Loop := FList.Count - 1 downto 0 do
-      do_Notify(FList[Loop], Packet);
-  finally
-    Packet.Free;
-  end;
-end;
-
-procedure TObserverListEx.BroadCast(const AText: string);
-begin
-  if not Active then
-    Exit;
-
-  TTask.Run(
+  TThread.Synchronize(nil,
     procedure
     begin
-      _BroadCast(AText);
+      FList.Add(Observer);
     end);
 end;
 
 procedure TObserverListEx.BroadCast(APacket: TValueList);
-var
-  PacketText: String;
 begin
-  PacketText := APacket.Text;
-
-  TTask.Run(
-    procedure
-    begin
-      _BroadCast(PacketText);
-    end);
+  BroadCast(APacket.Text);
 end;
 
 procedure TObserverListEx.AsyncBroadcast(APacket: TValueList);
@@ -143,85 +87,62 @@ begin
   AsyncBroadcast(APacket.Text);
 end;
 
-procedure TObserverListEx.AsyncBroadcast(const AText: string);
-var
-  Packet: TValueList;
+procedure TObserverListEx.AsyncBroadcast(AText: string);
 begin
-  if not Active then
+  if not FActive then
+  begin
+    PrintDebug('ObserverList inactive. Message discarded : ' + AText);
     Exit;
-
-  Packet := TValueList.Create;
-  Packet.Text := AText;
-
-  PostMessage(Handle, WM_ASYNC_BROADCAST, integer(Packet), 0);
-end;
-
-procedure TObserverListEx.BroadCastToOther(Sender: TObject;
-APacket: TValueList);
-var
-  Loop: integer;
-begin
-  if not Active then
-    Exit;
-
-  set_LastCommand(APacket.Values['Code']);
-
-  FCS.Enter;
-  try
-    for Loop := FList.Count - 1 downto 0 do
-      if Sender <> FList[Loop] then
-        do_Notify(FList[Loop], APacket);
-  finally
-    FCS.Leave;
   end;
+
+  try
+    _AsyncBroadCast(AText);
+  except
+    on E: Exception do
+      PrintDebug('Error on _AsyncBroadCast, ' + E.Message);
+  end;
+
 end;
 
-procedure TObserverListEx.BroadCastToOther(Sender: TObject; AText: string);
-var
-  Packet: TValueList;
+procedure TObserverListEx.BroadCast(AText: string);
 begin
-  if not Active then
+  if not FActive then
+  begin
+    PrintDebug('ObserverList inactive. Message discarded : ' + AText);
     Exit;
+  end;
 
-  Packet := TValueList.Create;
   try
-    Packet.Text := AText;
-    BroadCastToOther(Sender, Packet);
-  finally
-    Packet.Free;
+    _BroadCast(AText);
+  except
+    on E: Exception do
+      PrintDebug('Error on _BroadCast, ' + E.Message);
   end;
 end;
 
 procedure TObserverListEx.Clear;
 begin
-  FCS.Enter;
-  try
-    FList.Clear;
-  finally
-    FCS.Leave;
-  end;
+  TThread.Synchronize(nil,
+    procedure
+    begin
+      FList.Clear;
+    end);
 end;
 
 constructor TObserverListEx.Create(AOwner: TComponent);
 begin
   inherited;
 
-  FActive := true;
-
   FLockCount := 0;
-
+  FActive := true;
   FList := TList.Create;
-  FCS := TCriticalSection.Create;
-  FLastCommand := TSyncString.Create;
 end;
 
 destructor TObserverListEx.Destroy;
 begin
   do_RemoveItems;
 
-  FCS.Free;
   FList.Free;
-  FreeAndNil(FLastCommand);
 
   inherited;
 end;
@@ -232,116 +153,96 @@ var
 begin
   // Notify 도중에 다시 Notify가 중복되지 않도록 조심, 재귀호출
   // 해당 Observer가 이미 삭제되었는데도, Remove 되지 않는 경우 조심
-  try
-    TMethod(Proc).Data := Observer;
-    TMethod(Proc).Code := TObject(Observer)
-      .MethodAddress('rp_' + Packet.Values['Code']);
-    if Assigned(Proc) then
-      Proc(Packet);
-  except
-    on E: Exception do
-      Trace(Format('TObserverList.do_Notify - %s' + #13#10 + '    - %s, %s',
-        [E.Message, Observer.ClassName, Packet.Text]));
-  end;
+  TMethod(Proc).Data := Observer;
+  TMethod(Proc).Code := TObject(Observer)
+    .MethodAddress('rp_' + Packet.Values['Code']);
+  if Assigned(Proc) then
+    Proc(Packet);
 end;
 
 procedure TObserverListEx.do_RemoveItems;
 var
-  I: integer;
+  i: integer;
 begin
-  for I := FList.Count - 1 downto 0 do
-    TObject(FList.Items[I]).Free;
+  for i := FList.Count - 1 downto 0 do
+    TObject(FList.Items[i]).Free;
   FList.Clear;
-end;
-
-procedure TObserverListEx.do_WM_ASYNC_BROADCAST(var Msg: TMessage);
-var
-  Packet: TValueList;
-begin
-  Packet := Pointer(Msg.WParam);
-  try
-    BroadCast(Packet);
-  finally
-    Packet.Free;
-  end;
-end;
-
-function TObserverListEx.GetLastCommand: string;
-begin
-
-end;
-
-procedure TObserverListEx.Notify(Observer: TObject; AText: string);
-var
-  Packet: TValueList;
-begin
-  Packet := TValueList.Create;
-  try
-    Packet.Text := AText;
-    Notify(Observer, Packet);
-  finally
-    Packet.Free;
-  end;
-end;
-
-procedure TObserverListEx._BroadCast(const PacketText: string);
-begin
-  InterlockedIncrement(FLockCount);
-  try
-    Sleep(FLockCount * 10);
-
-    if FLockCount > 1 then
-      Trace('Sync Inc LockCount : ' + FLockCount.ToString + ', ' + PacketText);
-
-    Trace('CurrentThread.ThreadID, ' + TThread.CurrentThread.ThreadID.ToString);
-    Trace('MainThreadID, ' + MainThreadID.ToString);
-
-    FCS.Acquire;
-    try
-      SendMessage(PacketText);
-    finally
-      FCS.Leave;
-    end;
-
-    Trace('>>>>>> CurrentThread.ThreadID, ' +
-      TThread.CurrentThread.ThreadID.ToString);
-
-  finally
-    InterlockedDecrement(FLockCount);
-    Trace('Sync Dec LockCount : ' + FLockCount.ToString);
-  end;
-end;
-
-procedure TObserverListEx.Notify(Observer: TObject; APacket: TValueList);
-begin
-  set_LastCommand(APacket.Values['Code']);
-
-  FCS.Enter;
-  try
-    do_Notify(Observer, APacket);
-  finally
-    FCS.Leave;
-  end;
 end;
 
 procedure TObserverListEx.Remove(Observer: TObject);
 begin
-  FCS.Enter;
+  TThread.Synchronize(nil,
+    procedure
+    begin
+      FList.Remove(Observer);
+    end);
+end;
+
+procedure TObserverListEx.SendMessage(PacketText: string);
+var
+  Packet: TValueList;
+  Loop: integer;
+begin
+  Packet := TValueList.Create;
   try
-    FList.Remove(Observer);
+    Packet.Text := PacketText;
+    for Loop := FList.Count - 1 downto 0 do
+      do_Notify(FList[Loop], Packet);
   finally
-    FCS.Leave;
+    Packet.Free;
   end;
 end;
 
-procedure TObserverListEx.set_LastCommand(const AValue: string);
+procedure TObserverListEx._AsyncBroadCast(const AText: string);
 begin
-  FLastCommand.Lock;
-  try
-    FLastCommand.Value := AValue;
-  finally
-    FLastCommand.Unlock;
+  if FLockCount > LOCK_COUNT_LIMIT then
+  begin
+    PrintDebug('Async lock count over, Message discarded : ' + AText);
+    Active := False;
+    Exit;
   end;
+
+  InterlockedIncrement(FLockCount);
+  TThread.Queue(TThread.CurrentThread,
+    procedure
+    begin
+      SendMessage(AText);
+      InterlockedDecrement(FLockCount);
+
+      if FLockCount > ALARM_COUNT then
+        PrintDebug('Async lock count alarm : ' + FLockCount.ToString +
+          ', ' + AText);
+
+      if (not Active) and (FLockCount = 0) then
+        Active := true;
+    end);
+
+end;
+
+procedure TObserverListEx._BroadCast(const AText: string);
+begin
+  if FLockCount > LOCK_COUNT_LIMIT then
+  begin
+    PrintDebug('Sync lock count over, Message discarded : ' + AText);
+    Active := False;
+    Exit;
+  end;
+
+  InterlockedIncrement(FLockCount);
+
+  TThread.Synchronize(TThread.CurrentThread,
+    procedure
+    begin
+      SendMessage(AText);
+      InterlockedDecrement(FLockCount);
+
+      if FLockCount > ALARM_COUNT then
+        PrintDebug('Sync lock count alarm : ' + FLockCount.ToString +
+          ', ' + AText);
+
+      if (not Active) and (FLockCount = 0) then
+        Active := true;
+    end);
 end;
 
 end.
