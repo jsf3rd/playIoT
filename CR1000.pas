@@ -167,6 +167,7 @@ end;
   ------------------------------------------------------------------------------- }
 function TCR1000.ClosePort: Boolean;
 begin
+  Result := False;
   if PortOpened then
   begin
     Debug('ClosePort()');
