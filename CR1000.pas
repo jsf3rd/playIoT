@@ -108,12 +108,12 @@ var
 begin
   Result := False;
   Opened := SPBDLL.OpenPort(ComPort, BaudRate) = 0;
-  Debug('OpenPort() -> %s', [IfThen(Opened, '성공', '실패')]);
+  Debug('OpenPort() -> %s', [IfThen(Opened, 'Success', 'Fail')]);
   if Opened then
   begin
     Result := GetAddress(LOGGER_CR1000, Data, Len) = 0;
     Debug('GetAddress(ComPort=%d, BaudRate=%d) -> %s',
-      [ComPort, BaudRate, IfThen(Result, '성공', '실패')]);
+      [ComPort, BaudRate, IfThen(Result, 'Success', 'Fail')]);
     if Result then
     begin
       str := string(Data);
@@ -138,11 +138,11 @@ begin
   Result := False;
   Opened := SPBDLL.OpenIPPort(PAnsiChar(Ip), Port) = 0;
   Debug('OpenIPPort(Ip=%s, Port=%d) -> %s',
-    [Ip, Port, IfThen(Opened, '성공', '실패')]);
+    [Ip, Port, IfThen(Opened, 'Success', 'Fail')]);
   if Opened then
   begin
     Result := GetAddress(LOGGER_CR1000, Data, Len) = 0;
-    Debug('GetAddress() -> %s', [IfThen(Result, '성공', '실패')]);
+    Debug('GetAddress() -> %s', [IfThen(Result, 'Success', 'Fail')]);
     if Result then
     begin
       Address := StrToIntDef(Copy(Data, Pos('=', Data) + 1, Length(Data)), 1);
@@ -230,9 +230,9 @@ end;
 procedure TCR1000.SetLastError(ReturnCode: Integer; FuncType: Integer);
 begin
   if ReturnCode = -1 then
-    LastError := '통신 실패'
+    LastError := 'Communication fail.'
   else if ReturnCode = -2 then
-    LastError := '시리얼 포트가 열리지 않았습니다.'
+    LastError := 'Serial port closed.'
   else
     LastError := '';
 
@@ -240,7 +240,7 @@ begin
     FN_GET_TABLENAMES:
       begin
         if ReturnCode = -2 then
-          LastError := '데이터로거로부터 테이블 정보를 읽을 수 없습니다.';
+          LastError := 'Can not read table info from data logger.';
       end;
   end;
 end;
