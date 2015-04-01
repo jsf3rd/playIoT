@@ -14,37 +14,82 @@ object fmMain: TfmMain
   OldCreateOrder = False
   Position = poScreenCenter
   OnClose = FormClose
+  OnCloseQuery = FormCloseQuery
   OnCreate = FormCreate
   OnDestroy = FormDestroy
   PixelsPerInch = 96
   TextHeight = 13
-  object ActionList: TActionList
-    Left = 56
-    Top = 24
-    object actAbout: TAction
-      Caption = '&About'
-      OnExecute = actAboutExecute
-    end
-  end
   object MainMenu: TMainMenu
     Left = 136
     Top = 24
     object File1: TMenuItem
       Caption = '&File'
+      object Exit1: TMenuItem
+        Action = actExit
+      end
     end
     object ool1: TMenuItem
       Caption = '&Tool'
+      object ShowLog1: TMenuItem
+        Action = actShowLog
+      end
+      object ShowIniFile1: TMenuItem
+        Action = actShowIni
+      end
     end
     object Help1: TMenuItem
       Caption = '&Help'
       object About1: TMenuItem
-        Action = actAbout
+        Caption = '&About'
+        OnClick = actAboutExecute
       end
+    end
+    object MenuTest: TMenuItem
+      Caption = 'T&est'
+      Visible = False
     end
   end
   object ApplicationEvents: TApplicationEvents
     OnException = ApplicationEventsException
+    OnMinimize = ApplicationEventsMinimize
     Left = 240
     Top = 24
+  end
+  object TrayIcon: TTrayIcon
+    Visible = True
+    OnDblClick = TrayIconDblClick
+    Left = 328
+    Top = 24
+  end
+  object ActionList: TActionList
+    Left = 72
+    Top = 24
+    object actAbout: TAction
+      Caption = '&About'
+      OnExecute = actAboutExecute
+    end
+    object actClearLog: TAction
+      Caption = '&Clear Log'
+      ShortCut = 16472
+      OnExecute = actClearLogExecute
+    end
+    object actExit: TAction
+      Caption = '&Exit'
+      ShortCut = 16465
+      OnExecute = actExitExecute
+    end
+    object actShowIni: TAction
+      Caption = 'Show &IniFile'
+      OnExecute = actShowIniExecute
+    end
+    object actShowLog: TAction
+      Caption = 'Show &Log'
+      OnExecute = actShowLogExecute
+    end
+    object actTestMenu: TAction
+      Caption = '&Test&Menu'
+      ShortCut = 16456
+      OnExecute = actTestMenuExecute
+    end
   end
 end

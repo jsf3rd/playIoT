@@ -25,7 +25,7 @@ begin
   if MyObj = nil then
   begin
     MyObj := TOption.Create(nil);
-    MyObj.FIniName := ChangeFileExt(TGlobal.Obj.LogName, '.ini');
+    MyObj.IniName := ChangeFileExt(TGlobal.Obj.LogName, '.ini');
   end;
   result := MyObj;
 end;
