@@ -12,7 +12,7 @@ type
   private
 
   protected
-    FExeName: String;
+    FIniName: String;
     procedure IniTemplete(ACallBack: TIniProc);
     function GetStringValue(const ASec, AIdent, ADefault: String): String;
     procedure SetStringValue(const ASec, AIdent, AValue: String);
@@ -219,7 +219,7 @@ var
   FIni: TIniFile;
 begin
 
-  FIni := TIniFile.Create(ChangeFileExt(FExeName, '.ini'));
+  FIni := TIniFile.Create(FIniName);
   try
 
     with FIni do
