@@ -73,7 +73,7 @@ end;
 
 procedure TView.sp_ErrorMessage(const Msg: String);
 begin
-  sp_AsyncMessage('ErrorMessage', Msg);
+  sp_SyncMessage('ErrorMessage', Msg);
 end;
 
 procedure TView.sp_ErrorMessage(const UserMsg, ErrorMsg: String);
@@ -85,7 +85,7 @@ begin
     ValueList.Values['Code'] := 'ErrorMessage';
     ValueList.Values['Msg'] := UserMsg;
     ValueList.Values['ErrorMsg'] := ErrorMsg;
-    AsyncBroadcast(ValueList);
+    Broadcast(ValueList);
   finally
     ValueList.Free;
   end;
@@ -93,12 +93,12 @@ end;
 
 procedure TView.sp_LogMessage(const Msg: String);
 begin
-  sp_AsyncMessage('LogMessage', Msg);
+  sp_SyncMessage('LogMessage', Msg);
 end;
 
 procedure TView.sp_ShowMessage(const Msg: String);
 begin
-  sp_AsyncMessage('ShowMessage', Msg);
+  sp_SyncMessage('ShowMessage', Msg);
 end;
 
 procedure TView.sp_SyncPacket(const APacket: String);
@@ -108,7 +108,7 @@ begin
   ValueList := TValueList.Create;
   try
     ValueList.Text := APacket;
-    BroadCast(ValueList);
+    Broadcast(ValueList);
   finally
     ValueList.Free;
   end;
@@ -123,7 +123,7 @@ begin
     ValueList.Values['Code'] := ACode;
     ValueList.Values['Msg'] := AMsg;
 
-    BroadCast(ValueList);
+    Broadcast(ValueList);
   finally
     ValueList.Free;
   end;
