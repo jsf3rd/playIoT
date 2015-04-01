@@ -86,6 +86,7 @@ procedure TGlobal.SetExeName(const Value: String);
 begin
   FExeName := Value;
   FLogName := ChangeFileExt(FExeName, '.log');
+  // FLogName := GetEnvironmentVariable('LOCALAPPDATA') + '\ENBGROUP\' +  ExtractFileName(FLogName);
 end;
 
 end.
