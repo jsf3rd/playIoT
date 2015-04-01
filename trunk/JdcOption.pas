@@ -10,9 +10,9 @@ type
 
   TOptionAbstract = class(TComponent)
   private
-
-  protected
     FIniName: String;
+    procedure SetIniName(const Value: String);
+  protected
     procedure IniTemplete(ACallBack: TIniProc);
     function GetStringValue(const ASec, AIdent, ADefault: String): String;
     procedure SetStringValue(const ASec, AIdent, AValue: String);
@@ -39,6 +39,7 @@ type
     procedure EraseSection(const ASec: String);
     procedure DeleteKey(const ASec, AKey: String);
 
+    property IniName: String read FIniName write SetIniName;
   end;
 
 implementation
@@ -258,6 +259,16 @@ begin
 
     end);
 
+end;
+
+procedure TOptionAbstract.SetIniName(const Value: String);
+begin
+  if Value = '' then
+    raise Exception.Create
+      ('::JdcOption:: Can not set empty string to IniName.');
+
+  // 호환성 유지를 위해서 다시 한번 확장자 변경.
+  FIniName := ChangeFileExt(Value, '.ini');
 end;
 
 procedure TOptionAbstract.SetIntegerValue(const ASec, AIdent: String;
