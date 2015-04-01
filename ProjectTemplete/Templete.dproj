@@ -93,6 +93,7 @@
         <DCC_DebugInformation>0</DCC_DebugInformation>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Cfg_2_Win32)'!=''">
+        <Icon_MainIcon>Templete_Icon.ico</Icon_MainIcon>
         <DCC_ExeOutput>..\bin\$(Config)</DCC_ExeOutput>
         <VerInfo_Locale>1033</VerInfo_Locale>
         <DCC_DcuOutput>.\DUCs</DCC_DcuOutput>
