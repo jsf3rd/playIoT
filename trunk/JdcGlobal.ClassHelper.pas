@@ -18,6 +18,7 @@ type
     function GetInt(const Name: string): integer;
     function GetDouble(const Name: string): double;
     function GetJSONArray(const Name: string): TJSONArray;
+    function GetJSONObject(const Name: string): TJSONObject;
   end;
 
 implementation
@@ -36,6 +37,22 @@ begin
     on E: Exception do
       raise Exception.Create
         (Format('JSON name [%s] can not cast to TJSONArray. \n %s',
+        [Name, JSONValue.ToString]));
+  end;
+end;
+
+function TJSONObjectHelper.GetJSONObject(const Name: string): TJSONObject;
+var
+  JSONValue: TJSONValue;
+begin
+  JSONValue := GetValueEx(Name);
+
+  try
+    result := JSONValue as TJSONObject;
+  except
+    on E: Exception do
+      raise Exception.Create
+        (Format('JSON name [%s] can not cast to TJSONObject. \n %s',
         [Name, JSONValue.ToString]));
   end;
 end;
@@ -78,12 +95,22 @@ begin
 end;
 
 function TJSONObjectHelper.GetValueEx(const Name: string): TJSONValue;
+var
+  MyElem: TJSONPair;
+  Names: String;
 begin
   result := GetValue(Name);
 
+  Names := '';
+  for MyElem in Self do
+  begin
+    Names := Names + MyElem.JsonString.Value + ', ';
+  end;
+
   if not Assigned(result) then
-    raise Exception.Create(Format('JSON name [%s] is not exist. \n %s',
-      [Name, Self.ToString]));
+    raise Exception.Create
+      (Format('JSON name [%s] is not exist. Other name list [%s]',
+      [Name, Names]));
 end;
 
 { TTimerHelper }
