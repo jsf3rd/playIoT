@@ -28,9 +28,16 @@ type
   public
     class function ObjectToJsonObjectEx(AObject: TObject): TJSONObject;
     class function ObjectToJsonStringEx(AObject: TObject): String;
+    class function JsonToObjectEx<T: class>(AJsonObject: TJSONObject)
+      : T; overload;
+    class function JsonToObjectEx<T: class>(AJson: String): T; overload;
+
     class function RecordToJsonObject<T: record >(ARecord: T): TJSONObject;
     class function RecordToJsonString<T: record >(ARecord: T): String;
-    class function JsonToRecord<T: record >(AJsonObject: TJSONObject): T;
+    class function JsonToRecord<T: record >(AJsonObject: TJSONObject)
+      : T; overload;
+    class function JsonToRecord<T: record >(AJson: String): T; overload;
+
   end;
 
 implementation
@@ -143,9 +150,24 @@ end;
 
 { TJSONHelper }
 
+class function TJSONHelper.JsonToObjectEx<T>(AJsonObject: TJSONObject): T;
+begin
+  result := JsonToObjectEx<T>(AJsonObject.ToString);
+end;
+
+class function TJSONHelper.JsonToObjectEx<T>(AJson: String): T;
+begin
+  result := TSuperObject.Create(AJson).AsType<T>;
+end;
+
 class function TJSONHelper.JsonToRecord<T>(AJsonObject: TJSONObject): T;
 begin
-  result := TSuperObject.Create(AJsonObject.ToString).AsType<T>;
+  result := JsonToRecord<T>(AJsonObject.ToString);
+end;
+
+class function TJSONHelper.JsonToRecord<T>(AJson: String): T;
+begin
+  result := TSuperRecord<T>.FromJSON(AJson);
 end;
 
 class function TJSONHelper.ObjectToJsonObjectEx(AObject: TObject): TJSONObject;
