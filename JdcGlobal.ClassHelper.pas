@@ -3,7 +3,8 @@ unit JdcGlobal.ClassHelper;
 interface
 
 uses
-  Classes, SysUtils, Windows, System.JSON, Vcl.ExtCtrls;
+  Classes, SysUtils, Windows, System.JSON, Vcl.ExtCtrls, REST.JSON,
+  XSuperObject, System.IOUtils;
 
 type
   TTimerHelper = class helper for TTimer
@@ -19,6 +20,17 @@ type
     function GetDouble(const Name: string): double;
     function GetJSONArray(const Name: string): TJSONArray;
     function GetJSONObject(const Name: string): TJSONObject;
+
+    class function ParseFile(FileName: String): TJSONValue;
+  end;
+
+  TJSONHelper = class helper for TJSON
+  public
+    class function ObjectToJsonObjectEx(AObject: TObject): TJSONObject;
+    class function ObjectToJsonStringEx(AObject: TObject): String;
+    class function RecordToJsonObject<T: record >(ARecord: T): TJSONObject;
+    class function RecordToJsonString<T: record >(ARecord: T): String;
+    class function JsonToRecord<T: record >(AJsonObject: TJSONObject): T;
   end;
 
 implementation
@@ -113,12 +125,67 @@ begin
       [Name, Names]));
 end;
 
+class function TJSONObjectHelper.ParseFile(FileName: String): TJSONValue;
+var
+  JsonString: string;
+begin
+  JsonString := TFile.ReadAllText(FileName);
+  result := TJSONObject.ParseJSONValue(JsonString);
+end;
+
 { TTimerHelper }
 
 procedure TTimerHelper.Reset;
 begin
   Self.Enabled := False;
   Self.Enabled := true;
+end;
+
+{ TJSONHelper }
+
+class function TJSONHelper.JsonToRecord<T>(AJsonObject: TJSONObject): T;
+var
+  SO: TSuperObject;
+begin
+  SO := TSuperObject.Create(AJsonObject.ToString);
+  try
+    result := SO.AsType<T>;
+  finally
+    SO.Free;
+  end;
+end;
+
+class function TJSONHelper.ObjectToJsonObjectEx(AObject: TObject): TJSONObject;
+var
+  JSONObject: String;
+begin
+  JSONObject := AObject.AsJSON;
+  result := TJSONObject.ParseJSONValue(JSONObject) as TJSONObject;
+end;
+
+class function TJSONHelper.ObjectToJsonStringEx(AObject: TObject): String;
+begin
+  result := AObject.AsJSON;
+end;
+
+class function TJSONHelper.RecordToJsonObject<T>(ARecord: T): TJSONObject;
+var
+  JsonString: string;
+begin
+  JsonString := RecordToJsonString(ARecord);
+  result := TJSONObject.ParseJSONValue(JsonString) as TJSONObject;
+end;
+
+class function TJSONHelper.RecordToJsonString<T>(ARecord: T): String;
+var
+  SO: ISuperObject;
+begin
+  SO := TSuperRecord<T>.AsJSONObject(ARecord);
+  try
+    result := SO.AsJSON;
+  finally
+    TSuperObject(SO).Free;
+  end;
 end;
 
 end.
