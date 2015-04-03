@@ -144,15 +144,8 @@ end;
 { TJSONHelper }
 
 class function TJSONHelper.JsonToRecord<T>(AJsonObject: TJSONObject): T;
-var
-  SO: TSuperObject;
 begin
-  SO := TSuperObject.Create(AJsonObject.ToString);
-  try
-    result := SO.AsType<T>;
-  finally
-    SO.Free;
-  end;
+  result := TSuperObject.Create(AJsonObject.ToString).AsType<T>;
 end;
 
 class function TJSONHelper.ObjectToJsonObjectEx(AObject: TObject): TJSONObject;
@@ -177,15 +170,8 @@ begin
 end;
 
 class function TJSONHelper.RecordToJsonString<T>(ARecord: T): String;
-var
-  SO: ISuperObject;
 begin
-  SO := TSuperRecord<T>.AsJSONObject(ARecord);
-  try
-    result := SO.AsJSON;
-  finally
-    TSuperObject(SO).Free;
-  end;
+  result := TSuperRecord<T>.AsJSONObject(ARecord).AsJSON;
 end;
 
 end.
