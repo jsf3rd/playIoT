@@ -31,13 +31,14 @@ type
     class function JsonToObjectEx<T: class>(AJsonObject: TJSONObject)
       : T; overload;
     class function JsonToObjectEx<T: class>(AJson: String): T; overload;
+    class function FileToObject<T: class>(FileName: String): T;
 
     class function RecordToJsonObject<T: record >(ARecord: T): TJSONObject;
     class function RecordToJsonString<T: record >(ARecord: T): String;
     class function JsonToRecord<T: record >(AJsonObject: TJSONObject)
       : T; overload;
     class function JsonToRecord<T: record >(AJson: String): T; overload;
-
+    class function FileToRecord<T: record >(FileName: String): T;
   end;
 
 implementation
@@ -153,6 +154,22 @@ end;
 class function TJSONHelper.JsonToObjectEx<T>(AJsonObject: TJSONObject): T;
 begin
   result := JsonToObjectEx<T>(AJsonObject.ToString);
+end;
+
+class function TJSONHelper.FileToObject<T>(FileName: String): T;
+var
+  JsonString: string;
+begin
+  JsonString := TFile.ReadAllText(FileName);
+  result := TJSON.JsonToObjectEx<T>(JsonString);
+end;
+
+class function TJSONHelper.FileToRecord<T>(FileName: String): T;
+var
+  JsonString: string;
+begin
+  JsonString := TFile.ReadAllText(FileName);
+  result := TJSON.JsonToRecord<T>(JsonString);
 end;
 
 class function TJSONHelper.JsonToObjectEx<T>(AJson: String): T;
