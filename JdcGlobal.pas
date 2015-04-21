@@ -55,6 +55,8 @@ function BytesToHex(const AValue: TBytes; const ASpliter: String = ' '): String;
 function IdBytesPos(const SubIdBytes, IdBytes: TIdBytes;
   const AIndex: integer = 0): integer;
 
+function DefaultFormatSettings: TFormatSettings;
+
 type
   IExecuteFunc<T> = Interface
     ['{48E4B912-AE21-4201-88E0-4835432FEE69}']
@@ -67,6 +69,16 @@ type
   End;
 
 implementation
+
+function DefaultFormatSettings: TFormatSettings;
+begin
+  result := TFormatSettings.Create(GetThreadLocale);
+  result.ShortDateFormat := 'YYYY-MM-DD';
+  result.LongDateFormat := 'YYYY-MM-DD';
+  result.ShortTimeFormat := 'hh:MM:ss';
+  result.LongTimeFormat := 'hh:MM:ss';
+  result.DateSeparator := '-';
+end;
 
 function IdBytesPos(const SubIdBytes, IdBytes: TIdBytes;
   const AIndex: integer = 0): integer;
