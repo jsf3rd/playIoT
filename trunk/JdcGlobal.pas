@@ -122,7 +122,7 @@ end;
 
 procedure PrintLog(AMemo: TMemo; const AMsg: String);
 begin
-  if AMemo.Lines.Count > 3000 then
+  if AMemo.Lines.Count > 5000 then
     AMemo.Lines.Clear;
 
   if AMsg = '' then
