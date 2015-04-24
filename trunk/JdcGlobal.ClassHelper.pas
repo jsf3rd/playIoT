@@ -4,7 +4,7 @@ interface
 
 uses
   Classes, SysUtils, Windows, System.JSON, Vcl.ExtCtrls, REST.JSON,
-  XSuperObject, System.IOUtils;
+  XSuperObject, System.IOUtils, System.Generics.Collections;
 
 type
   TTimerHelper = class helper for TTimer
