@@ -65,7 +65,7 @@ begin
   if MyObj = nil then
   begin
     MyObj := TOption.Create(nil);
-    MyObj.FExeName := TGlobal.Obj.ExeName;
+    MyObj.IniName := TGlobal.Obj.ExeName;
   end;
   result := MyObj;
 end;
