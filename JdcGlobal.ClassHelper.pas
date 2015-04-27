@@ -41,6 +41,10 @@ type
     class function FileToRecord<T: record >(FileName: String): T;
   end;
 
+  TDateTimeHelper = record helper for TDateTime
+    function ToString: String;
+  end;
+
 implementation
 
 { TJSONObjectHelper }
@@ -211,6 +215,13 @@ end;
 class function TJSONHelper.RecordToJsonString<T>(ARecord: T): String;
 begin
   result := TSuperRecord<T>.AsJSONObject(ARecord).AsJSON;
+end;
+
+{ TDateTimeHelper }
+
+function TDateTimeHelper.ToString: String;
+begin
+  result := FormatDateTime('YYYY-MM-DD HH:NN:SS.zzz', Self);
 end;
 
 end.
