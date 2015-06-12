@@ -61,6 +61,8 @@ end;
 
 procedure TServerContainer.DataModuleCreate(Sender: TObject);
 begin
+  DSServer.ChannelResponseTimeout := 5000;
+
   TDSCallbackTunnelManager.Instance.AddTunnelEvent(OnChannelStateChanged);
   TDSSessionManager.Instance.AddSessionEvent(SessionEvent);
 
@@ -78,7 +80,9 @@ procedure TServerContainer.DataModuleDestroy(Sender: TObject);
 begin
   TDSSessionManager.Instance.RemoveSessionEvent(SessionEvent);
   TDSCallbackTunnelManager.Instance.RemoveTunnelEvent(OnChannelStateChanged);
-  DSServer.Stop;
+
+  DSTCPServerTransport.CloseConnections;
+  DSServer.Free;
 
   FConnectionPool.Free;
 end;
