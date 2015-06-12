@@ -3,14 +3,21 @@ unit JdcGlobal.ClassHelper;
 interface
 
 uses
-  Classes, SysUtils, Windows, System.JSON, Vcl.ExtCtrls, REST.JSON,
-  XSuperObject, System.IOUtils, System.Generics.Collections;
+  Classes, SysUtils, System.JSON, REST.JSON,
+  XSuperObject, System.IOUtils, System.Generics.Collections
+
+{$IFDEF MSWINDOWS}
+    , Vcl.ExtCtrls
+{$ENDIF}
+    ;
 
 type
+{$IFDEF MSWINDOWS}
   TTimerHelper = class helper for TTimer
   public
     procedure Reset;
   end;
+{$ENDIF}
 
   TJSONObjectHelper = class helper for TJSONObject
   public
@@ -47,6 +54,15 @@ type
 
 implementation
 
+{$IFDEF MSWINDOWS}
+{ TTimerHelper }
+
+procedure TTimerHelper.Reset;
+begin
+  Self.Enabled := False;
+  Self.Enabled := true;
+end;
+{$ENDIF}
 { TJSONObjectHelper }
 
 function TJSONObjectHelper.GetJSONArray(const Name: string): TJSONArray;
@@ -143,14 +159,6 @@ var
 begin
   JsonString := TFile.ReadAllText(FileName);
   result := TJSONObject.ParseJSONValue(JsonString);
-end;
-
-{ TTimerHelper }
-
-procedure TTimerHelper.Reset;
-begin
-  Self.Enabled := False;
-  Self.Enabled := true;
 end;
 
 { TJSONHelper }
