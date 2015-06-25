@@ -72,7 +72,9 @@ implementation
 
 function DefaultFormatSettings: TFormatSettings;
 begin
+{$WARN SYMBOL_PLATFORM OFF}
   result := TFormatSettings.Create(GetThreadLocale);
+{$WARN SYMBOL_PLATFORM ON}
   result.ShortDateFormat := 'YYYY-MM-DD';
   result.LongDateFormat := 'YYYY-MM-DD';
   result.ShortTimeFormat := 'hh:MM:ss';
