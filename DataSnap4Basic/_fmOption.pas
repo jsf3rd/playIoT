@@ -5,7 +5,7 @@ interface
 uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants,
   System.Classes, Vcl.Graphics,
-  Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls, Vcl.Mask, Global;
+  Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls, Vcl.Mask, MyGlobal;
 
 type
   TfmOption = class(TForm)
@@ -42,7 +42,7 @@ implementation
 
 {$R *.dfm}
 
-uses Option;
+uses MyOption;
 
 procedure TfmOption.btnCancleClick(Sender: TObject);
 begin
@@ -62,7 +62,7 @@ begin
   TOption.Obj.DBInfo := params.CommaText;
   params.Free;
 
-  TOption.Obj.TcpPort := StrToIntDef(edtTcpPort.Text, 211);
+  TOption.Obj.TCPPort := StrToIntDef(edtTcpPort.Text, 211);
   TOption.Obj.HttpPort := StrToIntDef(edtHttpPort.Text, 80);
   Close;
 end;
@@ -80,7 +80,7 @@ begin
   edtPass.Text := params.Values[DB_PASSWORD];
   edtDBPort.Text := params.Values[DB_PORT];
 
-  edtTcpPort.Text := IntToStr(TOption.Obj.TcpPort);
+  edtTcpPort.Text := IntToStr(TOption.Obj.TCPPort);
   edtHttpPort.Text := IntToStr(TOption.Obj.HttpPort);
 
   edtHost.SetFocus;

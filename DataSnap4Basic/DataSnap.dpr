@@ -2,15 +2,12 @@ program DataSnap;
 
 uses
   Vcl.Forms,
-  _fmMain in '_fmMain.pas' {fmMain} ,
-  _smDataLoader
-    in 'DataSnap\_smDataLoader.pas' {smDataLoader: TDSServerModule} ,
-  _smDataProvider
-    in 'DataSnap\_smDataProvider.pas' {smDataProvider: TDSServerModule} ,
-  ServerContainerUnit
-    in 'DataSnap\ServerContainerUnit.pas' {ServerContainer: TDataModule} ,
-  Global in 'Global\Global.pas',
-  Option in 'Global\Option.pas',
+  _fmMain in '_fmMain.pas' {fmMain},
+  _smDataLoader in 'DataSnap\_smDataLoader.pas' {smDataLoader: TDSServerModule},
+  _smDataProvider in 'DataSnap\_smDataProvider.pas' {smDataProvider: TDSServerModule},
+  ServerContainerUnit in 'DataSnap\ServerContainerUnit.pas' {ServerContainer: TDataModule},
+  MyGlobal in 'Global\MyGlobal.pas',
+  MyOption in 'Global\MyOption.pas',
   _fmOption in '_fmOption.pas' {fmOption};
 
 {$R *.res}

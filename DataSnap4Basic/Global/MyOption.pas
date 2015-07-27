@@ -1,9 +1,9 @@
-unit Option;
+unit MyOption;
 
 interface
 
 uses
-  Classes, SysUtils, JdcOption, Global;
+  Classes, SysUtils, JdcOption, MyGlobal;
 
 type
   TOption = class(TOptionAbstract)
