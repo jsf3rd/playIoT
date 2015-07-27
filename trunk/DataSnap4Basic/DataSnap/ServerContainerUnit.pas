@@ -38,7 +38,7 @@ var
 implementation
 
 uses Winapi.Windows, _smDataLoader, _smDataProvider, JdcView2,
-  Global, Option;
+  MyGlobal, MyOption;
 
 {$R *.dfm}
 

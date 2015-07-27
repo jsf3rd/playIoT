@@ -60,7 +60,7 @@ implementation
 
 {$R *.dfm}
 
-uses Global, JdcGlobal, _fmOption, Option, ServerContainerUnit;
+uses MyGlobal, JdcGlobal, _fmOption, MyOption, ServerContainerUnit;
 
 procedure TfmMain.actAboutExecute(Sender: TObject);
 begin

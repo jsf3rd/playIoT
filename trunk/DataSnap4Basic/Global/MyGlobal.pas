@@ -1,4 +1,4 @@
-﻿unit Global;
+﻿unit MyGlobal;
 
 interface
 
@@ -46,7 +46,7 @@ type
 
 implementation
 
-uses Option;
+uses MyOption;
 
 var
   MyObj: TGlobal = nil;
