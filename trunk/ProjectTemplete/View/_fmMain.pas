@@ -58,7 +58,7 @@ implementation
 
 {$R *.dfm}
 
-uses Option, Global, JdcView2, Core, JdcGlobal, Common, System.UITypes;
+uses MyGlobal, MyOption, MyCommon, JdcView2, Core, JdcGlobal, System.UITypes;
 
 procedure TfmMain.actAboutExecute(Sender: TObject);
 begin

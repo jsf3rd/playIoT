@@ -1,12 +1,13 @@
 program Templete;
 
 uses
-  Vcl.Forms, Winapi.Windows,
+  Vcl.Forms,
+  Winapi.Windows,
   _fmMain in 'View\_fmMain.pas' {fmMain} ,
   Core in 'Core\Core.pas',
-  Common in 'Global\Common.pas',
-  Global in 'Global\Global.pas',
-  Option in 'Global\Option.pas';
+  MyCommon in 'Global\MyCommon.pas',
+  MyGlobal in 'Global\MyGlobal.pas',
+  MyOption in 'Global\MyOption.pas';
 
 {$R *.res}
 
