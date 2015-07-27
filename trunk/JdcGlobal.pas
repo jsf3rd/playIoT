@@ -344,7 +344,12 @@ begin
   end;
 
   str := Copy(str, AIndex, 4);
+
+{$IF CompilerVersion  > 28} // Ver28 = XE7
+  result := BytesToUInt16(HexStrToBytes(str));
+{$ELSE}
   result := BytesToWord(HexStrToBytes(str));
+{$ENDIF}
 end;
 
 function HexStrToBytes(const ASource: string; const AIndex: integer): TIdBytes;
