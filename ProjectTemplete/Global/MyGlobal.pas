@@ -1,4 +1,4 @@
-unit Global;
+unit MyGlobal;
 
 interface
 
@@ -6,7 +6,7 @@ uses
   Classes, SysUtils;
 
 const
-  APPLICATION_TITLE = 'JudicoApp';
+  APPLICATION_TITLE = 'Judico Application Templete';
   APPLICATION_VERSION = 'v1.0';
   COPY_RIGHT_SIGN = '¨Ï 2015 ENBGROUP';
   HOME_PAGE_URL = 'http://www.enbgourp.co.kr';
@@ -35,7 +35,7 @@ type
 
 implementation
 
-uses Option;
+uses MyOption;
 
 var
   MyObj: TGlobal = nil;

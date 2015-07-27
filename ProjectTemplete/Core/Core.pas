@@ -3,7 +3,7 @@ unit Core;
 interface
 
 uses Classes, SysUtils, System.IOUtils, Generics.Collections, Generics.Defaults,
-  Global;
+  MyGlobal;
 
 type
   TCore = class
@@ -24,7 +24,7 @@ type
 
 implementation
 
-uses Option, JdcView2, Common;
+uses MyOption, JdcView2, MyCommon;
 
 var
   MyObj: TCore = nil;
