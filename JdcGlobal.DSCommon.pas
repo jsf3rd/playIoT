@@ -83,6 +83,7 @@ end;
 class function TDSCommon.DataSetToStream(ADataSet: TFDQuery): TStream;
 begin
   result := TBytesStream.Create;
+  ADataSet.Close;
   ADataSet.Open;
   ADataSet.FetchAll;
   ADataSet.SaveToStream(result, sfBinary);
@@ -126,21 +127,12 @@ var
 begin
   result := TBytesStream.Create;
 
-  // bug case in lower BDS Version XE5
-  if AValue.Size < 0 then
-  begin
-    SetLength(Buffer, BufferSize);
+  SetLength(Buffer, BufferSize);
+  repeat
+    BytesReadCount := AValue.Read(Buffer[0], BufferSize);
+    result.Write(Buffer[0], BytesReadCount);
+  until BytesReadCount < BufferSize;
 
-    repeat
-      BytesReadCount := AValue.Read(Buffer[0], BufferSize);
-      if BytesReadCount > 0 then
-        result.Write(Buffer[0], BytesReadCount);
-    until BytesReadCount < BufferSize;
-  end
-  else
-  begin
-    result.LoadFromStream(AValue);
-  end;
   result.Position := 0;
 end;
 
