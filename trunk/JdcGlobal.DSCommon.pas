@@ -120,7 +120,7 @@ end;
 
 class function TDSCommon.DSStreamToBytesStream(AValue: TStream): TBytesStream;
 const
-  BufferSize = 1024 * 10;
+  BufferSize = 1024 * 16;
 var
   Buffer: TBytes;
   BytesReadCount: integer;
