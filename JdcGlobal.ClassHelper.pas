@@ -28,6 +28,9 @@ type
     function GetJSONArray(const Name: string): TJSONArray;
     function GetJSONObject(const Name: string): TJSONObject;
 
+    function AddPair(const Str: string; const Val: integer)
+      : TJSONObject; overload;
+
     class function ParseFile(FileName: String): TJSONValue;
   end;
 
@@ -63,7 +66,15 @@ begin
   Self.Enabled := true;
 end;
 {$ENDIF}
+
 { TJSONObjectHelper }
+function TJSONObjectHelper.AddPair(const Str: string; const Val: integer)
+  : TJSONObject;
+begin
+  if not Str.IsEmpty then
+    AddPair(TJSONPair.Create(Str, TJSONNumber.Create(Val)));
+  Result := Self;
+end;
 
 function TJSONObjectHelper.GetJSONArray(const Name: string): TJSONArray;
 var
@@ -72,7 +83,7 @@ begin
   JSONValue := GetValueEx(Name);
 
   try
-    result := JSONValue as TJSONArray;
+    Result := JSONValue as TJSONArray;
   except
     on E: Exception do
       raise Exception.Create
@@ -88,7 +99,7 @@ begin
   JSONValue := GetValueEx(Name);
 
   try
-    result := JSONValue as TJSONObject;
+    Result := JSONValue as TJSONObject;
   except
     on E: Exception do
       raise Exception.Create
@@ -104,7 +115,7 @@ begin
   JSONValue := GetValueEx(Name);
 
   try
-    result := (JSONValue as TJSONNumber).AsDouble;
+    Result := (JSONValue as TJSONNumber).AsDouble;
   except
     on E: Exception do
       raise Exception.Create
@@ -120,7 +131,7 @@ begin
   JSONValue := GetValueEx(Name);
 
   try
-    result := (JSONValue as TJSONNumber).AsInt;
+    Result := (JSONValue as TJSONNumber).AsInt;
   except
     on E: Exception do
       raise Exception.Create
@@ -131,7 +142,7 @@ end;
 
 function TJSONObjectHelper.GetString(const Name: string): String;
 begin
-  result := GetValueEx(Name).Value;
+  Result := GetValueEx(Name).Value;
 end;
 
 function TJSONObjectHelper.GetValueEx(const Name: string): TJSONValue;
@@ -139,7 +150,7 @@ var
   MyElem: TJSONPair;
   Names: String;
 begin
-  result := GetValue(Name);
+  Result := GetValue(Name);
 
   Names := '';
   for MyElem in Self do
@@ -147,7 +158,7 @@ begin
     Names := Names + MyElem.JsonString.Value + ', ';
   end;
 
-  if not Assigned(result) then
+  if not Assigned(Result) then
     raise Exception.Create
       (Format('JSON name [%s] is not exist. Other name list [%s]',
       [Name, Names]));
@@ -158,14 +169,14 @@ var
   JsonString: string;
 begin
   JsonString := TFile.ReadAllText(FileName);
-  result := TJSONObject.ParseJSONValue(JsonString);
+  Result := TJSONObject.ParseJSONValue(JsonString);
 end;
 
 { TJSONHelper }
 
 class function TJSONHelper.JsonToObjectEx<T>(AJsonObject: TJSONObject): T;
 begin
-  result := JsonToObjectEx<T>(AJsonObject.ToString);
+  Result := JsonToObjectEx<T>(AJsonObject.ToString);
 end;
 
 class function TJSONHelper.FileToObject<T>(FileName: String): T;
@@ -173,7 +184,7 @@ var
   JsonString: string;
 begin
   JsonString := TFile.ReadAllText(FileName);
-  result := TJSON.JsonToObjectEx<T>(JsonString);
+  Result := TJSON.JsonToObjectEx<T>(JsonString);
 end;
 
 class function TJSONHelper.FileToRecord<T>(FileName: String): T;
@@ -181,22 +192,22 @@ var
   JsonString: string;
 begin
   JsonString := TFile.ReadAllText(FileName);
-  result := TJSON.JsonToRecord<T>(JsonString);
+  Result := TJSON.JsonToRecord<T>(JsonString);
 end;
 
 class function TJSONHelper.JsonToObjectEx<T>(AJson: String): T;
 begin
-  result := TSuperObject.Create(AJson).AsType<T>;
+  Result := TSuperObject.Create(AJson).AsType<T>;
 end;
 
 class function TJSONHelper.JsonToRecord<T>(AJsonObject: TJSONObject): T;
 begin
-  result := JsonToRecord<T>(AJsonObject.ToString);
+  Result := JsonToRecord<T>(AJsonObject.ToString);
 end;
 
 class function TJSONHelper.JsonToRecord<T>(AJson: String): T;
 begin
-  result := TSuperRecord<T>.FromJSON(AJson);
+  Result := TSuperRecord<T>.FromJSON(AJson);
 end;
 
 class function TJSONHelper.ObjectToJsonObjectEx(AObject: TObject): TJSONObject;
@@ -204,12 +215,12 @@ var
   JSONObject: String;
 begin
   JSONObject := AObject.AsJSON;
-  result := TJSONObject.ParseJSONValue(JSONObject) as TJSONObject;
+  Result := TJSONObject.ParseJSONValue(JSONObject) as TJSONObject;
 end;
 
 class function TJSONHelper.ObjectToJsonStringEx(AObject: TObject): String;
 begin
-  result := AObject.AsJSON;
+  Result := AObject.AsJSON;
 end;
 
 class function TJSONHelper.RecordToJsonObject<T>(ARecord: T): TJSONObject;
@@ -217,19 +228,19 @@ var
   JsonString: string;
 begin
   JsonString := RecordToJsonString(ARecord);
-  result := TJSONObject.ParseJSONValue(JsonString) as TJSONObject;
+  Result := TJSONObject.ParseJSONValue(JsonString) as TJSONObject;
 end;
 
 class function TJSONHelper.RecordToJsonString<T>(ARecord: T): String;
 begin
-  result := TSuperRecord<T>.AsJSONObject(ARecord).AsJSON;
+  Result := TSuperRecord<T>.AsJSONObject(ARecord).AsJSON;
 end;
 
 { TDateTimeHelper }
 
 function TDateTimeHelper.ToString: String;
 begin
-  result := FormatDateTime('YYYY-MM-DD HH:NN:SS.zzz', Self);
+  Result := FormatDateTime('YYYY-MM-DD HH:NN:SS.zzz', Self);
 end;
 
 end.
