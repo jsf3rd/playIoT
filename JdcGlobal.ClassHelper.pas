@@ -52,7 +52,10 @@ type
   end;
 
   TDateTimeHelper = record helper for TDateTime
+  public
     function ToString: String;
+    function FormatWithMSec: String;
+    function FormatWithoutMSec: String;
   end;
 
 implementation
@@ -237,6 +240,16 @@ begin
 end;
 
 { TDateTimeHelper }
+
+function TDateTimeHelper.FormatWithMSec: String;
+begin
+  Result := Self.ToString;
+end;
+
+function TDateTimeHelper.FormatWithoutMSec: String;
+begin
+  Result := FormatDateTime('YYYY-MM-DD HH:NN:SS', Self);
+end;
 
 function TDateTimeHelper.ToString: String;
 begin
