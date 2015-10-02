@@ -16,7 +16,7 @@ interface
 
 uses
   Classes, SysUtils, FireDAC.Comp.Client, FireDAC.Stan.Intf, Data.DBXPlatform,
-  FireDAC.Comp.DataSet
+  FireDAC.Comp.DataSet, REST.JSON, XSuperObject, System.Generics.Collections
 {$IF CompilerVersion  > 26} // upper XE5
     , System.JSON
 {$ELSE}
@@ -55,6 +55,11 @@ type
   public
     function ToStream: TStream;
     procedure LoadFromDSStream(AStream: TStream);
+
+    function ToRecord<T: Record >(AName: String = ''): T;
+    function GetNameValue(AJSONValue: TJSONValue; AName: String): TJSONValue;
+    function GetJSONObject(AObject: TJSONObject; AName: String): TJSONObject;
+    function GetJSONArray(AObject: TJSONArray; AName: String): TJSONArray;
   end;
 
   TFDMemTableHelper = class helper for TFDMemTable
@@ -65,6 +70,8 @@ type
   end;
 
 implementation
+
+uses JdcGlobal, JdcGlobal.ClassHelper;
 
 { TDSCommon }
 
@@ -167,6 +174,73 @@ end;
 function TFDQueryHelper.ToStream: TStream;
 begin
   result := TDSCommon.DataSetToStream(Self);
+end;
+
+function TFDQueryHelper.ToRecord<T>(AName: String): T;
+var
+  MyRecord: T;
+  TempContainer: TJSONObject;
+  ResultValue: TJSONValue;
+begin
+  TempContainer := TJSON.RecordToJsonObject<T>(MyRecord);
+  try
+    ResultValue := GetNameValue(TempContainer, AName);
+    try
+      result := TJSON.JsonToRecord<T>(ResultValue as TJSONObject);
+    finally
+      ResultValue.Free;
+    end;
+  finally
+    TempContainer.Free;
+  end;
+end;
+
+function TFDQueryHelper.GetJSONArray(AObject: TJSONArray; AName: String)
+  : TJSONArray;
+var
+  I: integer;
+  Key: string;
+begin
+  result := TJSONArray.Create;
+  for I := 0 to AObject.Count - 1 do
+  begin
+    Key := AName + '_' + (I + 1).ToString;
+    result.AddElement(GetNameValue(AObject.Items[I], Key));
+  end;
+end;
+
+function TFDQueryHelper.GetJSONObject(AObject: TJSONObject; AName: String)
+  : TJSONObject;
+var
+  MyElem: TJSONPair;
+  Key: string;
+begin
+  result := TJSONObject.Create;
+  for MyElem in AObject do
+  begin
+    if AName.IsEmpty then
+      Key := MyElem.JsonString.Value
+    else
+      Key := AName + '_' + MyElem.JsonString.Value;
+
+    result.AddPair(MyElem.JsonString.Value,
+      GetNameValue(MyElem.JSONValue, Key));
+  end;
+end;
+
+function TFDQueryHelper.GetNameValue(AJSONValue: TJSONValue; AName: String)
+  : TJSONValue;
+begin
+  if AJSONValue is TJSONObject then
+    result := GetJSONObject(AJSONValue as TJSONObject, AName)
+  else if AJSONValue is TJSONArray then
+    result := GetJSONArray(AJSONValue as TJSONArray, AName)
+  else if AJSONValue is TJSONNumber then
+    result := TJSONNumber.Create(Self.FieldByName(AName).AsFloat)
+  else if AJSONValue is TJSONString then
+    result := TJSONString.Create(Self.FieldByName(AName).AsString)
+  else
+    raise Exception.Create('Unknown Type - ' + AName);
 end;
 
 { TFDMemTableHelper }
