@@ -202,11 +202,20 @@ var
   Key: string;
 begin
   result := TJSONArray.Create;
+
+{$IF CompilerVersion  > 26} // upper XE5
   for I := 0 to AObject.Count - 1 do
   begin
     Key := AName + '_' + (I + 1).ToString;
     result.AddElement(GetNameValue(AObject.Items[I], Key));
   end;
+{$ELSE}
+  for I := 0 to AObject.Size - 1 do
+  begin
+    Key := AName + '_' + (I + 1).ToString;
+    result.AddElement(GetNameValue(AObject.Get(I), Key));
+  end;
+{$ENDIF}
 end;
 
 function TFDQueryHelper.GetJSONObject(AObject: TJSONObject; AName: String)

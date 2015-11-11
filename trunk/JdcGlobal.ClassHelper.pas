@@ -3,9 +3,14 @@ unit JdcGlobal.ClassHelper;
 interface
 
 uses
-  Classes, SysUtils, System.JSON, REST.JSON,
+  Classes, SysUtils, REST.JSON,
   XSuperObject, System.IOUtils, System.Generics.Collections
 
+{$IF CompilerVersion  > 26} // upper XE5
+    , System.JSON
+{$ELSE}
+    , Data.DBXJSON
+{$ENDIF}
 {$IFDEF MSWINDOWS}
     , Vcl.ExtCtrls
 {$ENDIF}
