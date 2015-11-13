@@ -227,11 +227,7 @@ begin
   result := TJSONObject.Create;
   for MyElem in AObject do
   begin
-    if AName.IsEmpty then
-      Key := MyElem.JsonString.Value
-    else
-      Key := AName + '_' + MyElem.JsonString.Value;
-
+    Key := AName + '_' + MyElem.JsonString.Value;
     result.AddPair(MyElem.JsonString.Value,
       GetNameValue(MyElem.JSONValue, Key));
   end;
