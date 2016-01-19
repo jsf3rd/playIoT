@@ -9,7 +9,7 @@ uses
 {$IF CompilerVersion  > 26} // upper XE5
     , System.JSON
 {$ELSE}
-    , Data.DBXJSON
+    , Data.DBXJSON, Data.DBXPlatform
 {$ENDIF}
 {$IFDEF MSWINDOWS}
     , Vcl.ExtCtrls
