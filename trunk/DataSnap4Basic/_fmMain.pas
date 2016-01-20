@@ -106,7 +106,7 @@ end;
 procedure TfmMain.rp_ErrorMessage(APacket: TValueList);
 begin
   PrintLog(ChangeFileExt(TGlobal.Obj.ExeName, '.log'),
-    'Error Log - ' + APacket.Values['Msg']);
+    'Error Log - ' + APacket.Values['Msg'] + ', ' + APacket.Values['ErrorMsg']);
   PrintLog(mmLog, 'Error Log - ' + APacket.Values['Msg']);
 end;
 
