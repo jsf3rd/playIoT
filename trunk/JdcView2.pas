@@ -22,7 +22,8 @@ type
 
     procedure sp_ErrorMessage(const Msg: String); overload;
     procedure sp_ErrorMessage(const UserMsg, ErrorMsg: String); overload;
-    procedure sp_LogMessage(const Msg: String); overload;
+    procedure sp_DebugMessage(const Msg: String);
+    procedure sp_LogMessage(const Msg: String);
     procedure sp_ShowMessage(const Msg: String);
     procedure sp_Terminate(const Msg: string);
   end;
@@ -69,6 +70,11 @@ begin
   finally
     ValueList.Free;
   end;
+end;
+
+procedure TView.sp_DebugMessage(const Msg: String);
+begin
+  sp_SyncMessage('DebugMessage', Msg);
 end;
 
 procedure TView.sp_ErrorMessage(const Msg: String);
