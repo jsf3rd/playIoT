@@ -6,9 +6,9 @@ uses
   Classes, SysUtils, JdcOption, MyGlobal;
 
 type
-  TOption = class(TOptionAbstract)
+  // TOption = class(TOptionIniFiles)
+  TOption = class(TOptionRegistry)
   private
-
   public
     class function Obj: TOption;
   end;
@@ -25,7 +25,8 @@ begin
   if MyObj = nil then
   begin
     MyObj := TOption.Create(nil);
-    MyObj.IniName := ChangeFileExt(TGlobal.Obj.LogName, '.ini');
+    // MyObj.Path := ChangeFileExt(TGlobal.Obj.LogName, '.ini'); // ini
+    MyObj.Path := '\ENBGROUP\MyProject'; // registry
   end;
   result := MyObj;
 end;

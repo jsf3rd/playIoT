@@ -6,7 +6,7 @@ uses
   Classes, SysUtils;
 
 const
-  APPLICATION_TITLE = 'Judico Application Templete';
+  APPLICATION_TITLE = 'Judico Form Application Templete';
   APPLICATION_VERSION = 'v1.0';
   COPY_RIGHT_SIGN = '¨Ï 2015 ENBGROUP';
   HOME_PAGE_URL = 'http://www.enbgourp.co.kr';

@@ -6,7 +6,8 @@ uses
   Classes, SysUtils, JdcOption, MyGlobal;
 
 type
-  TOption = class(TOptionAbstract)
+  // TOption = class(TOptionIniFiles)
+  TOption = class(TOptionRegistry)
   private
     function GetDBInfo: String;
     procedure SetDBInfo(ADBInfo: String);
@@ -65,7 +66,8 @@ begin
   if MyObj = nil then
   begin
     MyObj := TOption.Create(nil);
-    MyObj.IniName := TGlobal.Obj.ExeName;
+    // MyObj.Path := ChangeFileExt(TGlobal.Obj.LogName, '.ini'); // ini
+    MyObj.Path := '\ENBGROUP\MyProject'; // registry
   end;
   result := MyObj;
 end;

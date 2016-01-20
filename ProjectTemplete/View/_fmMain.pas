@@ -6,7 +6,7 @@ uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants,
   System.Classes, Vcl.Graphics, Winapi.Shellapi,
   Vcl.Controls, Vcl.Forms, Vcl.ActnList, ValueList, Vcl.Dialogs, System.Actions,
-  Vcl.Menus, Vcl.AppEvnts, Vcl.ExtCtrls;
+  Vcl.Menus, Vcl.AppEvnts, Vcl.ExtCtrls, Vcl.StdCtrls;
 
 type
   TfmMain = class(TForm)
@@ -80,7 +80,7 @@ end;
 procedure TfmMain.actShowIniExecute(Sender: TObject);
 begin
   ShellExecute(handle, 'open', PWideChar('notepad.exe'),
-    PWideChar(TOption.Obj.IniName), '', SW_SHOWNORMAL);
+    PWideChar(TOption.Obj.Path), '', SW_SHOWNORMAL);
 end;
 
 procedure TfmMain.actShowLogExecute(Sender: TObject);
@@ -134,7 +134,7 @@ procedure TfmMain.rp_ErrorMessage(APacket: TValueList);
 begin
   // TODO : Print Error Log..
   // PrintLog(mmLog, '<ERR> ' + APacket.Values['Msg']);
-  // PrintLog(TGlobal.Obj.LogName, '<ERR> ' + APacket.Values['Msg']);
+  // PrintLog(TGlobal.Obj.LogName, '<ERR> ' + APacket.Values['Msg']+', '+APacket.Values['ErrorMsg']);
 end;
 
 procedure TfmMain.rp_Init(APacket: TValueList);
