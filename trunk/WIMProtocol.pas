@@ -5,7 +5,7 @@ interface
 uses SysUtils;
 
 type
-  TWIMHeader = record
+  TWIMHeader  = record
   const
     HEADER_OPERATION = 'OPERATION';
     HEADER_LOOP_IN = 'LOOP_IN';
