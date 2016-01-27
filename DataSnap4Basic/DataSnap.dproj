@@ -92,8 +92,9 @@
         <DCC_DebugInformation>0</DCC_DebugInformation>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Cfg_2_Win32)'!=''">
+        <AppEnableRuntimeThemes>true</AppEnableRuntimeThemes>
         <DCC_DcuOutput>.\DCUs</DCC_DcuOutput>
-        <VerInfo_Keys>CompanyName=ENBGROUP;FileDescription=DataSnap for Basic;FileVersion=1.0.0.0;InternalName=DataSnap;LegalCopyright=(c)ENBGROUP;LegalTrademarks=;OriginalFilename=;ProductName=DataSnap4Basic;ProductVersion=1.0.0.0;Comments=DB Server Application</VerInfo_Keys>
+        <VerInfo_Keys>CompanyName=ENBGROUP.;FileDescription=DataSnap for Basic.;FileVersion=1.0.0.0;InternalName=DataSnap;LegalCopyright=(c)ENBGROUP.;LegalTrademarks=;OriginalFilename=;ProductName=DataSnap4Basic;ProductVersion=1.0.0.0;Comments=DB Server Application.</VerInfo_Keys>
         <VerInfo_Locale>1033</VerInfo_Locale>
         <VerInfo_IncludeVerInfo>true</VerInfo_IncludeVerInfo>
     </PropertyGroup>
@@ -171,10 +172,8 @@
                     <Source Name="MainSource">DataSnap.dpr</Source>
                 </Source>
                 <Excluded_Packages>
-                    <Excluded_Packages Name="$(BDSBIN)\dcloffice2k220.bpl">Microsoft Office 2000 Sample Automation Server Wrapper Components</Excluded_Packages>
-                    <Excluded_Packages Name="$(BDSBIN)\dclofficexp220.bpl">Microsoft Office XP Sample Automation Server Wrapper Components</Excluded_Packages>
-                    <Excluded_Packages Name="C:\Program Files (x86)\FastReports\FastReport 5\LibD22\dclfsbde22.bpl">File C:\Program Files (x86)\FastReports\FastReport 5\LibD22\dclfsbde22.bpl not found</Excluded_Packages>
-                    <Excluded_Packages Name="C:\Program Files (x86)\FastReports\FastReport 5\LibD22\dclfrxbde22.bpl">File C:\Program Files (x86)\FastReports\FastReport 5\LibD22\dclfrxbde22.bpl not found</Excluded_Packages>
+                    <Excluded_Packages Name="$(BDSBIN)\dcloffice2k230.bpl">Microsoft Office 2000 Sample Automation Server Wrapper Components</Excluded_Packages>
+                    <Excluded_Packages Name="$(BDSBIN)\dclofficexp230.bpl">Microsoft Office XP Sample Automation Server Wrapper Components</Excluded_Packages>
                 </Excluded_Packages>
             </Delphi.Personality>
             <Deployment Version="2">
