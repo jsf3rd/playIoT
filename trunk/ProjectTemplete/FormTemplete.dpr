@@ -2,7 +2,8 @@ program FormTemplete;
 
 uses
   Vcl.Forms,
-  // JclAppInst,  // 중복 실행 방지
+  // Winapi.Windows, {MessageBox}
+  // JclAppInst, {중복 실행 방지}
   _fmMain in 'View\_fmMain.pas' {fmMain} ,
   Core in 'Core\Core.pas',
   MyCommon in 'Global\MyCommon.pas',
@@ -12,8 +13,15 @@ uses
 {$R *.res}
 
 begin
-  // 중복 실행을 막으려면 활성화 하시오.
-  // JclAppInstances.CheckSingleInstance;
+  {
+    // 중복 실행을 막으려면 활성화 하시오.
+    if not JclAppInstances.CheckInstance(1) then
+    begin
+    MessageBox(0, '프로그램이 이미 실행중입니다.', '확인', MB_ICONEXCLAMATION);
+    JclAppInstances.SwitchTo(0);
+    JclAppInstances.KillInstance;
+    end;
+  }
 
   Application.Initialize;
   Application.Title := APPLICATION_TITLE;

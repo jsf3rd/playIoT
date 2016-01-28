@@ -2,7 +2,8 @@ program DataSnap;
 
 uses
   Vcl.Forms,
-  // JclAppInst,  // 중복 실행 방지
+  Winapi.Windows,
+  JclAppInst, // 중복 실행 방지
   _fmMain in '_fmMain.pas' {fmMain} ,
   _smDataLoader
     in 'DataSnap\_smDataLoader.pas' {smDataLoader: TDSServerModule} ,
@@ -17,8 +18,12 @@ uses
 {$R *.res}
 
 begin
-  // 중복 실행을 막으려면 활성화 하시오.
-  // JclAppInstances.CheckSingleInstance;
+  if not JclAppInstances.CheckInstance(1) then
+  begin
+    MessageBox(0, '프로그램이 이미 실행중입니다.', '확인', MB_ICONEXCLAMATION);
+    JclAppInstances.SwitchTo(0);
+    JclAppInstances.KillInstance;
+  end;
 
   Application.Initialize;
   Application.MainFormOnTaskbar := True;
