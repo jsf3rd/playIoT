@@ -28,9 +28,17 @@ type
   TDistribution = array [0 .. 3] of Double;
   TWeightGroup = array [0 .. 2] of Integer;
 
-  TEroor = record
+  TError = record
     Init: Integer;
     Noise: TNoise;
+  end;
+
+  TOperation = record
+    Header: string;
+    Site_id: string;
+    Way: string;
+    Error: TError;
+    function Equals(AValue: TOperation): boolean;
   end;
 
   TErrorOffset = record
@@ -38,13 +46,7 @@ type
     Noise_Value: TNoiseValue;
   end;
 
-  TOperation = record
-    Header: string;
-    Site_id: string;
-    Way: string;
-    Error: TEroor;
-    function Equals(AValue: TOperation): boolean;
-  end;
+
 
   TLoopIn = record
     Header: string;
