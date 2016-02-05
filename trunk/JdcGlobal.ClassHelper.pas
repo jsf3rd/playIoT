@@ -236,6 +236,7 @@ var
   JsonString: string;
 begin
   JsonString := RecordToJsonString(ARecord);
+  JsonString := JsonString.Replace('NAN', '0', [rfReplaceAll, rfIgnoreCase]);
   Result := TJSONObject.ParseJSONValue(JsonString) as TJSONObject;
 end;
 
