@@ -16,7 +16,8 @@ interface
 
 uses
   Classes, SysUtils, FireDAC.Comp.Client, FireDAC.Stan.Intf, Data.DBXPlatform,
-  FireDAC.Comp.DataSet, REST.JSON, XSuperObject, System.Generics.Collections
+  FireDAC.Comp.DataSet, FireDAC.Stan.Param, REST.JSON, XSuperObject,
+  System.Generics.Collections
 {$IF CompilerVersion  > 26} // upper XE5
     , System.JSON
 {$ELSE}
@@ -60,6 +61,11 @@ type
     function GetNameValue(AJSONValue: TJSONValue; AName: String): TJSONValue;
     function GetJSONObject(AObject: TJSONObject; AName: String): TJSONObject;
     function GetJSONArray(AObject: TJSONArray; AName: String): TJSONArray;
+
+    procedure ParamByObject(AObject: TObject; AName: String = '');
+    procedure ParamByJsonValue(AValue: TJSONValue; AName: String);
+    procedure ParamByJSONObject(AObject: TJSONObject; AName: String);
+    procedure ParamByJSONArray(AObject: TJSONArray; AName: String);
   end;
 
   TFDMemTableHelper = class helper for TFDMemTable
@@ -169,6 +175,65 @@ end;
 procedure TFDQueryHelper.LoadFromDSStream(AStream: TStream);
 begin
   TDSCommon.StreamToFDDataSet(AStream, Self);
+end;
+
+procedure TFDQueryHelper.ParamByJSONArray(AObject: TJSONArray; AName: String);
+var
+  MyElem: TJSONValue;
+  Index: integer;
+begin
+  Index := 1;
+  for MyElem in AObject do
+  begin
+    ParamByJsonValue(MyElem, AName + '_' + Index.ToString);
+    Inc(Index);
+  end;
+end;
+
+procedure TFDQueryHelper.ParamByJSONObject(AObject: TJSONObject; AName: String);
+var
+  MyElem: TJSONPair;
+begin
+  for MyElem in AObject do
+    ParamByJsonValue(MyElem.JSONValue, MyElem.JsonString.Value);
+end;
+
+procedure TFDQueryHelper.ParamByJsonValue(AValue: TJSONValue; AName: String);
+begin
+  if AValue is TJSONObject then
+    ParamByJSONObject(AValue as TJSONObject, AName)
+  else if AValue is TJSONArray then
+  begin
+    ParamByJSONArray(AValue as TJSONArray, AName)
+  end
+  else if AValue is TJSONNumber then
+  begin
+    if Assigned(Self.Params.FindParam(AName)) then
+      Self.ParamByName(AName).AsFloat := TJSONNumber(AValue).AsDouble;
+
+    PrintDebug('%s : %s',[AName, TJSONNumber(AValue).ToString]);
+  end
+  else if AValue is TJSONString then
+  begin
+    if Assigned(Self.Params.FindParam(AName)) then
+      Self.ParamByName(AName).AsString := TJSONString(AValue).Value;
+
+    PrintDebug('%s : %s',[AName, TJSONString(AValue).Value]);
+  end
+  else
+    raise Exception.Create('Unknown Type - ' + AName);
+end;
+
+procedure TFDQueryHelper.ParamByObject(AObject: TObject; AName: String = '');
+var
+  TempContainer: TJSONObject;
+begin
+  TempContainer := TJSON.ObjectToJsonObjectEx(AObject);
+  try
+    ParamByJsonValue(TempContainer, AName);
+  finally
+    TempContainer.Free;
+  end;
 end;
 
 function TFDQueryHelper.ToStream: TStream;

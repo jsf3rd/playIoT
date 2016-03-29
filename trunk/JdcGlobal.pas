@@ -77,9 +77,10 @@ begin
 {$WARN SYMBOL_PLATFORM ON}
   result.ShortDateFormat := 'YYYY-MM-DD';
   result.LongDateFormat := 'YYYY-MM-DD';
-  result.ShortTimeFormat := 'hh:MM:ss';
-  result.LongTimeFormat := 'hh:MM:ss';
+  result.ShortTimeFormat := 'hh:mm:ss';
+  result.LongTimeFormat := 'hh:mm:ss';
   result.DateSeparator := '-';
+  result.TimeSeparator := ':';
 end;
 
 function IdBytesPos(const SubIdBytes, IdBytes: TIdBytes;
