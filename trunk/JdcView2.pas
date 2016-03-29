@@ -30,6 +30,8 @@ type
 
 implementation
 
+uses JdcGlobal;
+
 var
   MyObj: TView = nil;
 
@@ -74,7 +76,7 @@ end;
 
 procedure TView.sp_DebugMessage(const Msg: String);
 begin
-  sp_SyncMessage('DebugMessage', Msg);
+  PrintDebug(Msg);
 end;
 
 procedure TView.sp_ErrorMessage(const Msg: String);

@@ -23,7 +23,6 @@ type
   published
     procedure rp_ErrorMessage(APacket: TValueList);
     procedure rp_LogMessage(APacket: TValueList);
-    procedure rp_DebugMessage(APacket: TValueList);
   end;
 
 var
@@ -66,11 +65,6 @@ end;
 function TJudicoService.GetServiceController: TServiceController;
 begin
   result := ServiceController;
-end;
-
-procedure TJudicoService.rp_DebugMessage(APacket: TValueList);
-begin
-  PrintDebug('::DEBUG:: ' + APacket.Values['Msg']);
 end;
 
 procedure TJudicoService.rp_ErrorMessage(APacket: TValueList);
