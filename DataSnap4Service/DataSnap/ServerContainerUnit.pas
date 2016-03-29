@@ -35,7 +35,6 @@ type
   published
     procedure rp_ErrorMessage(APacket: TValueList);
     procedure rp_LogMessage(APacket: TValueList);
-    procedure rp_DebugMessage(APacket: TValueList);
   end;
 
 var
@@ -78,11 +77,6 @@ end;
 function TDataSnapSvc.GetServiceController: TServiceController;
 begin
   result := ServiceController;
-end;
-
-procedure TDataSnapSvc.rp_DebugMessage(APacket: TValueList);
-begin
-  PrintDebug('::DEBUG:: ' + APacket.Values['Msg']);
 end;
 
 procedure TDataSnapSvc.rp_ErrorMessage(APacket: TValueList);
