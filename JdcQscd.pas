@@ -5,7 +5,8 @@ unit JdcQscd;
 
 interface
 
-uses SysUtils, Classes, System.Types, JdcGlobal, Winapi.Windows;
+uses SysUtils, Classes, System.Types, JdcGlobal, Winapi.Windows,
+  System.DateUtils;
 
 Type
   TQscdHeader = Packed record
@@ -59,11 +60,51 @@ Type
     Reserved: WORD;
   end;
 
+  // Protocol.
+
   TQscdPacket = Packed record
     QscdHeader: TQscdHeader;
     QscdBody: TQscdBody;
   end;
 
+
+  // Application.
+
+  TQscdData = record
+    KeyCode: string;
+    EventDate: Double;
+    Body: TQscdBody;
+  end;
+
+  TPGAHeader = record
+    Station: string;
+    EventDate: Double;
+  end;
+
+  TJdcQscd = class
+  public
+    class function GetHeaderInfo(AHeader: TQscdHeader): TPGAHeader;
+  end;
+
 implementation
+
+uses IdGlobal;
+
+class function TJdcQscd.GetHeaderInfo(AHeader: TQscdHeader): TPGAHeader;
+var
+  buffer: TIdBytes;
+  DateTime: TDateTime;
+  Seconds: Integer;
+begin
+  SetLength(buffer, Sizeof(AHeader.StationCode));
+  CopyMemory(buffer, @AHeader.StationCode, Sizeof(AHeader.StationCode));
+  CopyMemory(@Seconds, @AHeader.DateTime, Sizeof(AHeader.DateTime));
+
+  DateTime := StrToDateTime('1970-01-01 09:00:00');
+  DateTime := IncSecond(DateTime, Rev4Bytes(Seconds));
+
+  Result.Station := BytesToString(buffer);
+  Result.EventDate := DateTime;
+end;
 
 end.
