@@ -48,6 +48,8 @@ type
     procedure EraseSection(const ASec: String); virtual; abstract;
     procedure DeleteKey(const ASec, AKey: String); virtual; abstract;
 
+    function KeyExist(const ASec, AKey: String): Boolean; virtual; abstract;
+
     property Path: String read FPath write SetPath;
   end;
 
@@ -84,6 +86,8 @@ type
 
     procedure EraseSection(const ASec: String); override;
     procedure DeleteKey(const ASec, AKey: String); override;
+
+    function KeyExist(const ASec, AKey: String): Boolean; override;
   end;
 
   TOptionRegistry = class(TOptionInterface)
@@ -119,6 +123,8 @@ type
 
     procedure EraseSection(const ASec: String); override;
     procedure DeleteKey(const ASec, AKey: String); override;
+
+    function KeyExist(const ASec, AKey: String): Boolean; override;
   end;
 
 implementation
@@ -316,6 +322,20 @@ begin
   end;
 end;
 
+function TOptionIniFiles.KeyExist(const ASec, AKey: String): Boolean;
+var
+  Value: Boolean;
+begin
+  IniTemplete(
+
+    procedure(AIni: TIniFile)
+    begin
+      Value := AIni.ValueExists(ASec, AKey);
+    end);
+
+  result := Value;
+end;
+
 procedure TOptionIniFiles.SetBoolValue(const ASec, AIdent: String;
 AValue: Boolean);
 begin
@@ -492,6 +512,20 @@ begin
   result := Value;
 end;
 
+function TOptionRegistry.KeyExist(const ASec, AKey: String): Boolean;
+var
+  Value: Boolean;
+begin
+
+  RegistryTemplete(ASec,
+    procedure(ARegistry: TRegistry)
+    begin
+      Value := ARegistry.KeyExists(AKey);
+    end);
+
+  result := Value;
+end;
+
 function TOptionRegistry.ReadSection(ASection: string): TStrings;
 var
   Value: TStrings;
@@ -557,8 +591,9 @@ begin
 
   Registry := TRegistry.Create(KEY_READ or KEY_WRITE);
   try
-    Registry.RootKey := HKEY_CURRENT_USER;
-    Registry.OpenKey('\SOFTWARE\' + FPath + ASec, True);
+    Registry.RootKey := HKEY_CURRENT_USER; // Windows Application
+    // Registry.RootKey := HKEY_LOCAL_MACHINE; // Service Application
+    Registry.OpenKey('\SOFTWARE\' + FPath + '\' + ASec, True);
 
     ACallBack(Registry);
 
