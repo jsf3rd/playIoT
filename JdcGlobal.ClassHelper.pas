@@ -39,7 +39,7 @@ type
     class function ParseFile(FileName: String): TJSONValue;
   end;
 
-  TJSONHelper = class helper for TJSON
+  TJSONHelper = class helper for REST.JSON.TJSON
   public
     class function ObjectToJsonObjectEx(AObject: TObject): TJSONObject;
     class function ObjectToJsonStringEx(AObject: TObject): String;
@@ -192,7 +192,7 @@ var
   JsonString: string;
 begin
   JsonString := TFile.ReadAllText(FileName);
-  Result := TJSON.JsonToObjectEx<T>(JsonString);
+  Result := REST.JSON.TJson.JsonToObjectEx<T>(JsonString);
 end;
 
 class function TJSONHelper.FileToRecord<T>(FileName: String): T;
@@ -200,7 +200,7 @@ var
   JsonString: string;
 begin
   JsonString := TFile.ReadAllText(FileName);
-  Result := TJSON.JsonToRecord<T>(JsonString);
+  Result := REST.JSON.TJSON.JsonToRecord<T>(JsonString);
 end;
 
 class function TJSONHelper.JsonToObjectEx<T>(AJson: String): T;
