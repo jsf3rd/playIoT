@@ -3,7 +3,7 @@ unit Core;
 interface
 
 uses Classes, SysUtils, System.IOUtils, Generics.Collections, Generics.Defaults,
-  MyGlobal, System.Threading;
+  MyGlobal, System.Threading, System.DateUtils;
 
 type
   TCore = class
@@ -11,7 +11,7 @@ type
     FIsInitialized: boolean;
     FIsfinalized: boolean;
 
-    FThread1: TThread;
+    FMyTask: TThread;
 
     constructor Create;
   public
@@ -44,10 +44,12 @@ begin
     Exit;
   FIsfinalized := true;
 
+  TView.Obj.sp_DebugMessage('Stop - ' + SERVICE_CODE);
+
   // Terminate Threads...
-  FThread1.Terminate;
-  FThread1.WaitFor;
-  FreeAndNil(FThread1);
+  FMyTask.Terminate;
+  FMyTask.WaitFor;
+  FreeAndNil(FMyTask);
 end;
 
 procedure TCore.Initialize;
@@ -57,19 +59,27 @@ begin
 
   if FIsInitialized then
     Exit;
+
   FIsInitialized := true;
 
   // Create Threads...
-  FThread1 := TThread.CreateAnonymousThread(
+  FMyTask := TThread.CreateAnonymousThread(
     procedure
     begin
       while not TThread.CurrentThread.CheckTerminated do
       begin
         TView.Obj.sp_DebugMessage(Now.FormatWithoutMSec);
         Sleep(TOption.Obj.Interval);
+
+        if SecondOf(Now) = 0 then
+        begin
+          // TView.Obj.sp_DebugMessage('Task - 0 Seconds.');
+          // raise Exception.Create('Task - 0 Seconds Error');
+        end;
+
       end;
     end);
-  FThread1.FreeOnTerminate := false;
+  FMyTask.FreeOnTerminate := false;
 
   TView.Obj.sp_SyncMessage('Init');
 end;
@@ -84,7 +94,9 @@ end;
 procedure TCore.Start;
 begin
   // Start Thread
-  FThread1.Start;
+  TView.Obj.sp_DebugMessage('Start - ' + SERVICE_CODE);
+
+  FMyTask.Start;
 end;
 
 end.

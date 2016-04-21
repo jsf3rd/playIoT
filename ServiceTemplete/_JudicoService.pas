@@ -69,14 +69,15 @@ end;
 
 procedure TJudicoService.rp_ErrorMessage(APacket: TValueList);
 begin
-  LogMessage(APacket.Values['Msg'] + ', ' + APacket.Values['ErrorMsg']);
+  LogMessage(APacket.Values['Msg'] + ', ' + APacket.Values['ErrorMsg'],
+    EVENTLOG_ERROR_TYPE);
   // PrintLog(TGlobal.Obj.LogName, '<ERR> ' + APacket.Values['Msg'] + ', ' +
   // APacket.Values['ErrorMsg']);
 end;
 
 procedure TJudicoService.rp_LogMessage(APacket: TValueList);
 begin
-  PrintDebug('::LOG:: ' + APacket.Values['Msg']);
+  LogMessage(APacket.Values['Msg'], EVENTLOG_INFORMATION_TYPE);
   // PrintLog(TGlobal.Obj.LogName, '<LOG> ' + APacket.Values['Msg']);
 end;
 
