@@ -35,7 +35,7 @@ begin
   if MyObj = nil then
   begin
     MyObj := TOption.Create(nil);
-    MyObj.Path := '\ENBGROUP\MyProject';
+    MyObj.Path := '\PlayIoT\MyProject';
   end;
   result := MyObj;
 end;
