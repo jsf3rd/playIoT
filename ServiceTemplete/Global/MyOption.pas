@@ -3,7 +3,7 @@ unit MyOption;
 interface
 
 uses
-  Classes, SysUtils, JdcOption, MyGlobal;
+  Classes, SysUtils, JdcOption, MyGlobal, Winapi.Windows;
 
 type
   TOption = class(TOptionRegistry)
@@ -34,8 +34,8 @@ class function TOption.Obj: TOption;
 begin
   if MyObj = nil then
   begin
-    MyObj := TOption.Create(nil);
-    MyObj.Path := '\PlayIoT\MyProject';
+    MyObj := TOption.Create(nil, HKEY_LOCAL_MACHINE);
+	MyObj.Path := '\PlayIoT\MyProject';
   end;
   result := MyObj;
 end;
