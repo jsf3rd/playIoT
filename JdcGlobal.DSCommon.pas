@@ -228,7 +228,7 @@ procedure TFDQueryHelper.ParamByObject(AObject: TObject; AName: String = '');
 var
   TempContainer: TJSONObject;
 begin
-  TempContainer := TJSON.ObjectToJsonObjectEx(AObject);
+  TempContainer := REST.JSON.TJSON.ObjectToJsonObjectEx(AObject);
   try
     ParamByJsonValue(TempContainer, AName);
   finally
@@ -247,11 +247,11 @@ var
   TempContainer: TJSONObject;
   ResultValue: TJSONValue;
 begin
-  TempContainer := TJSON.RecordToJsonObject<T>(MyRecord);
+  TempContainer := REST.JSON.TJSON.RecordToJsonObject<T>(MyRecord);
   try
     ResultValue := GetNameValue(TempContainer, AName);
     try
-      result := TJSON.JsonToRecord<T>(ResultValue as TJSONObject);
+      result := REST.JSON.TJSON.JsonToRecord<T>(ResultValue as TJSONObject);
     finally
       ResultValue.Free;
     end;
