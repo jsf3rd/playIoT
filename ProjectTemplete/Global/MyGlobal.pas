@@ -6,10 +6,10 @@ uses
   Classes, SysUtils;
 
 const
-  APPLICATION_TITLE = 'Judico Form Application Templete';
+  APPLICATION_TITLE = 'palyIoT Form Application Templete';
   APPLICATION_VERSION = 'v1.0';
-  COPY_RIGHT_SIGN = '¨Ï 2015 ENBGROUP';
-  HOME_PAGE_URL = 'http://www.enbgourp.co.kr';
+  COPY_RIGHT_SIGN = '¨Ï 2016 playIoT';
+  HOME_PAGE_URL = 'http://www.playIoT.biz';
 
 type
   TGlobal = class(TComponent)
@@ -86,7 +86,7 @@ procedure TGlobal.SetExeName(const Value: String);
 begin
   FExeName := Value;
   FLogName := ChangeFileExt(FExeName, '.log');
-  // FLogName := GetEnvironmentVariable('LOCALAPPDATA') + '\ENBGROUP\' +  ExtractFileName(FLogName);
+  // FLogName := GetEnvironmentVariable('LOCALAPPDATA') + '\palyIoT\' +  ExtractFileName(FLogName);
 end;
 
 end.

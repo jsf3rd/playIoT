@@ -1,4 +1,4 @@
-unit _JudicoService;
+unit _playIoTService;
 
 interface
 
@@ -8,7 +8,7 @@ uses
   Vcl.AppEvnts, ValueList;
 
 type
-  TJudicoService = class(TService)
+  TplayIoTService = class(TService)
     procedure ServiceAfterInstall(Sender: TService);
     procedure ServiceExecute(Sender: TService);
     procedure ServiceCreate(Sender: TObject);
@@ -26,7 +26,7 @@ type
   end;
 
 var
-  JudicoService: TJudicoService;
+  playIoTService: TplayIoTService;
 
 implementation
 
@@ -36,16 +36,16 @@ uses JdcGlobal, MyGlobal, JdcView2, Core, MyOption;
 
 procedure ServiceController(CtrlCode: DWord); stdcall;
 begin
-  JudicoService.Controller(CtrlCode);
+  playIoTService.Controller(CtrlCode);
 end;
 
-procedure TJudicoService.ApplicationEventsException(Sender: TObject;
+procedure TplayIoTService.ApplicationEventsException(Sender: TObject;
   E: Exception);
 begin
   PrintDebug('SYSTEM_ERROR ' + E.Message);
 end;
 
-function TJudicoService.GetExeName: String;
+function TplayIoTService.GetExeName: String;
 var
   Reg: TRegistry;
 begin
@@ -62,12 +62,12 @@ begin
   end;
 end;
 
-function TJudicoService.GetServiceController: TServiceController;
+function TplayIoTService.GetServiceController: TServiceController;
 begin
   result := ServiceController;
 end;
 
-procedure TJudicoService.rp_ErrorMessage(APacket: TValueList);
+procedure TplayIoTService.rp_ErrorMessage(APacket: TValueList);
 begin
   LogMessage(APacket.Values['Msg'] + ', ' + APacket.Values['ErrorMsg'],
     EVENTLOG_ERROR_TYPE);
@@ -75,13 +75,13 @@ begin
   // APacket.Values['ErrorMsg']);
 end;
 
-procedure TJudicoService.rp_LogMessage(APacket: TValueList);
+procedure TplayIoTService.rp_LogMessage(APacket: TValueList);
 begin
   LogMessage(APacket.Values['Msg'], EVENTLOG_INFORMATION_TYPE);
   // PrintLog(TGlobal.Obj.LogName, '<LOG> ' + APacket.Values['Msg']);
 end;
 
-procedure TJudicoService.ServiceAfterInstall(Sender: TService);
+procedure TplayIoTService.ServiceAfterInstall(Sender: TService);
 var
   Reg: TRegistry;
 begin
@@ -99,13 +99,13 @@ begin
   end;
 end;
 
-procedure TJudicoService.ServiceCreate(Sender: TObject);
+procedure TplayIoTService.ServiceCreate(Sender: TObject);
 begin
   Self.Name := SERVICE_CODE;
   Self.DisplayName := SERVICE_NAME;
 end;
 
-procedure TJudicoService.ServiceExecute(Sender: TService);
+procedure TplayIoTService.ServiceExecute(Sender: TService);
 begin
   while not Terminated do
   begin
@@ -116,13 +116,13 @@ begin
   end;
 end;
 
-procedure TJudicoService.ServiceShutdown(Sender: TService);
+procedure TplayIoTService.ServiceShutdown(Sender: TService);
 begin
   TCore.Obj.Finalize;
   TView.Obj.Remove(Self);
 end;
 
-procedure TJudicoService.ServiceStart(Sender: TService; var Started: Boolean);
+procedure TplayIoTService.ServiceStart(Sender: TService; var Started: Boolean);
 begin
   TGlobal.Obj.ExeName := GetExeName;
   TView.Obj.Add(Self);
@@ -130,7 +130,7 @@ begin
   TCore.Obj.Start;
 end;
 
-procedure TJudicoService.ServiceStop(Sender: TService; var Stopped: Boolean);
+procedure TplayIoTService.ServiceStop(Sender: TService; var Stopped: Boolean);
 begin
   TCore.Obj.Finalize;
   TView.Obj.Remove(Self);

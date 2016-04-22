@@ -6,8 +6,8 @@ uses
   Classes, SysUtils;
 
 const
-  SERVICE_CODE = 'JudicoSvc';
-  SERVICE_NAME = 'Judico Service Application Templete';
+  SERVICE_CODE = 'playIoTSvc';
+  SERVICE_NAME = 'playIoT Service Application Templete';
   SERVICE_DESCRIPTION = '여기에 Service Application의 설명을 넣으세요.';
 
 type
@@ -85,7 +85,7 @@ procedure TGlobal.SetExeName(const Value: String);
 begin
   FExeName := Value;
   FLogName := ChangeFileExt(FExeName, '.log');
-  FLogName := GetEnvironmentVariable('LOCALAPPDATA') + '\ENBGROUP\' +
+  FLogName := GetEnvironmentVariable('LOCALAPPDATA') + '\playIoT\' +
     ExtractFileName(FLogName);
 end;
 

@@ -1,4 +1,4 @@
-object JudicoService: TJudicoService
+object playIoTService: TplayIoTService
   OldCreateOrder = False
   OnCreate = ServiceCreate
   AllowPause = False

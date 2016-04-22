@@ -8,8 +8,8 @@ uses
 const
   APPLICATION_TITLE = 'DataSnap for Basic';
   APPLICATION_VERSION = 'v1.0';
-  COPY_RIGHT_SIGN = 'ⓒ 2015 ENBGROUP';
-  HOME_PAGE_URL = 'http://www.enbgourp.co.kr';
+  COPY_RIGHT_SIGN = 'ⓒ 2016 playIoT';
+  HOME_PAGE_URL = 'http://www.playIoT.biz';
 
   DB_DRIVER_ID = 'DriverID';
   DB_HOST = 'Server';

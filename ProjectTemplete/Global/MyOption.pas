@@ -26,7 +26,7 @@ begin
   begin
     MyObj := TOption.Create(nil);
     // MyObj.Path := ChangeFileExt(TGlobal.Obj.LogName, '.ini'); // ini
-    MyObj.Path := '\ENBGROUP\MyProject'; // registry
+    MyObj.Path := '\PlayIoT\MyProject'; // registry
   end;
   result := MyObj;
 end;
