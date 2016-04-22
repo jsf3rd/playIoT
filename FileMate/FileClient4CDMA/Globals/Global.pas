@@ -9,8 +9,8 @@ uses
 const
   HOUR = 3600000;
 
-  COPY_RIGHT_FILEMAN = 'FileMan v1.2 - ¨Ï 2012 ENB GROUP';
-  HOME_PAGE_URL = 'http://www.enbgourp.co.kr';
+  COPY_RIGHT_FILEMAN = 'FileMan v1.2 - ¨Ï 2012 playIoT';
+  HOME_PAGE_URL = 'http://www.playIoT.biz';
 
   LOCAL_HOST = '127.0.0.1';
   FILE_DEFAULT_PORT = 8001;

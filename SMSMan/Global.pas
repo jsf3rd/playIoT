@@ -7,9 +7,9 @@ uses
   System.Types, ValueList;
 
 const
-  COPY_RIGHT_QUEENANT = 'JudicoApp v1.0 - ⓒ 2012 ENB GROUP';
-  HOME_PAGE_URL = 'http://www.enbgourp.co.kr';
-
+  COPY_RIGHT_QUEENANT = 'playIoTApp v1.0 - ⓒ 2012 playIoT';
+  HOME_PAGE_URL = 'http://www.playIoT.biz';
+  
   NEXT_LINE = #13#10;
 
 type

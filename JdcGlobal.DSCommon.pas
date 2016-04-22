@@ -1,12 +1,12 @@
 // *******************************************************
 //
-// Judico DataSnap Common
+// playIoT DataSnap Common
 //
-// Copyright(c) 2014 ENBGroup.
+// Copyright(c) 2016 playIoT.
 //
-// jsf3rd@enbgroup.co.kr
+// jsf3rd@nate.com
 //
-// Update 2014. 11. 09
+// Update 2016. 04. 22
 //
 // *******************************************************
 

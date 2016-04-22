@@ -2,8 +2,10 @@ program DataSnap4Service;
 
 uses
   Vcl.SvcMgr,
-  _smDataProvider in 'DataSnap\_smDataProvider.pas' {smDataProvider: TDSServerModule},
-  ServerContainerUnit in 'DataSnap\ServerContainerUnit.pas' {DataSnapSvc: TService},
+  _smDataProvider
+    in 'DataSnap\_smDataProvider.pas' {smDataProvider: TDSServerModule} ,
+  ServerContainerUnit
+    in 'DataSnap\ServerContainerUnit.pas' {DataSnapSvc: TService} ,
   MyGlobal in 'Global\MyGlobal.pas',
   MyOption in 'Global\MyOption.pas';
 
@@ -28,5 +30,5 @@ begin
     Application.Initialize;
   Application.CreateForm(TDataSnapSvc, DataSnapSvc);
   Application.Run;
-end.
 
+end.

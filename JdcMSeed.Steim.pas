@@ -1,10 +1,10 @@
 // *******************************************************
 //
-// Judico steim compression/decompression at levels 1,2
+// playIoT steim compression/decompression at levels 1,2
 //
-// Copyright(c) 2014 ENBGroup.
+// Copyright(c) 2016 playIoT.
 //
-// jsf3rd@enbgroup.co.kr
+// jsf3rd@nate.com
 //
 // Reference,
 // http://quake.geo.berkeley.edu/qug/software/steimdt1.tar

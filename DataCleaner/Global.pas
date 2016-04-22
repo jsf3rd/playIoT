@@ -6,8 +6,8 @@ uses
   Classes, SysUtils, JdcView2, JdcGlobal, DBXJSON;
 
 const
-  COPY_RIGHT_FILE_CLEANER = 'File Cleaner v1.0 - ⓒ 2013 ENB GROUP';
-  HOME_PAGE_URL = 'http://www.enbgourp.co.kr';
+  COPY_RIGHT_FILE_CLEANER = 'File Cleaner v1.0 - ⓒ 2013 playIoT';
+  HOME_PAGE_URL = 'http://www.playIoT.biz';
 
 type
   TGlobal = class(TComponent)

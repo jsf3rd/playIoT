@@ -67,7 +67,7 @@
         <DCC_Namespace>Winapi;System.Win;Data.Win;Datasnap.Win;Web.Win;Soap.Win;Xml.Win;Bde;$(DCC_Namespace)</DCC_Namespace>
         <VerInfo_Locale>1033</VerInfo_Locale>
         <Manifest_File>$(BDS)\bin\default_app.manifest</Manifest_File>
-        <VerInfo_Keys>CompanyName=ENBGROUP;FileDescription=;FileVersion=1.0.0.0;InternalName=;LegalCopyright=(c)ENBGROUP 2015.;LegalTrademarks=;OriginalFilename=;ProductName=DataSnap Server Application.;ProductVersion=1.0.0.0;Comments=DataSnap Server Application.</VerInfo_Keys>
+        <VerInfo_Keys>CompanyName=playIoT;FileDescription=;FileVersion=1.0.0.0;InternalName=;LegalCopyright=(c)playIoT 2016.;LegalTrademarks=;OriginalFilename=;ProductName=DataSnap Server Application.;ProductVersion=1.0.0.0;Comments=DataSnap Server Application.</VerInfo_Keys>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Base_Win64)'!=''">
         <DCC_UsePackage>vclib;DBXSybaseASEDriver;vclimg;vcldb;vcldsnap;DBXDb2Driver;vcl;DBXMSSQLDriver;webdsnap;adortl;DBXOdbcDriver;vclactnband;bindcompvcl;vclie;vcltouch;websnap;VclSmp;DataSnapConnectors;dsnapcon;vclx;$(DCC_UsePackage)</DCC_UsePackage>
@@ -80,6 +80,8 @@
         <DCC_RemoteDebug>true</DCC_RemoteDebug>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Cfg_1_Win32)'!=''">
+        <VerInfo_Keys>CompanyName=;FileDescription=;FileVersion=1.0.0.0;InternalName=;LegalCopyright=(c)playIoT 2016.;LegalTrademarks=;OriginalFilename=;ProductName=DataSnap Server Application.;ProductVersion=1.0.0.0;Comments=DataSnap Server Application.</VerInfo_Keys>
+        <AppEnableRuntimeThemes>true</AppEnableRuntimeThemes>
         <DCC_DcuOutput>.\DCUs</DCC_DcuOutput>
         <VerInfo_IncludeVerInfo>true</VerInfo_IncludeVerInfo>
         <VerInfo_Locale>1033</VerInfo_Locale>
@@ -94,7 +96,7 @@
     <PropertyGroup Condition="'$(Cfg_2_Win32)'!=''">
         <AppEnableRuntimeThemes>true</AppEnableRuntimeThemes>
         <DCC_DcuOutput>.\DCUs</DCC_DcuOutput>
-        <VerInfo_Keys>CompanyName=ENBGROUP.;FileDescription=DataSnap for Basic.;FileVersion=1.0.0.0;InternalName=DataSnap;LegalCopyright=(c)ENBGROUP.;LegalTrademarks=;OriginalFilename=;ProductName=DataSnap4Basic;ProductVersion=1.0.0.0;Comments=DB Server Application.</VerInfo_Keys>
+        <VerInfo_Keys>CompanyName=playIoT;FileDescription=DataSnap for Basic.;FileVersion=1.0.0.0;InternalName=DataSnap;LegalCopyright=(c)playIoT.;LegalTrademarks=;OriginalFilename=;ProductName=DataSnap4Basic;ProductVersion=1.0.0.0;Comments=DB Server Application.</VerInfo_Keys>
         <VerInfo_Locale>1033</VerInfo_Locale>
         <VerInfo_IncludeVerInfo>true</VerInfo_IncludeVerInfo>
     </PropertyGroup>
@@ -172,6 +174,7 @@
                 <Excluded_Packages>
                     <Excluded_Packages Name="$(BDSBIN)\dcloffice2k230.bpl">Microsoft Office 2000 Sample Automation Server Wrapper Components</Excluded_Packages>
                     <Excluded_Packages Name="$(BDSBIN)\dclofficexp230.bpl">Microsoft Office XP Sample Automation Server Wrapper Components</Excluded_Packages>
+                    <Excluded_Packages Name="C:\Users\Public\Documents\Embarcadero\Studio\17.0\Bpl\JvPluginSystemDesign230.bpl">JVCL Plugin Components</Excluded_Packages>
                 </Excluded_Packages>
             </Delphi.Personality>
             <Deployment Version="2">

@@ -1,10 +1,10 @@
 // *******************************************************
 //
-// Judico miniSeed file parser
+// playIoT miniSeed file parser
 //
-// Copyright(c) 2014 ENBGroup.
+// Copyright(c) 2016 playIoT.
 //
-// jsf3rd@enbgroup.co.kr
+// jsf3rd@nate.com
 //
 // *******************************************************
 
