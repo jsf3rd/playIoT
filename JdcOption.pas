@@ -92,6 +92,7 @@ type
 
   TOptionRegistry = class(TOptionInterface)
   private
+    FRootKey: HKEY;
     procedure RegistryTemplete(ASec: String; ACallBack: TRegProc);
   protected
     function GetStringValue(const ASec, AIdent, ADefault: String)
@@ -117,6 +118,9 @@ type
     procedure SetDateTimeValue(const ASec, AIdent: String;
       AValue: TDateTime); override;
   public
+    constructor Create(AOwner: TComponent); overload; override;
+    constructor Create(AOwner: TComponent; AKey: HKEY); reintroduce; overload;
+
     function ReadSections: TStrings; override;
     function ReadSection(ASection: string): TStrings; override;
     function ReadSectionValues(ASection: string): TStrings; override;
@@ -125,6 +129,8 @@ type
     procedure DeleteKey(const ASec, AKey: String); override;
 
     function KeyExist(const ASec, AKey: String): Boolean; override;
+
+    property RootKey: HKEY read FRootKey;
   end;
 
 implementation
@@ -405,6 +411,17 @@ end;
 
 { TOptionRegistry }
 
+constructor TOptionRegistry.Create(AOwner: TComponent; AKey: HKEY);
+begin
+  inherited Create(AOwner);
+  FRootKey := AKey;
+end;
+
+constructor TOptionRegistry.Create(AOwner: TComponent);
+begin
+  Create(AOwner, HKEY_CURRENT_USER);
+end;
+
 procedure TOptionRegistry.DeleteKey(const ASec, AKey: String);
 begin
   RegistryTemplete(ASec,
@@ -535,7 +552,7 @@ begin
   RegistryTemplete(ASection,
     procedure(ARegistry: TRegistry)
     begin
-      ARegistry.GetValueNames(Value);
+      ARegistry.GetKeyNames(Value);
     end);
 
   result := Value;
@@ -591,8 +608,7 @@ begin
 
   Registry := TRegistry.Create(KEY_READ or KEY_WRITE);
   try
-    Registry.RootKey := HKEY_CURRENT_USER; // Windows Application
-    // Registry.RootKey := HKEY_LOCAL_MACHINE; // Service Application
+    Registry.RootKey := FRootKey;
     Registry.OpenKey('\SOFTWARE\' + FPath + '\' + ASec, True);
 
     ACallBack(Registry);
