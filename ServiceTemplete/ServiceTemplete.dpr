@@ -2,7 +2,7 @@ program ServiceTemplete;
 
 uses
   Vcl.SvcMgr,
-  _playIoTService in '_playIoTService.pas' {playIoTService: TService},
+  _ServiceMain in '_ServiceMain.pas' {ServiceMain: TService},
   MyCommon in 'Global\MyCommon.pas',
   MyGlobal in 'Global\MyGlobal.pas',
   MyOption in 'Global\MyOption.pas',
@@ -27,7 +27,7 @@ begin
   //
   if not Application.DelayInitialize or Application.Installing then
     Application.Initialize;
-  Application.CreateForm(TplayIoTService, playIoTService);
+  Application.CreateForm(TServiceMain, ServiceMain);
   Application.Run;
 
 end.

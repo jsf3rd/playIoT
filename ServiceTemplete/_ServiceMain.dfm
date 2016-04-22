@@ -1,4 +1,4 @@
-object playIoTService: TplayIoTService
+object ServiceMain: TServiceMain
   OldCreateOrder = False
   OnCreate = ServiceCreate
   AllowPause = False

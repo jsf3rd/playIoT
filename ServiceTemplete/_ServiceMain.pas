@@ -1,4 +1,4 @@
-unit _playIoTService;
+unit _ServiceMain;
 
 interface
 
@@ -8,7 +8,7 @@ uses
   Vcl.AppEvnts, ValueList;
 
 type
-  TplayIoTService = class(TService)
+  TServiceMain = class(TService)
     procedure ServiceAfterInstall(Sender: TService);
     procedure ServiceExecute(Sender: TService);
     procedure ServiceCreate(Sender: TObject);
@@ -26,7 +26,7 @@ type
   end;
 
 var
-  playIoTService: TplayIoTService;
+  ServiceMain: TServiceMain;
 
 implementation
 
@@ -36,16 +36,16 @@ uses JdcGlobal, MyGlobal, JdcView2, Core, MyOption;
 
 procedure ServiceController(CtrlCode: DWord); stdcall;
 begin
-  playIoTService.Controller(CtrlCode);
+  ServiceMain.Controller(CtrlCode);
 end;
 
-procedure TplayIoTService.ApplicationEventsException(Sender: TObject;
+procedure TServiceMain.ApplicationEventsException(Sender: TObject;
   E: Exception);
 begin
   PrintDebug('SYSTEM_ERROR ' + E.Message);
 end;
 
-function TplayIoTService.GetExeName: String;
+function TServiceMain.GetExeName: String;
 var
   Reg: TRegistry;
 begin
@@ -62,12 +62,12 @@ begin
   end;
 end;
 
-function TplayIoTService.GetServiceController: TServiceController;
+function TServiceMain.GetServiceController: TServiceController;
 begin
   result := ServiceController;
 end;
 
-procedure TplayIoTService.rp_ErrorMessage(APacket: TValueList);
+procedure TServiceMain.rp_ErrorMessage(APacket: TValueList);
 begin
   LogMessage(APacket.Values['Msg'] + ', ' + APacket.Values['ErrorMsg'],
     EVENTLOG_ERROR_TYPE);
@@ -75,13 +75,13 @@ begin
   // APacket.Values['ErrorMsg']);
 end;
 
-procedure TplayIoTService.rp_LogMessage(APacket: TValueList);
+procedure TServiceMain.rp_LogMessage(APacket: TValueList);
 begin
   LogMessage(APacket.Values['Msg'], EVENTLOG_INFORMATION_TYPE);
   // PrintLog(TGlobal.Obj.LogName, '<LOG> ' + APacket.Values['Msg']);
 end;
 
-procedure TplayIoTService.ServiceAfterInstall(Sender: TService);
+procedure TServiceMain.ServiceAfterInstall(Sender: TService);
 var
   Reg: TRegistry;
 begin
@@ -99,13 +99,13 @@ begin
   end;
 end;
 
-procedure TplayIoTService.ServiceCreate(Sender: TObject);
+procedure TServiceMain.ServiceCreate(Sender: TObject);
 begin
   Self.Name := SERVICE_CODE;
   Self.DisplayName := SERVICE_NAME;
 end;
 
-procedure TplayIoTService.ServiceExecute(Sender: TService);
+procedure TServiceMain.ServiceExecute(Sender: TService);
 begin
   while not Terminated do
   begin
@@ -116,13 +116,13 @@ begin
   end;
 end;
 
-procedure TplayIoTService.ServiceShutdown(Sender: TService);
+procedure TServiceMain.ServiceShutdown(Sender: TService);
 begin
   TCore.Obj.Finalize;
   TView.Obj.Remove(Self);
 end;
 
-procedure TplayIoTService.ServiceStart(Sender: TService; var Started: Boolean);
+procedure TServiceMain.ServiceStart(Sender: TService; var Started: Boolean);
 begin
   TGlobal.Obj.ExeName := GetExeName;
   TView.Obj.Add(Self);
@@ -130,7 +130,7 @@ begin
   TCore.Obj.Start;
 end;
 
-procedure TplayIoTService.ServiceStop(Sender: TService; var Stopped: Boolean);
+procedure TServiceMain.ServiceStop(Sender: TService; var Stopped: Boolean);
 begin
   TCore.Obj.Finalize;
   TView.Obj.Remove(Self);
