@@ -68,6 +68,8 @@ type
     procedure Execute(AValue: T);
   End;
 
+  TOnLogEvent = procedure(const AMsg: string) of object;
+
 implementation
 
 function DefaultFormatSettings: TFormatSettings;
