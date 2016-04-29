@@ -582,18 +582,22 @@ begin
   RegistryTemplete(ASection,
     procedure(ARegistry: TRegistry)
     var
-      Names: TStrings;
-      MyName: String;
+      tmp: TStrings;
+      MyElem: String;
     begin
-      Names := ReadSection(ASection);
+      tmp := TStringList.Create;
       try
-        for MyName in Names do
+        ARegistry.GetValueNames(tmp);
+
+        for MyElem in tmp do
         begin
-          Value.Values[MyName] := ARegistry.ReadString(MyName);
+          Value.Values[MyElem] := ARegistry.ReadString(MyElem);
         end;
+
       finally
-        Names.Free;
+        tmp.Free;
       end;
+
     end);
 
   result := Value;
