@@ -171,7 +171,7 @@ begin
   except
     on E: Exception do
     begin
-      OnLog('Error on ProcessNewData, ' + E.Message);
+      OnLog(Self, 'Error on ProcessNewData, ' + E.Message);
       raise E;
     end;
   end;
@@ -217,7 +217,7 @@ begin
     if Index < 0 then
       Exit;
 
-    OnLog('SEEDLink Log - ' + BytesToString(buffer, Index, 8));
+    OnLog(Self, 'SEEDLink Log - ' + BytesToString(buffer, Index, 8));
 
     RemoveBytes(buffer, Index);
     FIdTcpClient.IOHandler.ReadBytes(buffer, Index);
@@ -247,7 +247,7 @@ begin
       if Msg.IsEmpty then
         Break
       else
-        OnLog('RECV - ' + Msg);
+        OnLog(Self, 'RECV - ' + Msg);
 
       if Msg.Equals('OK') then
         Break;
@@ -257,7 +257,7 @@ begin
 
       on E: Exception do
       begin
-        OnLog('Error on RecvString, ' + E.Message);
+        OnLog(Self, 'Error on RecvString, ' + E.Message);
         Break;
       end;
     end;
@@ -274,7 +274,7 @@ end;
 procedure TJdcSeedLink.SendCommand(Value: string);
 begin
   FIdTcpClient.IOHandler.WriteLn(Value);
-  OnLog('SEND - ' + Value);
+  OnLog(Self, 'SEND - ' + Value);
 end;
 
 procedure TJdcSeedLink.SendEnd;
@@ -286,14 +286,17 @@ begin
     procedure
     begin
       while not TThread.CurrentThread.CheckTerminated do
+      begin
         try
+          Sleep(1);
           RecvData;
         except
           on E: EIdReadTimeout do //
-            OnLog('Error on RecvData, ' + E.Message);
+            OnLog(Self, 'Error on RecvData, ' + E.Message);
           on E: Exception do
-            OnLog('Error on RecvData, ' + E.Message);
+            OnLog(Self, 'Error on RecvData, ' + E.Message);
         end;
+      end;
       Sleep(1000);
     end);
   FThread.FreeOnTerminate := false;
