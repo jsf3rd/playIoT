@@ -3,7 +3,7 @@
 interface
 
 uses
-  Classes, SysUtils, JdcView2, JdcGlobal, DBXJSON;
+  Classes, SysUtils, IOUtils;
 
 const
   APPLICATION_TITLE = 'DataSnap for Basic';
@@ -97,6 +97,11 @@ procedure TGlobal.SetExeName(const Value: String);
 begin
   FExeName := Value;
   FLogName := ChangeFileExt(FExeName, '.log');
+  FLogName := GetEnvironmentVariable('LOCALAPPDATA') + '\playIoT\' +
+    ExtractFileName(FLogName);
+
+  if not TDirectory.Exists(ExtractFilePath(FLogName)) then
+    TDirectory.CreateDirectory(ExtractFilePath(FLogName));
 end;
 
 end.

@@ -159,12 +159,16 @@ procedure TDataSnapSvc.ServiceStart(Sender: TService; var Started: Boolean);
 begin
   TGlobal.Obj.ExeName := GetExeName;
   TView.Obj.Add(Self);
+
+  TGlobal.Obj.Initialize;
+
   DSServer.Start;
 end;
 
 procedure TDataSnapSvc.ServiceStop(Sender: TService; var Stopped: Boolean);
 begin
   TView.Obj.Remove(Self);
+  TGlobal.Obj.Finalize;
 end;
 
 end.

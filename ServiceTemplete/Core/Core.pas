@@ -40,20 +40,24 @@ end;
 
 procedure TCore.Finalize;
 begin
+  TGlobal.Obj.Finalize;
+
   if FIsfinalized then
     Exit;
   FIsfinalized := true;
-
-  TView.Obj.sp_DebugMessage('Stop - ' + SERVICE_CODE);
 
   // Terminate Threads...
   FMyTask.Terminate;
   FMyTask.WaitFor;
   FreeAndNil(FMyTask);
+
+  TView.Obj.sp_DebugMessage('Stop - ' + SERVICE_CODE);
 end;
 
 procedure TCore.Initialize;
 begin
+  TGlobal.Obj.Initialize;
+
   if FIsfinalized then
     Exit;
 

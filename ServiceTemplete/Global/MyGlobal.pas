@@ -3,7 +3,7 @@ unit MyGlobal;
 interface
 
 uses
-  Classes, SysUtils;
+  Classes, SysUtils, IOUtils;
 
 const
   SERVICE_CODE = 'playIoTSvc';
@@ -87,6 +87,9 @@ begin
   FLogName := ChangeFileExt(FExeName, '.log');
   FLogName := GetEnvironmentVariable('LOCALAPPDATA') + '\playIoT\' +
     ExtractFileName(FLogName);
+
+  if not TDirectory.Exists(ExtractFilePath(FLogName)) then
+    TDirectory.CreateDirectory(ExtractFilePath(FLogName));
 end;
 
 end.

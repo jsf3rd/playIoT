@@ -3,7 +3,7 @@ unit MyGlobal;
 interface
 
 uses
-  Classes, SysUtils;
+  Classes, SysUtils, IOUtils;
 
 const
   APPLICATION_TITLE = 'palyIoT Form Application Templete';
@@ -86,7 +86,11 @@ procedure TGlobal.SetExeName(const Value: String);
 begin
   FExeName := Value;
   FLogName := ChangeFileExt(FExeName, '.log');
-  // FLogName := GetEnvironmentVariable('LOCALAPPDATA') + '\palyIoT\' +  ExtractFileName(FLogName);
+  FLogName := GetEnvironmentVariable('LOCALAPPDATA') + '\palyIoT\' +
+    ExtractFileName(FLogName);
+
+  if not TDirectory.Exists(ExtractFilePath(FLogName)) then
+    TDirectory.CreateDirectory(ExtractFilePath(FLogName));
 end;
 
 end.

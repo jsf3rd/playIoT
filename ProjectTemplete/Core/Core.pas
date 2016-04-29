@@ -39,14 +39,17 @@ end;
 
 procedure TCore.Finalize;
 begin
+  TGlobal.Obj.Finalize;
+
   if FIsfinalized then
     Exit;
   FIsfinalized := true;
-
 end;
 
 procedure TCore.Initialize;
 begin
+  TGlobal.Obj.Initialize;
+
   if FIsfinalized then
     Exit;
 

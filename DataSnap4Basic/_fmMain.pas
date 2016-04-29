@@ -36,6 +36,7 @@ type
     procedure actExitExecute(Sender: TObject);
     procedure actAboutExecute(Sender: TObject);
     procedure FormShow(Sender: TObject);
+    procedure FormClose(Sender: TObject; var Action: TCloseAction);
   private
     procedure DeleteItem(AIP: string);
   public
@@ -87,10 +88,18 @@ begin
   fmOptions.Free;
 end;
 
+procedure TfmMain.FormClose(Sender: TObject; var Action: TCloseAction);
+begin
+  TGlobal.Obj.Finalize;
+  TView.Obj.Remove(Self);
+end;
+
 procedure TfmMain.FormCreate(Sender: TObject);
 begin
-  TView.Obj.Add(Self);
   TGlobal.Obj.ExeName := Application.ExeName;
+  TView.Obj.Add(Self);
+
+  TGlobal.Obj.Initialize;
 end;
 
 procedure TfmMain.FormShow(Sender: TObject);
