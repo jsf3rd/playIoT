@@ -68,7 +68,9 @@ type
     procedure Execute(AValue: T);
   End;
 
-  TOnLogEvent = procedure(const AMsg: string) of object;
+  TOnLogEvent = procedure(const Sender: TObject; const AMsg: string) of object;
+  TOnErrorEvent = procedure(const Sender: TObject; const AMsg: string;
+    const AErrorMsg: string = '') of object;
 
 implementation
 
