@@ -26,6 +26,10 @@ type
     FOnReceiveDataEvent: TOnReceiveDataEvent;
     FOnLogEvent: TOnLogEvent;
     FOnReceiveMSeed: TOnReceiveMSeedEvent;
+    FOnErrorEvent: TOnErrorEvent;
+
+    FTimeOutCount: Integer;
+
     function GetCodeKey(AHeader: TMSeedHeader): string;
 
     procedure SendCommand(Value: string);
@@ -42,13 +46,14 @@ type
     procedure SendEnd;
 
     function MSeedToRawData(FixedHeader: TFixedHeader; AStream: TStream)
-      : TList<integer>;
+      : TList<Integer>;
 
     property OnReceiveData: TOnReceiveDataEvent read FOnReceiveDataEvent
       write FOnReceiveDataEvent;
     property OnReceiveMSeed: TOnReceiveMSeedEvent read FOnReceiveMSeed
       write FOnReceiveMSeed;
     property OnLog: TOnLogEvent read FOnLogEvent write FOnLogEvent;
+    property OnError: TOnErrorEvent read FOnErrorEvent write FOnErrorEvent;
   end;
 
 implementation
@@ -81,11 +86,17 @@ constructor TJdcSeedLink.Create(ATcpClient: TIdTCPClient);
 begin
   FIdTcpClient := ATcpClient;
   FThread := nil;
+  FTimeOutCount := 0;
 end;
 
 destructor TJdcSeedLink.Destroy;
 begin
-  SendCommand(COMMAND_BYE);
+  try
+    SendCommand(COMMAND_BYE);
+  except
+    on E: Exception do
+      raise Exception.Create(Self.ClassName + ' Destroy Error,' + E.Message);
+  end;
 
   if Assigned(FThread) then
   begin
@@ -111,14 +122,14 @@ begin
 end;
 
 function TJdcSeedLink.MSeedToRawData(FixedHeader: TFixedHeader;
-  AStream: TStream): TList<integer>;
+  AStream: TStream): TList<Integer>;
 var
   Peeks: TPeeks;
-  MyElem: integer;
+  MyElem: Integer;
   SteimDecoder: TSteimDecoder;
   DataRecord: TArray<TDataFrame>;
 begin
-  result := TList<integer>.Create;
+  result := TList<Integer>.Create;
 
   while AStream.Position < AStream.Size do
   begin
@@ -144,7 +155,7 @@ end;
 procedure TJdcSeedLink.ProcessNewData(Stream: TMemoryStream);
 var
   FixedHeader: TFixedHeader;
-  RawData: TList<integer>;
+  RawData: TList<Integer>;
 begin
   try
     Stream.Position := 0;
@@ -203,12 +214,12 @@ var
   Stream: TMemoryStream;
 
   SL: TIdBytes;
-  Index: integer;
+  Index: Integer;
 begin
   SetLength(buffer, 0);
   FIdTcpClient.IOHandler.ReadBytes(buffer, 520);
-  tmp := BytesToString(buffer, 0, 8);
 
+  tmp := BytesToString(buffer, 0, 8);
   if not tmp.Contains('SL') then
   begin
     SL := ToBytes('SL');
@@ -257,7 +268,7 @@ begin
 
       on E: Exception do
       begin
-        OnLog(Self, 'Error on RecvString, ' + E.Message);
+        OnError(Self, 'Error on RecvString', E.Message);
         Break;
       end;
     end;
@@ -273,8 +284,8 @@ end;
 
 procedure TJdcSeedLink.SendCommand(Value: string);
 begin
-  FIdTcpClient.IOHandler.WriteLn(Value);
   OnLog(Self, 'SEND - ' + Value);
+  FIdTcpClient.IOHandler.WriteLn(Value);
 end;
 
 procedure TJdcSeedLink.SendEnd;
@@ -290,11 +301,17 @@ begin
         try
           Sleep(1);
           RecvData;
+          FTimeOutCount := 0;
         except
-          on E: EIdReadTimeout do //
-            OnLog(Self, 'Error on RecvData, ' + E.Message);
+          on E: EIdReadTimeout do
+          begin
+            Inc(FTimeOutCount);
+
+            if FTimeOutCount > 1 then
+              OnError(Self, 'EReadTimeOut on RecvData', E.Message);
+          end;
           on E: Exception do
-            OnLog(Self, 'Error on RecvData, ' + E.Message);
+            OnError(Self, 'Error on RecvData', E.Message);
         end;
       end;
       Sleep(1000);
