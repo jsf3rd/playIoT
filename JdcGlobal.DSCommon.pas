@@ -211,14 +211,14 @@ begin
     if Assigned(Self.Params.FindParam(AName)) then
       Self.ParamByName(AName).AsFloat := TJSONNumber(AValue).AsDouble;
 
-    PrintDebug('%s : %s',[AName, TJSONNumber(AValue).ToString]);
+    PrintDebug('%s : %s', [AName, TJSONNumber(AValue).ToString]);
   end
   else if AValue is TJSONString then
   begin
     if Assigned(Self.Params.FindParam(AName)) then
       Self.ParamByName(AName).AsString := TJSONString(AValue).Value;
 
-    PrintDebug('%s : %s',[AName, TJSONString(AValue).Value]);
+    PrintDebug('%s : %s', [AName, TJSONString(AValue).Value]);
   end
   else
     raise Exception.Create('Unknown Type - ' + AName);
@@ -292,7 +292,11 @@ begin
   result := TJSONObject.Create;
   for MyElem in AObject do
   begin
-    Key := AName + '_' + MyElem.JsonString.Value;
+    Key := AName + '_';
+    if AName.IsEmpty then
+      Key := '';
+
+    Key := Key + MyElem.JsonString.Value;
     result.AddPair(MyElem.JsonString.Value,
       GetNameValue(MyElem.JSONValue, Key));
   end;
