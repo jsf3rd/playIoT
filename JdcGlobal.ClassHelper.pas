@@ -192,7 +192,7 @@ var
   JsonString: string;
 begin
   JsonString := TFile.ReadAllText(FileName);
-  Result := REST.JSON.TJson.JsonToObjectEx<T>(JsonString);
+  Result := REST.JSON.TJSON.JsonToObjectEx<T>(JsonString);
 end;
 
 class function TJSONHelper.FileToRecord<T>(FileName: String): T;
@@ -241,8 +241,12 @@ begin
 end;
 
 class function TJSONHelper.RecordToJsonString<T>(ARecord: T): String;
+var
+  SO: ISuperObject;
 begin
-  Result := TSuperRecord<T>.AsJSONObject(ARecord).AsJSON;
+  SO := TSuperRecord<T>.AsJSONObject(ARecord);
+  Result := SO.AsJSON;
+  SO := nil;
 end;
 
 { TDateTimeHelper }
