@@ -32,7 +32,8 @@ var
 
 function TOption.GetDBInfo: String;
 begin
-  result := GetStringValue('DB', 'Params', '');
+  // Server=db.playiot.biz,DataBase=mydb,User_Name=playiot,Password=playiot,Port=5432
+  result := GetStringValue('DB', 'Params', 'Edit Params');
 end;
 
 function TOption.GetTcpPort: Integer;
