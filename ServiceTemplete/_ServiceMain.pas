@@ -15,14 +15,10 @@ type
     procedure ServiceStart(Sender: TService; var Started: Boolean);
     procedure ServiceShutdown(Sender: TService);
     procedure ServiceStop(Sender: TService; var Stopped: Boolean);
-    procedure ApplicationEventsException(Sender: TObject; E: Exception);
   private
     function GetExeName: String;
   public
     function GetServiceController: TServiceController; override;
-  published
-    procedure rp_ErrorMessage(APacket: TValueList);
-    procedure rp_LogMessage(APacket: TValueList);
   end;
 
 var
@@ -32,17 +28,11 @@ implementation
 
 {$R *.dfm}
 
-uses JdcGlobal, MyGlobal, JdcView2, Core, MyOption;
+uses JdcGlobal, MyGlobal, Core, MyOption;
 
 procedure ServiceController(CtrlCode: DWord); stdcall;
 begin
   ServiceMain.Controller(CtrlCode);
-end;
-
-procedure TServiceMain.ApplicationEventsException(Sender: TObject;
-  E: Exception);
-begin
-  PrintDebug('SYSTEM_ERROR ' + E.Message);
 end;
 
 function TServiceMain.GetExeName: String;
@@ -65,20 +55,6 @@ end;
 function TServiceMain.GetServiceController: TServiceController;
 begin
   result := ServiceController;
-end;
-
-procedure TServiceMain.rp_ErrorMessage(APacket: TValueList);
-begin
-  LogMessage(APacket.Values['Msg'] + ', ' + APacket.Values['ErrorMsg'],
-    EVENTLOG_ERROR_TYPE);
-  // PrintLog(TGlobal.Obj.LogName, '<ERR> ' + APacket.Values['Msg'] + ', ' +
-  // APacket.Values['ErrorMsg']);
-end;
-
-procedure TServiceMain.rp_LogMessage(APacket: TValueList);
-begin
-  LogMessage(APacket.Values['Msg'], EVENTLOG_INFORMATION_TYPE);
-  // PrintLog(TGlobal.Obj.LogName, '<LOG> ' + APacket.Values['Msg']);
 end;
 
 procedure TServiceMain.ServiceAfterInstall(Sender: TService);
@@ -119,13 +95,11 @@ end;
 procedure TServiceMain.ServiceShutdown(Sender: TService);
 begin
   TCore.Obj.Finalize;
-  TView.Obj.Remove(Self);
 end;
 
 procedure TServiceMain.ServiceStart(Sender: TService; var Started: Boolean);
 begin
   TGlobal.Obj.ExeName := GetExeName;
-  TView.Obj.Add(Self);
   TCore.Obj.Initialize;
   TCore.Obj.Start;
 end;
@@ -133,7 +107,6 @@ end;
 procedure TServiceMain.ServiceStop(Sender: TService; var Stopped: Boolean);
 begin
   TCore.Obj.Finalize;
-  TView.Obj.Remove(Self);
 end;
 
 end.

@@ -25,7 +25,7 @@ type
 
 implementation
 
-uses MyOption, JdcView2, MyCommon, JdcGlobal.ClassHelper;
+uses MyOption, MyCommon, JdcGlobal.ClassHelper, JdcGlobal;
 
 var
   MyObj: TCore = nil;
@@ -51,7 +51,7 @@ begin
   FMyTask.WaitFor;
   FreeAndNil(FMyTask);
 
-  TView.Obj.sp_DebugMessage('Stop - ' + SERVICE_CODE);
+  TGlobal.Obj.ApplicationMessge(mtLog, 'Stop Service');
 end;
 
 procedure TCore.Initialize;
@@ -72,7 +72,8 @@ begin
     begin
       while not TThread.CurrentThread.CheckTerminated do
       begin
-        TView.Obj.sp_DebugMessage(Now.FormatWithoutMSec);
+        TGlobal.Obj.ApplicationMessge(mtDebug, 'Time Stamp',
+          Now.FormatWithoutMSec);
         Sleep(TOption.Obj.Interval);
 
         if SecondOf(Now) = 0 then
@@ -84,8 +85,6 @@ begin
       end;
     end);
   FMyTask.FreeOnTerminate := false;
-
-  TView.Obj.sp_SyncMessage('Init');
 end;
 
 class function TCore.Obj: TCore;
@@ -98,7 +97,7 @@ end;
 procedure TCore.Start;
 begin
   // Start Thread
-  TView.Obj.sp_DebugMessage('Start - ' + SERVICE_CODE);
+  TGlobal.Obj.ApplicationMessge(mtLog, 'Start Service');
 
   FMyTask.Start;
 end;
