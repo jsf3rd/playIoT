@@ -5,7 +5,7 @@ interface
 uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Classes,
   Vcl.Graphics, Vcl.Controls, Vcl.SvcMgr, Vcl.Dialogs, Registry, Vcl.ExtCtrls,
-  Vcl.AppEvnts, ValueList;
+  Vcl.AppEvnts;
 
 type
   TServiceMain = class(TService)
