@@ -1,4 +1,4 @@
-object DataSnapSvc: TDataSnapSvc
+object ServerContainer: TServerContainer
   OldCreateOrder = False
   OnCreate = ServiceCreate
   AllowPause = False

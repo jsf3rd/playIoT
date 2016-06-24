@@ -1,4 +1,4 @@
-unit ServerContainerUnit;
+unit _ServerContainer;
 
 interface
 
@@ -7,10 +7,10 @@ uses System.SysUtils, System.Classes,
   Datasnap.DSTCPServerTransport,
   Datasnap.DSHTTPCommon, Datasnap.DSHTTP,
   Datasnap.DSServer, Datasnap.DSCommonServer,
-  Datasnap.DSAuth, IPPeerServer, Registry, ValueList, Winapi.Windows;
+  Datasnap.DSAuth, IPPeerServer, Registry, Winapi.Windows, MyOption;
 
 type
-  TDataSnapSvc = class(TService)
+  TServerContainer = class(TService)
     DSServer: TDSServer;
     DSTCPServerTransport: TDSTCPServerTransport;
     DSHTTPService: TDSHTTPService;
@@ -32,32 +32,29 @@ type
     procedure DoInterrogate; override;
   public
     function GetServiceController: TServiceController; override;
-  published
-    procedure rp_ErrorMessage(APacket: TValueList);
-    procedure rp_LogMessage(APacket: TValueList);
   end;
 
 var
-  DataSnapSvc: TDataSnapSvc;
+  ServerContainer: TServerContainer;
 
 implementation
 
 {$R *.dfm}
 
-uses _smDataProvider, JdcGlobal, JdcView2, MyGlobal;
+uses _smDataProvider, JdcGlobal, MyGlobal;
 
-procedure TDataSnapSvc.dscDataProviderGetClass(DSServerClass: TDSServerClass;
-  var PersistentClass: TPersistentClass);
+procedure TServerContainer.dscDataProviderGetClass(DSServerClass
+  : TDSServerClass; var PersistentClass: TPersistentClass);
 begin
   PersistentClass := _smDataProvider.TsmDataProvider;
 end;
 
 procedure ServiceController(CtrlCode: DWord); stdcall;
 begin
-  DataSnapSvc.Controller(CtrlCode);
+  ServerContainer.Controller(CtrlCode);
 end;
 
-function TDataSnapSvc.GetExeName: String;
+function TServerContainer.GetExeName: String;
 var
   Reg: TRegistry;
 begin
@@ -74,48 +71,39 @@ begin
   end;
 end;
 
-function TDataSnapSvc.GetServiceController: TServiceController;
+function TServerContainer.GetServiceController: TServiceController;
 begin
   result := ServiceController;
 end;
 
-procedure TDataSnapSvc.rp_ErrorMessage(APacket: TValueList);
-begin
-  LogMessage(APacket.Values['Msg'] + ', ' + APacket.Values['ErrorMsg']);
-  // PrintLog(TGlobal.Obj.LogName, '<ERR> ' + APacket.Values['Msg'] + ', ' +
-  // APacket.Values['ErrorMsg']);
-end;
-
-procedure TDataSnapSvc.rp_LogMessage(APacket: TValueList);
-begin
-  PrintDebug('::LOG:: ' + APacket.Values['Msg']);
-  // PrintLog(TGlobal.Obj.LogName, '<LOG> ' + APacket.Values['Msg']);
-end;
-
-function TDataSnapSvc.DoContinue: Boolean;
+function TServerContainer.DoContinue: Boolean;
 begin
   result := inherited;
   DSServer.Start;
 end;
 
-procedure TDataSnapSvc.DoInterrogate;
+procedure TServerContainer.DoInterrogate;
 begin
   inherited;
 end;
 
-function TDataSnapSvc.DoPause: Boolean;
+function TServerContainer.DoPause: Boolean;
 begin
   DSServer.Stop;
+
+  TGlobal.Obj.ApplicationMessge(mtLog, 'DataSnap Server', 'Stop');
   result := inherited;
 end;
 
-function TDataSnapSvc.DoStop: Boolean;
+function TServerContainer.DoStop: Boolean;
 begin
   DSServer.Stop;
+
+  TGlobal.Obj.ApplicationMessge(mtLog, 'DataSnap Server', 'Stop');
   result := inherited;
 end;
 
-procedure TDataSnapSvc.ServiceAfterInstall(Sender: TService);
+procedure TServerContainer.ServiceAfterInstall(Sender: TService);
 var
   Reg: TRegistry;
 begin
@@ -133,13 +121,13 @@ begin
   end;
 end;
 
-procedure TDataSnapSvc.ServiceCreate(Sender: TObject);
+procedure TServerContainer.ServiceCreate(Sender: TObject);
 begin
   Self.Name := SERVICE_CODE;
   Self.DisplayName := SERVICE_NAME;
 end;
 
-procedure TDataSnapSvc.ServiceExecute(Sender: TService);
+procedure TServerContainer.ServiceExecute(Sender: TService);
 begin
   while not Terminated do
   begin
@@ -150,24 +138,27 @@ begin
   end;
 end;
 
-procedure TDataSnapSvc.ServiceShutdown(Sender: TService);
+procedure TServerContainer.ServiceShutdown(Sender: TService);
 begin
-  TView.Obj.Remove(Self);
+  TGlobal.Obj.Finalize;
 end;
 
-procedure TDataSnapSvc.ServiceStart(Sender: TService; var Started: Boolean);
+procedure TServerContainer.ServiceStart(Sender: TService; var Started: Boolean);
 begin
   TGlobal.Obj.ExeName := GetExeName;
-  TView.Obj.Add(Self);
 
   TGlobal.Obj.Initialize;
 
+  DSTCPServerTransport.Port := TOption.Obj.TcpPort;
+  DSHTTPService.HttpPort := TOption.Obj.HttpPort;
   DSServer.Start;
+
+  TGlobal.Obj.ApplicationMessge(mtLog, 'DataSnap Server Start',
+    'TCP:%d, HTTP:%d', [DSTCPServerTransport.Port, DSHTTPService.HttpPort]);
 end;
 
-procedure TDataSnapSvc.ServiceStop(Sender: TService; var Stopped: Boolean);
+procedure TServerContainer.ServiceStop(Sender: TService; var Stopped: Boolean);
 begin
-  TView.Obj.Remove(Self);
   TGlobal.Obj.Finalize;
 end;
 
