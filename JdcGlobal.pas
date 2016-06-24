@@ -3,7 +3,8 @@ unit JdcGlobal;
 interface
 
 uses
-  Classes, SysUtils, Windows, ZLib, IdGlobal, IOUtils, StdCtrls, JclFileUtils;
+  Classes, SysUtils, Windows, ZLib, IdGlobal, IOUtils, StdCtrls, JclFileUtils,
+  IdUDPClient, JclSysInfo;
 
 // 로그 찍기..
 procedure PrintLog(const AFile, AMessage: String); overload;
@@ -12,6 +13,9 @@ procedure PrintLog(AMemo: TMemo; const AMsg: String); overload;
 procedure PrintDebug(const Format: string; const Args: array of const);
   overload;
 procedure PrintDebug(const str: string); overload;
+
+procedure CloudMessage(const ProjectCode, AppCode, TypeCode, ATitle,
+  AMessage: String);
 
 // 데이터 압축..
 function CompressStream(Stream: TStream; OutStream: TStream;
@@ -68,9 +72,20 @@ type
     procedure Execute(AValue: T);
   End;
 
-  TOnLogEvent = procedure(const Sender: TObject; const AMsg: string) of object;
-  TOnErrorEvent = procedure(const Sender: TObject; const AMsg: string;
-    const AErrorMsg: string = '') of object;
+  TOnMessageEvent = procedure(const Sender: TObject; const AName: string;
+    const AMessage: string = '') of object;
+
+  TMsgOutput = (moDebugView, moLogFile, moCloudMessage);
+  TMsgOutputs = set of TMsgOutput;
+
+  TMessageType = (mtDebug, mtLog, mtError, mtWarning, mtUnknown);
+
+const
+  MESSAGE_TYPE_LOG = 'LOG';
+  MESSAGE_TYPE_ERROR = 'ERROR';
+  MESSAGE_TYPE_DEBUG = 'DEBUG';
+  MESSAGE_TYPE_WRANING = 'WRANING';
+  MESSAGE_TYPE_UNKNOWN = 'UNKNOWN';
 
 implementation
 
@@ -181,12 +196,45 @@ var
   str: string;
 begin
   FmtStr(str, Format, Args);
-  OutputDebugString(PChar('[JDC] ' + str));
+  PrintDebug(str);
 end;
 
 procedure PrintDebug(const str: string); overload;
 begin
-  PrintDebug(str, []);
+  OutputDebugString(PChar('[JDC] ' + str));
+end;
+
+procedure CloudMessage(const ProjectCode, AppCode, TypeCode, ATitle,
+  AMessage: String);
+var
+  UDPClient: TIdUDPClient;
+  SysInfo, Msg: String;
+begin
+{$IFDEF DEBUG}
+  Exit;
+{$ENDIF}
+  SysInfo := 'OS=' + GetOSVersionString + ',TotalMem=' +
+    IntToStr(GetTotalPhysicalMemory) + ',FreeMem=' +
+    IntToStr(GetFreePhysicalMemory) + ',IPAddress=' +
+    GetIPAddress(GetLocalComputerName) + ',ComputerName=' +
+    GetLocalComputerName;
+
+  Msg := Format
+    ('CloudLog,ProjectCode=%s,AppCode=%s,TypeCode=%s Title="%s",LogMessage="%s",SysInfo="%s"',
+    [ProjectCode, AppCode, TypeCode, ATitle, AMessage, QuotedStr(SysInfo)]);
+
+  UDPClient := TIdUDPClient.Create(nil);
+  try
+    try
+      UDPClient.Send('log.playiot.biz', 8092, Msg, IndyTextEncoding_UTF8);
+      // UDPClient.Send('ec2-52-78-19-68.ap-northeast-2.compute.amazonaws.com',
+      // 8092, Msg);
+    except
+      on E: Exception do
+    end;
+  finally
+    UDPClient.Free;
+  end;
 end;
 
 function CompressStream(Stream: TStream; OutStream: TStream;
@@ -281,11 +329,12 @@ end;
 
 function Rev2Bytes(w: WORD): WORD;
 asm
-  xchg   al, ah
+  XCHG   AL, AH
 end;
 
-function Rev4Bytes(Value: LongInt): LongInt;
+function Rev4Bytes(Value: LongInt): LongInt; assembler;
 asm
+  MOV EAX, Value;
   BSWAP    EAX;
 end;
 
