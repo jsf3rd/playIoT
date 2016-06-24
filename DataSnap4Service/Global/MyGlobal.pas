@@ -20,7 +20,7 @@ type
     FLogName: string;
     procedure SetExeName(const Value: String);
     procedure _ApplicationMessge(AType, ATitle, AMessage: String;
-      Cloud: boolean = False);
+      AOutputs: TMsgOutputs = [moDebugView, moLogFile, moCloudMessage]);
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
@@ -28,7 +28,9 @@ type
     class function Obj: TGlobal;
 
     procedure ApplicationMessge(AType: TMessageType; ATitle: String;
-      AMessage: String = '');
+      AMessage: String = ''); overload;
+    procedure ApplicationMessge(AType: TMessageType; ATitle: String;
+      AFormat: String; const Args: array of const); overload;
 
     procedure Initialize;
     procedure Finalize;
@@ -51,17 +53,26 @@ procedure TGlobal.ApplicationMessge(AType: TMessageType;
   ATitle, AMessage: String);
 begin
   case AType of
-    mtLog:
-      _ApplicationMessge(MESSAGE_TYPE_LOG, ATitle, AMessage, True);
-    mtError:
-      _ApplicationMessge(MESSAGE_TYPE_ERROR, ATitle, AMessage, True);
     mtDebug:
-      _ApplicationMessge(MESSAGE_TYPE_DEBUG, ATitle, AMessage, False);
+      _ApplicationMessge(MESSAGE_TYPE_DEBUG, ATitle, AMessage, [moDebugView]);
+    mtLog:
+      _ApplicationMessge(MESSAGE_TYPE_LOG, ATitle, AMessage);
+    mtError:
+      _ApplicationMessge(MESSAGE_TYPE_ERROR, ATitle, AMessage);
     mtWarning:
-      _ApplicationMessge(MESSAGE_TYPE_WRANING, ATitle, AMessage, True);
+      _ApplicationMessge(MESSAGE_TYPE_WRANING, ATitle, AMessage);
   else
-    _ApplicationMessge(MESSAGE_TYPE_UNKNOWN, ATitle, AMessage, True);
+    _ApplicationMessge(MESSAGE_TYPE_UNKNOWN, ATitle, AMessage);
   end;
+end;
+
+procedure TGlobal.ApplicationMessge(AType: TMessageType;
+  ATitle, AFormat: String; const Args: array of const);
+var
+  str: string;
+begin
+  FmtStr(str, AFormat, Args);
+  ApplicationMessge(AType, ATitle, str);
 end;
 
 constructor TGlobal.Create(AOwner: TComponent);
@@ -114,15 +125,17 @@ begin
 end;
 
 procedure TGlobal._ApplicationMessge(AType, ATitle, AMessage: String;
-  Cloud: boolean);
+  AOutputs: TMsgOutputs);
 begin
-  PrintLog(FLogName, '<' + AType + '> ' + ATitle + ' - ' + AMessage);
-  PrintDebug('<' + AType + '> [' + SERVICE_CODE + '] ' + ATitle + ' - ' +
-    AMessage);
-
-  if Cloud then
-    CloudMessage(PROJECT_CODE, ExtractFileName(FExeName), AType, ATitle,
+  if moDebugView in AOutputs then
+    PrintDebug('<' + AType + '> [' + SERVICE_CODE + '] ' + ATitle + ' - ' +
       AMessage);
+
+  if moLogFile in AOutputs then
+    PrintLog(FLogName, '<' + AType + '> ' + ATitle + ' - ' + AMessage);
+
+  if moCloudMessage in AOutputs then
+    CloudMessage(PROJECT_CODE, SERVICE_CODE, AType, ATitle, AMessage);
 end;
 
 end.
