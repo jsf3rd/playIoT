@@ -4,7 +4,7 @@ interface
 
 uses
   Classes, SysUtils, REST.JSON,
-  XSuperObject, System.IOUtils, System.Generics.Collections
+  XSuperObject, System.IOUtils, System.Generics.Collections, System.DateUtils
 
 {$IF CompilerVersion  > 26} // upper XE5
     , System.JSON
@@ -61,6 +61,7 @@ type
     function ToString: String;
     function FormatWithMSec: String;
     function FormatWithoutMSec: String;
+    function RecodeTenMinute: TDateTime;
   end;
 
 implementation
@@ -259,6 +260,18 @@ end;
 function TDateTimeHelper.FormatWithoutMSec: String;
 begin
   Result := FormatDateTime('YYYY-MM-DD HH:NN:SS', Self);
+end;
+
+function TDateTimeHelper.RecodeTenMinute: TDateTime;
+var
+  Min: integer;
+begin
+  Min := MinuteOf(Self);
+  Min := (Min div 10) * 10;
+
+  Result := RecodeMilliSecond(Self, 0);
+  Result := RecodeSecond(Result, 0);
+  Result := RecodeMinute(Result, Min);
 end;
 
 function TDateTimeHelper.ToString: String;
