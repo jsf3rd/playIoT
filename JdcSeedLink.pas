@@ -24,9 +24,9 @@ type
     FThread: TThread;
 
     FOnReceiveDataEvent: TOnReceiveDataEvent;
-    FOnLogEvent: TOnLogEvent;
+    FOnLogEvent: TOnMessageEvent;
+    FOnErrorEvent: TOnMessageEvent;
     FOnReceiveMSeed: TOnReceiveMSeedEvent;
-    FOnErrorEvent: TOnErrorEvent;
 
     FTimeOutCount: Integer;
 
@@ -52,8 +52,8 @@ type
       write FOnReceiveDataEvent;
     property OnReceiveMSeed: TOnReceiveMSeedEvent read FOnReceiveMSeed
       write FOnReceiveMSeed;
-    property OnLog: TOnLogEvent read FOnLogEvent write FOnLogEvent;
-    property OnError: TOnErrorEvent read FOnErrorEvent write FOnErrorEvent;
+    property OnLog: TOnMessageEvent read FOnLogEvent write FOnLogEvent;
+    property OnError: TOnMessageEvent read FOnErrorEvent write FOnErrorEvent;
   end;
 
 implementation
