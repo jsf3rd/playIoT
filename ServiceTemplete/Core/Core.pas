@@ -51,7 +51,7 @@ begin
   FMyTask.WaitFor;
   FreeAndNil(FMyTask);
 
-  TGlobal.Obj.ApplicationMessge(mtLog, 'Stop Service');
+  TGlobal.Obj.ApplicationMessge(mtLog, 'Service', 'Stop');
 end;
 
 procedure TCore.Initialize;
@@ -97,7 +97,7 @@ end;
 procedure TCore.Start;
 begin
   // Start Thread
-  TGlobal.Obj.ApplicationMessge(mtLog, 'Start Service');
+  TGlobal.Obj.ApplicationMessge(mtLog, 'Service', 'Start');
 
   FMyTask.Start;
 end;
