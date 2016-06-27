@@ -21,10 +21,12 @@ type
 
     procedure sp_ErrorMessage(const ErrorName: string;
       const ErrorMsg: String = '');
+      deprecated 'Use TGlobal.Obj.ApplicationMessage';
     procedure sp_DebugMessage(const Msg: String); overload;
-    procedure sp_DebugMessage(const Format: string;
-      const Args: array of const); overload;
+      deprecated 'Use TGlobal.Obj.ApplicationMessage';
     procedure sp_LogMessage(const LogName: String; const LogMsg: string = '');
+      deprecated 'Use TGlobal.Obj.ApplicationMessage';
+
     procedure sp_ShowMessage(const Msg: String);
     procedure sp_Terminate(const Msg: string);
   end;
@@ -73,15 +75,6 @@ begin
   finally
     ValueList.Free;
   end;
-end;
-
-procedure TView.sp_DebugMessage(const Format: string;
-  const Args: array of const);
-var
-  str: string;
-begin
-  FmtStr(str, Format, Args);
-  sp_DebugMessage(str);
 end;
 
 procedure TView.sp_DebugMessage(const Msg: String);
