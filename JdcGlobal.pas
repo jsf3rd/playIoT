@@ -80,12 +80,43 @@ type
 
   TMessageType = (mtDebug, mtLog, mtError, mtWarning, mtUnknown);
 
-const
-  MESSAGE_TYPE_LOG = 'LOG';
-  MESSAGE_TYPE_ERROR = 'ERROR';
-  MESSAGE_TYPE_DEBUG = 'DEBUG';
-  MESSAGE_TYPE_WRANING = 'WRANING';
-  MESSAGE_TYPE_UNKNOWN = 'UNKNOWN';
+  TGlobalAbstract = class abstract
+  strict protected
+    FProjectCode: string;
+    FAppCode: string;
+
+    FInitialized: boolean;
+    FExeName: String;
+    FLogName: string;
+
+    procedure SetExeName(const Value: String); virtual; abstract;
+
+    procedure _ApplicationMessage(AType, ATitle, AMessage: String;
+      AOutputs: TMsgOutputs = [moDebugView, moLogFile, moCloudMessage]
+      ); virtual;
+  public
+    constructor Create; virtual;
+    destructor Destroy; override;
+
+    procedure Initialize; virtual; abstract;
+    procedure Finalize; virtual; abstract;
+
+    procedure ApplicationMessage(AType: TMessageType; ATitle: String;
+      AMessage: String = ''); overload; virtual;
+    procedure ApplicationMessage(AType: TMessageType; ATitle: String;
+      AFormat: String; const Args: array of const); overload;
+
+    property Initialized: boolean read FInitialized;
+    property ExeName: String read FExeName write SetExeName;
+    property LogName: string read FLogName;
+
+  const
+    MESSAGE_TYPE_LOG = 'LOG';
+    MESSAGE_TYPE_ERROR = 'ERROR';
+    MESSAGE_TYPE_DEBUG = 'DEBUG';
+    MESSAGE_TYPE_WRANING = 'WRANING';
+    MESSAGE_TYPE_UNKNOWN = 'UNKNOWN';
+  end;
 
 implementation
 
@@ -453,6 +484,62 @@ begin
     raise Exception.Create
       ('Input contains an odd number of hexadecimal digits.[' + ASource + '/' +
       IntToStr(AIndex) + ']');
+end;
+
+{ TGlobalAbstract }
+
+procedure TGlobalAbstract.ApplicationMessage(AType: TMessageType;
+  ATitle, AMessage: String);
+begin
+  case AType of
+    mtDebug:
+      _ApplicationMessage(MESSAGE_TYPE_DEBUG, ATitle, AMessage, [moDebugView]);
+    mtLog:
+      _ApplicationMessage(MESSAGE_TYPE_LOG, ATitle, AMessage);
+    mtError:
+      _ApplicationMessage(MESSAGE_TYPE_ERROR, ATitle, AMessage);
+    mtWarning:
+      _ApplicationMessage(MESSAGE_TYPE_WRANING, ATitle, AMessage);
+  else
+    _ApplicationMessage(MESSAGE_TYPE_UNKNOWN, ATitle, AMessage);
+  end;
+end;
+
+procedure TGlobalAbstract.ApplicationMessage(AType: TMessageType;
+  ATitle, AFormat: String; const Args: array of const);
+var
+  str: string;
+begin
+  FmtStr(str, AFormat, Args);
+  ApplicationMessage(AType, ATitle, str);
+end;
+
+constructor TGlobalAbstract.Create;
+begin
+  FExeName := '';
+  FLogName := '';
+  FInitialized := False;
+end;
+
+destructor TGlobalAbstract.Destroy;
+begin
+  Finalize;
+
+  inherited;
+end;
+
+procedure TGlobalAbstract._ApplicationMessage(AType, ATitle, AMessage: String;
+  AOutputs: TMsgOutputs);
+begin
+  if moDebugView in AOutputs then
+    PrintDebug('<' + AType + '> [' + FAppCode + '] ' + ATitle + ' - ' +
+      AMessage);
+
+  if moLogFile in AOutputs then
+    PrintLog(FLogName, '<' + AType + '> ' + ATitle + ' - ' + AMessage);
+
+  if moCloudMessage in AOutputs then
+    CloudMessage(FProjectCode, FAppCode, AType, ATitle, AMessage);
 end;
 
 end.
