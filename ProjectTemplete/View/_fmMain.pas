@@ -16,7 +16,6 @@ type
     Help1: TMenuItem;
     About1: TMenuItem;
     ApplicationEvents: TApplicationEvents;
-    TrayIcon: TTrayIcon;
     ActionList: TActionList;
     actAbout: TAction;
     actClearLog: TAction;
@@ -39,16 +38,12 @@ type
     procedure actShowIniExecute(Sender: TObject);
     procedure actShowLogExecute(Sender: TObject);
     procedure actTestMenuExecute(Sender: TObject);
-    procedure TrayIconDblClick(Sender: TObject);
-    procedure ApplicationEventsMinimize(Sender: TObject);
   private
   published
     procedure rp_Terminate(APacket: TValueList);
     procedure rp_Init(APacket: TValueList);
 
     procedure rp_ShowMessage(APacket: TValueList);
-    procedure rp_ErrorMessage(APacket: TValueList);
-    procedure rp_LogMessage(APacket: TValueList);
   end;
 
 var
@@ -96,14 +91,8 @@ end;
 
 procedure TfmMain.ApplicationEventsException(Sender: TObject; E: Exception);
 begin
-  TView.Obj.sp_ErrorMessage('System Error on ' + Sender.ClassName + ', ' +
-    E.Message);
-end;
-
-procedure TfmMain.ApplicationEventsMinimize(Sender: TObject);
-begin
-  Hide;
-  WindowState := wsMinimized;
+  TGlobal.Obj.ApplicationMessage(mtError, 'System Error', '[%s] %s',
+    [Sender.ClassName, E.Message]);
 end;
 
 procedure TfmMain.FormClose(Sender: TObject; var Action: TCloseAction);
@@ -130,24 +119,9 @@ begin
   TView.Obj.Remove(Self);
 end;
 
-procedure TfmMain.rp_ErrorMessage(APacket: TValueList);
-begin
-  // TODO : Print Error Log..
-  // PrintLog(mmLog, '<ERR> ' + APacket.Values['Msg']);
-  // PrintLog(TGlobal.Obj.LogName, '<ERR> ' + APacket.Values['Msg']+', '+APacket.Values['ErrorMsg']);
-end;
-
 procedure TfmMain.rp_Init(APacket: TValueList);
 begin
   // TODO : Form Initialized
-end;
-
-procedure TfmMain.rp_LogMessage(APacket: TValueList);
-begin
-  // TODO : Print Debug Log
-  // PrintDebug('::LOG:: ' + APacket.Values['Msg']);
-  // PrintLog(mmLog, '<ERR> ' + APacket.Values['Msg']);
-  // PrintLog(TGlobal.Obj.LogName, '<LOG> ' + APacket.Values['Msg']);
 end;
 
 procedure TfmMain.rp_ShowMessage(APacket: TValueList);
@@ -159,13 +133,6 @@ end;
 procedure TfmMain.rp_Terminate(APacket: TValueList);
 begin
   Application.Terminate;
-end;
-
-procedure TfmMain.TrayIconDblClick(Sender: TObject);
-begin
-  Show;
-  WindowState := wsNormal;
-  Application.BringToFront;
 end;
 
 end.

@@ -5,7 +5,7 @@ interface
 uses Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants,
   System.Classes, Vcl.Graphics, Vcl.Controls, Vcl.Forms, Vcl.Dialogs,
   Vcl.StdCtrls, Vcl.Mask, JvExMask, JvToolEdit, JvCombobox, JvExStdCtrls,
-  JvDBCombobox, JdcView2, ValueList, Vcl.ActnList, Vcl.ComCtrls, Vcl.ExtCtrls,
+  JvDBCombobox, ValueList, Vcl.ActnList, Vcl.ComCtrls, Vcl.ExtCtrls,
   JvTextListBox, Vcl.Menus, DBXJSON, System.Actions, System.UITypes;
 
 type
@@ -14,9 +14,6 @@ type
     ActionList: TActionList;
     actClearLog: TAction;
     StatusBar: TStatusBar;
-    lbUserList: TListBox;
-    Panel1: TPanel;
-    GroupBox1: TGroupBox;
     MainMenu: TMainMenu;
     File1: TMenuItem;
     ools1: TMenuItem;
@@ -29,7 +26,6 @@ type
     X1: TMenuItem;
     N1: TMenuItem;
     Exit1: TMenuItem;
-    StaticText1: TStaticText;
     procedure FormCreate(Sender: TObject);
     procedure actClearLogExecute(Sender: TObject);
     procedure actOptionsExecute(Sender: TObject);
@@ -38,20 +34,8 @@ type
     procedure FormShow(Sender: TObject);
     procedure FormClose(Sender: TObject; var Action: TCloseAction);
   private
-    procedure DeleteItem(AIP: string);
+
   public
-  published
-    procedure rp_ShowMessage(APacket: TValueList);
-    procedure rp_ErrorMessage(APacket: TValueList);
-    procedure rp_ChannelStateChanged(APacket: TValueList);
-
-    procedure rp_MeasureData(APacket: TValueList);
-
-    procedure rp_UserConnected(APacket: TValueList);
-    procedure rp_UserDisconnected(APacket: TValueList);
-
-    procedure rp_StartDSServer(APacket: TValueList);
-
   end;
 
 var
@@ -91,13 +75,11 @@ end;
 procedure TfmMain.FormClose(Sender: TObject; var Action: TCloseAction);
 begin
   TGlobal.Obj.Finalize;
-  TView.Obj.Remove(Self);
 end;
 
 procedure TfmMain.FormCreate(Sender: TObject);
 begin
   TGlobal.Obj.ExeName := Application.ExeName;
-  TView.Obj.Add(Self);
 
   TGlobal.Obj.Initialize;
 end;
@@ -105,53 +87,6 @@ end;
 procedure TfmMain.FormShow(Sender: TObject);
 begin
   Caption := APPLICATION_TITLE;
-end;
-
-procedure TfmMain.rp_ChannelStateChanged(APacket: TValueList);
-begin
-  StatusBar.Panels[1].Text := 'Callback Clients : ' + APacket.Values['Msg'];
-end;
-
-procedure TfmMain.rp_ErrorMessage(APacket: TValueList);
-begin
-  PrintLog(ChangeFileExt(TGlobal.Obj.ExeName, '.log'),
-    'Error Log - ' + APacket.Values['Msg'] + ', ' + APacket.Values['ErrorMsg']);
-  PrintLog(mmLog, 'Error Log - ' + APacket.Values['Msg']);
-end;
-
-procedure TfmMain.rp_MeasureData(APacket: TValueList);
-begin
-  PrintLog(mmLog, '계측 데이터 수신 - ' + APacket.Values['Msg']);
-end;
-
-procedure TfmMain.rp_ShowMessage(APacket: TValueList);
-begin
-  PrintLog(mmLog, APacket.Values['Msg']);
-end;
-
-procedure TfmMain.rp_StartDSServer(APacket: TValueList);
-begin
-  StatusBar.Panels[0].Text := 'Port : ' + APacket.Values['Msg'];
-end;
-
-procedure TfmMain.DeleteItem(AIP: string);
-var
-  Index: Integer;
-begin
-  Index := lbUserList.Items.IndexOf(AIP);
-  if Index >= 0 then
-    lbUserList.Items.Delete(Index);
-end;
-
-procedure TfmMain.rp_UserConnected(APacket: TValueList);
-begin
-  DeleteItem(APacket.Values['Msg']);
-  lbUserList.Items.Insert(0, APacket.Values['Msg']);
-end;
-
-procedure TfmMain.rp_UserDisconnected(APacket: TValueList);
-begin
-  DeleteItem(APacket.Values['Msg']);
 end;
 
 end.

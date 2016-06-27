@@ -51,7 +51,7 @@ begin
   FMyTask.WaitFor;
   FreeAndNil(FMyTask);
 
-  TGlobal.Obj.ApplicationMessge(mtLog, 'Service', 'Stop');
+  TGlobal.Obj.ApplicationMessage(mtLog, 'Service', 'Stop');
 end;
 
 procedure TCore.Initialize;
@@ -72,7 +72,7 @@ begin
     begin
       while not TThread.CurrentThread.CheckTerminated do
       begin
-        TGlobal.Obj.ApplicationMessge(mtDebug, 'Time Stamp',
+        TGlobal.Obj.ApplicationMessage(mtDebug, 'TimeStamp',
           Now.FormatWithoutMSec);
         Sleep(TOption.Obj.Interval);
 
@@ -97,7 +97,7 @@ end;
 procedure TCore.Start;
 begin
   // Start Thread
-  TGlobal.Obj.ApplicationMessge(mtLog, 'Service', 'Start');
+  TGlobal.Obj.ApplicationMessage(mtLog, 'Service', 'Start');
 
   FMyTask.Start;
 end;

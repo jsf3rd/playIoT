@@ -3,7 +3,7 @@
 interface
 
 uses
-  Classes, SysUtils, IOUtils;
+  Classes, SysUtils, IOUtils, JdcGlobal;
 
 const
   APPLICATION_TITLE = 'DataSnap for Basic';
@@ -21,27 +21,18 @@ const
   CHANNEL_DEFAULT = 'CH_DataSnap';
 
 type
-  TGlobal = class(TComponent)
-  strict private
-    FInitialized: boolean;
-  private
-    FExeName: String;
-    FLogName: string;
-    procedure SetExeName(const Value: String);
+  TGlobal = class(TGlobalAbstract)
+  strict protected
+    procedure SetExeName(const Value: String); override;
 
   public
-    constructor Create(AOwner: TComponent); override;
+    constructor Create; override;
     destructor Destroy; override;
 
     class function Obj: TGlobal;
 
-    procedure Initialize;
-    procedure Finalize;
-
-  published
-    property Initialized: boolean read FInitialized;
-    property ExeName: String read FExeName write SetExeName;
-    property LogName: string read FLogName;
+    procedure Initialize; override;
+    procedure Finalize; override;
   end;
 
 implementation
@@ -53,17 +44,16 @@ var
 
   { TGlobal }
 
-constructor TGlobal.Create(AOwner: TComponent);
+constructor TGlobal.Create;
 begin
   inherited;
 
-  FExeName := '';
-  FInitialized := false;
+  // TODO : after crete
 end;
 
 destructor TGlobal.Destroy;
 begin
-  Finalize;
+  // TODO : before Finalize
 
   inherited;
 end;
@@ -89,7 +79,7 @@ end;
 class function TGlobal.Obj: TGlobal;
 begin
   if MyObj = nil then
-    MyObj := TGlobal.Create(nil);
+    MyObj := TGlobal.Create;
   Result := MyObj;
 end;
 

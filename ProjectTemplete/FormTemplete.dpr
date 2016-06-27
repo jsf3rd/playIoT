@@ -2,9 +2,7 @@ program FormTemplete;
 
 uses
   Vcl.Forms,
-  // Winapi.Windows, {MessageBox}
-  // JclAppInst, {중복 실행 방지}
-  _fmMain in 'View\_fmMain.pas' {fmMain} ,
+  _fmMain in 'View\_fmMain.pas' {fmMain},
   Core in 'Core\Core.pas',
   MyCommon in 'Global\MyCommon.pas',
   MyGlobal in 'Global\MyGlobal.pas',

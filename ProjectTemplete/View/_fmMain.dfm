@@ -51,14 +51,7 @@ object fmMain: TfmMain
   end
   object ApplicationEvents: TApplicationEvents
     OnException = ApplicationEventsException
-    OnMinimize = ApplicationEventsMinimize
     Left = 216
-    Top = 24
-  end
-  object TrayIcon: TTrayIcon
-    Visible = True
-    OnDblClick = TrayIconDblClick
-    Left = 304
     Top = 24
   end
   object ActionList: TActionList

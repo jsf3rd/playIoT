@@ -10,7 +10,7 @@ uses System.SysUtils, System.Classes, Datasnap.DSServer, Datasnap.DSAuth,
   FireDAC.Stan.Def, FireDAC.Stan.Pool, FireDAC.Stan.Async, FireDAC.Phys,
   FireDAC.Stan.Param, FireDAC.DatS, FireDAC.DApt.Intf, FireDAC.DApt,
   FireDAC.Comp.DataSet, FireDAC.Comp.Client,
-  Datasnap.DSProviderDataModuleAdapter, System.JSON;
+  Datasnap.DSProviderDataModuleAdapter, System.JSON, FireDAC.VCLUI.Wait;
 
 type
   TsmDataLoader = class(TDSServerModule)
@@ -27,7 +27,7 @@ implementation
 
 {$R *.dfm}
 
-uses System.StrUtils, JdcView2, _fmMain, MyGlobal, MyOption, JdcGlobal,
+uses System.StrUtils, _fmMain, MyGlobal, MyOption, JdcGlobal,
   DBXCommon;
 
 procedure TsmDataLoader.DSServerModuleCreate(Sender: TObject);
@@ -38,10 +38,7 @@ begin
     FDConnection.Connected := true;
   except
     on E: Exception do
-    begin
-      TView.Obj.sp_ErrorMessage('Upload DB 연결 실패 - ' + E.Message);
-      Exit;
-    end;
+      TGlobal.Obj.ApplicationMessage(mtError, 'Connect DB', E.Message);
   end;
 end;
 

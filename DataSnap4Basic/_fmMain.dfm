@@ -21,15 +21,17 @@ object fmMain: TfmMain
   PixelsPerInch = 96
   TextHeight = 13
   object mmLog: TMemo
-    Left = 200
+    Left = 0
     Top = 0
-    Width = 434
+    Width = 634
     Height = 373
     Align = alClient
     ImeName = 'Microsoft Office IME 2007'
     ReadOnly = True
     ScrollBars = ssVertical
     TabOrder = 0
+    ExplicitLeft = 200
+    ExplicitWidth = 434
   end
   object StatusBar: TStatusBar
     Left = 0
@@ -47,44 +49,9 @@ object fmMain: TfmMain
         Width = 50
       end>
   end
-  object Panel1: TPanel
-    Left = 0
-    Top = 0
-    Width = 200
-    Height = 373
-    Align = alLeft
-    BevelOuter = bvNone
-    TabOrder = 2
-    object GroupBox1: TGroupBox
-      Left = 9
-      Top = 8
-      Width = 185
-      Height = 217
-      Caption = 'User List'
-      TabOrder = 0
-      object lbUserList: TListBox
-        Left = 2
-        Top = 15
-        Width = 181
-        Height = 200
-        Align = alClient
-        ImeName = 'Microsoft Office IME 2007'
-        ItemHeight = 13
-        TabOrder = 0
-      end
-    end
-    object StaticText1: TStaticText
-      Left = 117
-      Top = 350
-      Width = 77
-      Height = 17
-      Caption = #9426' ENBGROUP.'
-      TabOrder = 1
-    end
-  end
   object ActionList: TActionList
-    Left = 288
-    Top = 8
+    Left = 96
+    Top = 16
     object actClearLog: TAction
       Caption = #47196#44536#49325#51228'(&X)'
       ShortCut = 16472
@@ -106,8 +73,8 @@ object fmMain: TfmMain
     end
   end
   object MainMenu: TMainMenu
-    Left = 224
-    Top = 8
+    Left = 32
+    Top = 16
     object File1: TMenuItem
       Caption = '&File'
       object X1: TMenuItem

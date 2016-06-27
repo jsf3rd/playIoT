@@ -91,7 +91,7 @@ function TServerContainer.DoPause: Boolean;
 begin
   DSServer.Stop;
 
-  TGlobal.Obj.ApplicationMessge(mtLog, 'DataSnap Server', 'Stop');
+  TGlobal.Obj.ApplicationMessage(mtLog, 'DataSnap Server', 'Stop');
   result := inherited;
 end;
 
@@ -99,7 +99,7 @@ function TServerContainer.DoStop: Boolean;
 begin
   DSServer.Stop;
 
-  TGlobal.Obj.ApplicationMessge(mtLog, 'DataSnap Server', 'Stop');
+  TGlobal.Obj.ApplicationMessage(mtLog, 'DataSnap Server', 'Stop');
   result := inherited;
 end;
 
@@ -153,7 +153,7 @@ begin
   DSHTTPService.HttpPort := TOption.Obj.HttpPort;
   DSServer.Start;
 
-  TGlobal.Obj.ApplicationMessge(mtLog, 'DataSnap Server Start',
+  TGlobal.Obj.ApplicationMessage(mtLog, 'DataSnap Server Start',
     'TCP:%d, HTTP:%d', [DSTCPServerTransport.Port, DSHTTPService.HttpPort]);
 end;
 
