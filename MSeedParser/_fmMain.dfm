@@ -33,8 +33,6 @@ object fmMain: TfmMain
     ReadOnly = True
     ScrollBars = ssVertical
     TabOrder = 0
-    ExplicitWidth = 635
-    ExplicitHeight = 179
   end
   object Panel1: TPanel
     Left = 0
@@ -43,7 +41,6 @@ object fmMain: TfmMain
     Height = 121
     Align = alTop
     TabOrder = 1
-    ExplicitWidth = 635
     object Label1: TLabel
       Left = 16
       Top = 19

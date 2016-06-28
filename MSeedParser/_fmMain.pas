@@ -88,7 +88,7 @@ begin
     mmLog.Lines.Add('Created - ' + FileName);
   end;
   MSeedFile.Free;
-  mmLog.Lines.Add('');
+  mmLog.Lines.Add('----------------------------------------------------');
 end;
 
 procedure TfmMain.btnASCII2MSeed_ST1Click(Sender: TObject);
@@ -264,25 +264,45 @@ begin
   begin
     FileName := ExtractFilePath(edtFileName.Text) + MyElem + '_' +
       FormatDateTime('YYYYMMDD', now) + '.txt';
-    MSeedFile.ExtractToASCii(FileName, MyElem, BeginTime, EndTime);
+
+    try
+      MSeedFile.ExtractToASCii(FileName, MyElem, BeginTime, EndTime);
+    except
+      on E: Exception do
+      begin
+        mmLog.Lines.Add('Error - ' + FileName);
+        mmLog.Lines.Add(E.Message);
+        Continue;
+      end;
+    end;
+
     mmLog.Lines.Add('Created - ' + FileName);
+    Application.ProcessMessages;
   end;
   MSeedFile.Free;
-  mmLog.Lines.Add('');
+  mmLog.Lines.Add('----------------------------------------------------');
 end;
 
 procedure TfmMain.ASCII2MSeed(AHeader: TMSeedHeader; AType: TSteimType);
 var
   MSeedFile: TMSeedFile;
 begin
-  mmLog.Lines.Add('>AsciiToMSeed Steim' + Integer(AType).ToString);
+  case AType of
+    stLevel1:
+      mmLog.Lines.Add('>AsciiToMSeed Steim1');
+    stLevel2:
+      mmLog.Lines.Add('>AsciiToMSeed Steim2');
+  else
+    raise Exception.Create('Unknown SteimType, ' + Integer(AType).ToString);
+  end;
+
   mmLog.Lines.Add('Source - ' + edtFileName.Text);
   MSeedFile := TMSeedFile.Create;
   MSeedFile.AsciiToMSeed(edtFileName.Text, AHeader, AType);
   MSeedFile.Free;
   mmLog.Lines.Add('Created - ' + ExtractFilePath(edtFileName.Text) +
     AHeader.ChannelCode + '.mseed');
-  mmLog.Lines.Add('');
+  mmLog.Lines.Add('----------------------------------------------------');
 end;
 
 end.
