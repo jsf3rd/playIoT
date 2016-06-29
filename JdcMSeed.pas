@@ -159,6 +159,9 @@ begin
     FixedHeader := TFixedHeader.Create(AStream);
     FixedHeader.Validate;
 
+    if not FixedHeader.IsSteimEncoding then
+      raise Exception.Create('not a steim format.');
+
     SetLength(DataRecord, FixedHeader.Blkt1001.GetFrameCount);
     AStream.Read(DataRecord[0], Length(DataRecord) * SizeOf(TDataFrame));
 
@@ -240,7 +243,8 @@ begin
 
   Stream := TFile.Create(APath);
   try
-    SteimEncoder := TSteimEncoder.Create(SteimType, boBig);
+    SteimEncoder := TSteimEncoder.Create(SteimType, boBig,
+      AFixedHeader.Blkt1001.framecnt);
     try
       Index := 0;
       Peeks := ARawData.Peeks;
@@ -342,6 +346,8 @@ begin
   RawData := ExtractRawData(ACode, APeriod);
   try
     FixedHeader.Blkt1000.encoding := Byte(AType);
+     FixedHeader.Blkt1000.reclen := 9; // Log2(RECORD_SIZE);
+     FixedHeader.Blkt1001.framecnt := FRAMES_PER_RECORD;
     SaveToMSeed(APath, RawData, FixedHeader)
   finally
     RawData.Free;
@@ -373,7 +379,7 @@ begin
     result := _ExtractRawData(FContainer.Items[ACode], APeriod);
   except
     on E: Exception do
-      raise Exception.Create('Extract rawData error.' + E.Message);
+      raise Exception.Create('Extract rawData error. ' + E.Message);
   end;
 end;
 
