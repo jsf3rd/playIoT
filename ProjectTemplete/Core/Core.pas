@@ -56,6 +56,8 @@ begin
   if FIsInitialized then
     Exit;
   FIsInitialized := true;
+
+  TView.Obj.sp_SyncMessage('Init');
 end;
 
 class function TCore.Obj: TCore;

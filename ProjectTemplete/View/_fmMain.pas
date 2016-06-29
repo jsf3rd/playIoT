@@ -38,6 +38,7 @@ type
     procedure actShowIniExecute(Sender: TObject);
     procedure actShowLogExecute(Sender: TObject);
     procedure actTestMenuExecute(Sender: TObject);
+    procedure FormShow(Sender: TObject);
   private
   published
     procedure rp_Terminate(APacket: TValueList);
@@ -110,7 +111,6 @@ procedure TfmMain.FormCreate(Sender: TObject);
 begin
   TGlobal.Obj.ExeName := Application.ExeName;
   TView.Obj.Add(Self);
-  TCore.Obj.Initialize;
 end;
 
 procedure TfmMain.FormDestroy(Sender: TObject);
@@ -119,9 +119,15 @@ begin
   TView.Obj.Remove(Self);
 end;
 
+procedure TfmMain.FormShow(Sender: TObject);
+begin
+  TCore.Obj.Initialize;
+end;
+
 procedure TfmMain.rp_Init(APacket: TValueList);
 begin
   // TODO : Form Initialized
+  Caption := APPLICATION_TITLE;
 end;
 
 procedure TfmMain.rp_ShowMessage(APacket: TValueList);
