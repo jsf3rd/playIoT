@@ -435,7 +435,7 @@ begin
   Self.timing_qual := 0;
   Self.usec := 0;
   Self.reserved := 0;
-  Self.framecnt := 7;
+  Self.framecnt := FRAMES_PER_RECORD;
 end;
 
 function TBlockette1001.GetFrameCount: Integer;
