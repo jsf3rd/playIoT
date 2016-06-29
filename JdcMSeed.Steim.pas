@@ -53,6 +53,7 @@ type
   TSteimEncoder = class
   private
     FSteimType: TSteimType;
+    FFrameCount: Integer;
     FByteOrder: TByteOrder; // not used
 
     FPeeks: TPeeks;
@@ -65,7 +66,7 @@ type
 
   public
     function EncodeData(APeeks: TPeeks; AIndex: Integer): TDataRecord;
-    constructor Create(AType: TSteimType; AOrder: TByteOrder);
+    constructor Create(AType: TSteimType; AOrder: TByteOrder; ACount: Integer);
   end;
 
 implementation
@@ -314,9 +315,11 @@ begin
   FPeekIndex := FPeekIndex + sp.scan;
 end;
 
-constructor TSteimEncoder.Create(AType: TSteimType; AOrder: TByteOrder);
+constructor TSteimEncoder.Create(AType: TSteimType; AOrder: TByteOrder;
+  ACount: Integer);
 begin
   FSteimType := AType;
+  FFrameCount := ACount;
   FByteOrder := AOrder; // Only Big Endian.
 end;
 
@@ -345,7 +348,7 @@ var
   DataFrame: TDataFrame;
 begin
   FrameIndex := 0;
-  while FrameIndex < FRAMES_PER_RECORD do
+  while FrameIndex < FFrameCount do
   begin
     DataFrame := BuildDataFrame(FrameIndex);
 
