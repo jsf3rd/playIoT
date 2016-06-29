@@ -8,7 +8,7 @@ uses
   Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls, Vcl.Mask, JvExMask,
   JvToolEdit, Vcl.ExtCtrls, IdGlobal, Math, JdcGlobal,
   System.Generics.Collections, DateUtils, JdcMSeed, JdcMSeed.Common,
-  System.IOUtils, _fmHeaderInfo;
+  System.IOUtils, _fmHeaderInfo, System.Actions, Vcl.ActnList;
 
 type
   TfmMain = class(TForm)
@@ -25,13 +25,15 @@ type
     Label1: TLabel;
     Label2: TLabel;
     Label3: TLabel;
+    ActionList: TActionList;
+    actTest: TAction;
     procedure btnMSeed2MSeed_ST1Click(Sender: TObject);
     procedure btnASCII2MSeed_ST1Click(Sender: TObject);
     procedure btnMSeed2MSeed_ST2Click(Sender: TObject);
     procedure btnASCII2MSeed_ST2Click(Sender: TObject);
     procedure btnMSeed2ASCIIClick(Sender: TObject);
-    procedure TestTimerTimer(Sender: TObject);
     procedure FormCreate(Sender: TObject);
+    procedure actTestExecute(Sender: TObject);
   private
     FMSeedHeader: TMSeedHeader;
     procedure ASCII2MSeed(AHeader: TMSeedHeader; AType: TSteimType);
@@ -238,13 +240,6 @@ begin
   TDirectory.Delete('D:\TEST', True);
 end;
 
-procedure TfmMain.TestTimerTimer(Sender: TObject);
-begin
-  Test;
-  if mmLog.Lines.Count > 10000 then
-    mmLog.Clear;
-end;
-
 procedure TfmMain.btnMSeed2ASCIIClick(Sender: TObject);
 var
   MSeedFile: TMSeedFile;
@@ -281,6 +276,11 @@ begin
   end;
   MSeedFile.Free;
   mmLog.Lines.Add('----------------------------------------------------');
+end;
+
+procedure TfmMain.actTestExecute(Sender: TObject);
+begin
+  Test;
 end;
 
 procedure TfmMain.ASCII2MSeed(AHeader: TMSeedHeader; AType: TSteimType);

@@ -135,4 +135,13 @@ object fmMain: TfmMain
       Text = '2014-11-05 03:30:30 '
     end
   end
+  object ActionList: TActionList
+    Left = 312
+    Top = 184
+    object actTest: TAction
+      Caption = 'Test'
+      ShortCut = 16456
+      OnExecute = actTestExecute
+    end
+  end
 end
