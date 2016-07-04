@@ -52,15 +52,21 @@ type
       ADataSet: TFDDataSet); static;
   end;
 
-  TFDQueryHelper = class helper for TFDQuery
+  TFDDataSetHelper = class helper for TFDDataSet
   public
-    function ToStream: TStream;
     procedure LoadFromDSStream(AStream: TStream);
 
     function ToRecord<T: Record >(AName: String = ''): T;
     function GetNameValue(AJSONValue: TJSONValue; AName: String): TJSONValue;
     function GetJSONObject(AObject: TJSONObject; AName: String): TJSONObject;
     function GetJSONArray(AObject: TJSONArray; AName: String): TJSONArray;
+  end;
+
+  TFDQueryHelper = class helper for TFDQuery
+  public
+    function ToStream: TStream;
+    procedure LoadFromDSStream(AStream: TStream);
+    function ToRecord<T: Record >(AName: String = ''): T;
 
     procedure ParamByObject(AObject: TObject; AName: String = '');
     procedure ParamByJsonValue(AValue: TJSONValue; AName: String);
@@ -73,6 +79,7 @@ type
     function Clone: TFDMemTable;
     function ToStream: TStream;
     procedure LoadFromDSStream(AStream: TStream);
+    function ToRecord<T: Record >(AName: String = ''): T;
   end;
 
 implementation
@@ -174,7 +181,7 @@ end;
 { TFDQueryHelper }
 procedure TFDQueryHelper.LoadFromDSStream(AStream: TStream);
 begin
-  TDSCommon.StreamToFDDataSet(AStream, Self);
+  TFDDataSet(Self).LoadFromDSStream(AStream);
 end;
 
 procedure TFDQueryHelper.ParamByJSONArray(AObject: TJSONArray; AName: String);
@@ -242,79 +249,8 @@ begin
 end;
 
 function TFDQueryHelper.ToRecord<T>(AName: String): T;
-var
-  MyRecord: T;
-  TempContainer: TJSONObject;
-  ResultValue: TJSONValue;
 begin
-  TempContainer := REST.JSON.TJSON.RecordToJsonObject<T>(MyRecord);
-  try
-    ResultValue := GetNameValue(TempContainer, AName);
-    try
-      result := REST.JSON.TJSON.JsonToRecord<T>(ResultValue as TJSONObject);
-    finally
-      ResultValue.Free;
-    end;
-  finally
-    TempContainer.Free;
-  end;
-end;
-
-function TFDQueryHelper.GetJSONArray(AObject: TJSONArray; AName: String)
-  : TJSONArray;
-var
-  I: integer;
-  Key: string;
-begin
-  result := TJSONArray.Create;
-
-{$IF CompilerVersion  > 26} // upper XE5
-  for I := 0 to AObject.Count - 1 do
-  begin
-    Key := AName + '_' + (I + 1).ToString;
-    result.AddElement(GetNameValue(AObject.Items[I], Key));
-  end;
-{$ELSE}
-  for I := 0 to AObject.Size - 1 do
-  begin
-    Key := AName + '_' + (I + 1).ToString;
-    result.AddElement(GetNameValue(AObject.Get(I), Key));
-  end;
-{$ENDIF}
-end;
-
-function TFDQueryHelper.GetJSONObject(AObject: TJSONObject; AName: String)
-  : TJSONObject;
-var
-  MyElem: TJSONPair;
-  Key: string;
-begin
-  result := TJSONObject.Create;
-  for MyElem in AObject do
-  begin
-    Key := AName + '_';
-    if AName.IsEmpty then
-      Key := '';
-
-    Key := Key + MyElem.JsonString.Value;
-    result.AddPair(MyElem.JsonString.Value,
-      GetNameValue(MyElem.JSONValue, Key));
-  end;
-end;
-
-function TFDQueryHelper.GetNameValue(AJSONValue: TJSONValue; AName: String)
-  : TJSONValue;
-begin
-  if AJSONValue is TJSONObject then
-    result := GetJSONObject(AJSONValue as TJSONObject, AName)
-  else if AJSONValue is TJSONArray then
-    result := GetJSONArray(AJSONValue as TJSONArray, AName)
-  else if AJSONValue is TJSONNumber then
-    result := TJSONNumber.Create(Self.FieldByName(AName).AsFloat)
-  else if AJSONValue is TJSONString then
-    result := TJSONString.Create(Self.FieldByName(AName).AsString)
-  else
-    raise Exception.Create('Unknown Type - ' + AName);
+  result := TFDDataSet(Self).ToRecord<T>(AName);
 end;
 
 { TFDMemTableHelper }
@@ -341,12 +277,101 @@ end;
 
 procedure TFDMemTableHelper.LoadFromDSStream(AStream: TStream);
 begin
-  TDSCommon.StreamToFDDataSet(AStream, Self);
+  TFDDataSet(Self).LoadFromDSStream(AStream);
+end;
+
+function TFDMemTableHelper.ToRecord<T>(AName: String): T;
+begin
+  result := TFDDataSet(Self).ToRecord<T>(AName);
 end;
 
 function TFDMemTableHelper.ToStream: TStream;
 begin
   result := TDSCommon.DataSetToStream(Self);
+end;
+
+{ TFDDataSetHelper }
+
+function TFDDataSetHelper.GetJSONArray(AObject: TJSONArray; AName: String)
+  : TJSONArray;
+var
+  I: integer;
+  Key: string;
+begin
+  result := TJSONArray.Create;
+
+{$IF CompilerVersion  > 26} // upper XE5
+  for I := 0 to AObject.Count - 1 do
+  begin
+    Key := AName + '_' + (I + 1).ToString;
+    result.AddElement(GetNameValue(AObject.Items[I], Key));
+  end;
+{$ELSE}
+  for I := 0 to AObject.Size - 1 do
+  begin
+    Key := AName + '_' + (I + 1).ToString;
+    result.AddElement(GetNameValue(AObject.Get(I), Key));
+  end;
+{$ENDIF}
+end;
+
+function TFDDataSetHelper.GetJSONObject(AObject: TJSONObject; AName: String)
+  : TJSONObject;
+var
+  MyElem: TJSONPair;
+  Key: string;
+begin
+  result := TJSONObject.Create;
+  for MyElem in AObject do
+  begin
+    Key := AName + '_';
+    if AName.IsEmpty then
+      Key := '';
+
+    Key := Key + MyElem.JsonString.Value;
+    result.AddPair(MyElem.JsonString.Value,
+      GetNameValue(MyElem.JSONValue, Key));
+  end;
+end;
+
+function TFDDataSetHelper.GetNameValue(AJSONValue: TJSONValue; AName: String)
+  : TJSONValue;
+begin
+  if AJSONValue is TJSONObject then
+    result := GetJSONObject(AJSONValue as TJSONObject, AName)
+  else if AJSONValue is TJSONArray then
+    result := GetJSONArray(AJSONValue as TJSONArray, AName)
+  else if AJSONValue is TJSONNumber then
+    result := TJSONNumber.Create(Self.FieldByName(AName).AsFloat)
+  else if AJSONValue is TJSONString then
+    result := TJSONString.Create(Self.FieldByName(AName).AsString)
+  else
+    raise Exception.Create('Unknown Type - ' + AName);
+end;
+
+procedure TFDDataSetHelper.LoadFromDSStream(AStream: TStream);
+begin
+  TDSCommon.StreamToFDDataSet(AStream, Self);
+end;
+
+function TFDDataSetHelper.ToRecord<T>(AName: String): T;
+var
+  MyRecord: T;
+  TempContainer: TJSONObject;
+  ResultValue: TJSONValue;
+begin
+  TempContainer := REST.JSON.TJSON.RecordToJsonObject<T>(MyRecord);
+  try
+    ResultValue := GetNameValue(TempContainer, AName);
+    try
+      result := REST.JSON.TJSON.JsonToRecord<T>(ResultValue as TJSONObject);
+    finally
+      ResultValue.Free;
+    end;
+  finally
+    TempContainer.Free;
+  end;
+
 end;
 
 end.
