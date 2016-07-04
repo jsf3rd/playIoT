@@ -251,15 +251,14 @@ begin
     GetLocalComputerName;
 
   Msg := Format
-    ('CloudLog,ProjectCode=%s,AppCode=%s,TypeCode=%s Title="%s",LogMessage="%s",SysInfo="%s"',
-    [ProjectCode, AppCode, TypeCode, ATitle, AMessage, QuotedStr(SysInfo)]);
+    ('CloudLog,ProjectCode=%s,AppCode=%s,TypeCode=%s,Ticks=%d Title="%s",LogMessage="%s",SysInfo="%s"',
+    [ProjectCode, AppCode, TypeCode, GetTickCount, ATitle, AMessage,
+    QuotedStr(SysInfo)]);
 
   UDPClient := TIdUDPClient.Create(nil);
   try
     try
-      UDPClient.Send('log.playiot.biz', 8092, Msg, IndyTextEncoding_UTF8);
-      // UDPClient.Send('ec2-52-78-19-68.ap-northeast-2.compute.amazonaws.com',
-      // 8092, Msg);
+      UDPClient.Send('log.iccs.co.kr', 8092, Msg, IndyTextEncoding_UTF8);
     except
       on E: Exception do
     end;
