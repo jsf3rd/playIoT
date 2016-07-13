@@ -36,7 +36,12 @@ type
     function AddPair(const Str: string; const Val: integer)
       : TJSONObject; overload;
 
+    function ToRecord<T: record >: T;
+    function ToObject<T: class>: T;
+
     class function ParseFile(FileName: String): TJSONValue;
+
+    procedure Clear;
   end;
 
   TJSONHelper = class helper for REST.JSON.TJSON
@@ -59,6 +64,7 @@ type
   TDateTimeHelper = record helper for TDateTime
   public
     function ToString: String;
+    function ToISO8601: String;
     function FormatWithMSec: String;
     function FormatWithoutMSec: String;
     function RecodeTenMinute: TDateTime;
@@ -67,6 +73,9 @@ type
 implementation
 
 {$IFDEF MSWINDOWS}
+
+uses JdcGlobal.DSCommon;
+
 { TTimerHelper }
 
 procedure TTimerHelper.Reset;
@@ -115,6 +124,11 @@ begin
         (Format('JSON name [%s] can not cast to TJSONObject. \n %s',
         [Name, JSONValue.ToString]));
   end;
+end;
+
+procedure TJSONObjectHelper.Clear;
+begin
+  TDSCommon.ClearJSONObject(Self);
 end;
 
 function TJSONObjectHelper.GetDouble(const Name: string): double;
@@ -181,6 +195,16 @@ begin
   Result := TJSONObject.ParseJSONValue(JsonString);
 end;
 
+function TJSONObjectHelper.ToObject<T>: T;
+begin
+  Result := REST.JSON.TJSON.JsonToObjectEx<T>(Self);
+end;
+
+function TJSONObjectHelper.ToRecord<T>: T;
+begin
+  Result := REST.JSON.TJSON.JsonToRecord<T>(Self);
+end;
+
 { TJSONHelper }
 
 class function TJSONHelper.JsonToObjectEx<T>(AJsonObject: TJSONObject): T;
@@ -238,6 +262,7 @@ var
 begin
   JsonString := RecordToJsonString(ARecord);
   JsonString := JsonString.Replace('NAN', '0', [rfReplaceAll, rfIgnoreCase]);
+  JsonString := JsonString.Replace('-NAN', '0', [rfReplaceAll, rfIgnoreCase]);
   Result := TJSONObject.ParseJSONValue(JsonString) as TJSONObject;
 end;
 
@@ -254,7 +279,7 @@ end;
 
 function TDateTimeHelper.FormatWithMSec: String;
 begin
-  Result := Self.ToString;
+  Result := FormatDateTime('YYYY-MM-DD HH:NN:SS.zzz', Self);
 end;
 
 function TDateTimeHelper.FormatWithoutMSec: String;
@@ -274,9 +299,14 @@ begin
   Result := RecodeMinute(Result, Min);
 end;
 
+function TDateTimeHelper.ToISO8601: String;
+begin
+  Result := FormatDateTime('YYYY-MM-DD"T"HH:NN:SS.zzz', Self);
+end;
+
 function TDateTimeHelper.ToString: String;
 begin
-  Result := FormatDateTime('YYYY-MM-DD HH:NN:SS.zzz', Self);
+  Result := Self.FormatWithMSec;
 end;
 
 end.
