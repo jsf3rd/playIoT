@@ -16,12 +16,14 @@ type
     procedure sp_SyncPacket(const APacket: String);
     procedure sp_ASyncPacket(const APacket: String);
 
+    procedure sp_ErrorMessage(const AName: String; AMsg: String = '');
+    procedure sp_LogMessage(const AName: String; AMsg: String = '');
+
     procedure sp_SyncMessage(const ACode: String; AMsg: String = '');
     procedure sp_AsyncMessage(const ACode: String; AMsg: String = '');
     destructor Destroy; override;
 
-    procedure sp_ShowMessage(const Msg: String);
-    procedure sp_Terminate(const Msg: string);
+    procedure sp_Terminate(const Msg: string = '');
   end;
 
 implementation
@@ -68,9 +70,36 @@ begin
   end;
 end;
 
-procedure TView.sp_ShowMessage(const Msg: String);
+procedure TView.sp_ErrorMessage(const AName: String; AMsg: String);
+var
+  ValueList: TValueList;
 begin
-  sp_AsyncMessage('ShowMessage', Msg);
+  ValueList := TValueList.Create;
+  try
+    ValueList.Values['Code'] := 'ErrorMessage';
+    ValueList.Values['Name'] := AName;
+    ValueList.Values['Msg'] := AMsg;
+
+    AsyncBroadcast(ValueList);
+  finally
+    ValueList.Free;
+  end;
+end;
+
+procedure TView.sp_LogMessage(const AName: String; AMsg: String = '');
+var
+  ValueList: TValueList;
+begin
+  ValueList := TValueList.Create;
+  try
+    ValueList.Values['Code'] := 'LogMessage';
+    ValueList.Values['Name'] := AName;
+    ValueList.Values['Msg'] := AMsg;
+
+    AsyncBroadcast(ValueList);
+  finally
+    ValueList.Free;
+  end;
 end;
 
 procedure TView.sp_SyncPacket(const APacket: String);
@@ -104,7 +133,7 @@ end;
 
 procedure TView.sp_Terminate(const Msg: string);
 begin
-  sp_SyncMessage('Terminate', Msg);
+  sp_AsyncMessage('Terminate', Msg);
 end;
 
 { TView }
