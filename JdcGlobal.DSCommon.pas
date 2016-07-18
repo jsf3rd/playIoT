@@ -17,7 +17,8 @@ interface
 uses
   Classes, SysUtils, FireDAC.Comp.Client, FireDAC.Stan.Intf, Data.DBXPlatform,
   FireDAC.Comp.DataSet, FireDAC.Stan.Param, REST.JSON, XSuperObject,
-  System.Generics.Collections, System.DateUtils, Data.DB, Data.SqlTimSt
+  System.Generics.Collections, System.DateUtils, Data.DB, Data.SqlTimSt,
+  JdcGlobal
 {$IF CompilerVersion  > 26} // upper XE5
     , System.JSON
 {$ELSE}
@@ -65,9 +66,12 @@ type
 
   TFDQueryHelper = class helper for TFDQuery
   private
-    procedure ParamByJsonValue(AParam: TFDParam; AValue: TJSONValue); overload;
-    procedure ParamByJsonValue(AValue: TJSONValue; AName: String); overload;
-    procedure ParamByJSONArray(AValue: TJSONArray; AName: String);
+    procedure ParamByJsonValue(AParam: TFDParam; AValue: TJSONValue;
+      AProc: TLogProc = nil); overload;
+    procedure ParamByJsonValue(AValue: TJSONValue; AName: String;
+      AProc: TLogProc = nil); overload;
+    procedure ParamByJSONArray(AValue: TJSONArray; AName: String;
+      AProc: TLogProc = nil);
   public
     function ToStream: TStream;
     procedure LoadFromDSStream(AStream: TStream);
@@ -75,7 +79,7 @@ type
     function ToJSON: TJSONObject;
     function ToRecord<T: Record >(AName: String = ''): T;
 
-    procedure ParamByJSONObject(AObject: TJSONObject);
+    procedure ParamByJSONObject(AObject: TJSONObject; AProc: TLogProc = nil);
   end;
 
   TFDMemTableHelper = class helper for TFDMemTable
@@ -90,7 +94,7 @@ type
 
 implementation
 
-uses JdcGlobal, JdcGlobal.ClassHelper;
+uses JdcGlobal.ClassHelper;
 
 { TDSCommon }
 
@@ -166,13 +170,21 @@ begin
   TFDDataSet(Self).LoadFromDSStream(AStream);
 end;
 
-procedure TFDQueryHelper.ParamByJsonValue(AParam: TFDParam; AValue: TJSONValue);
+procedure TFDQueryHelper.ParamByJsonValue(AParam: TFDParam; AValue: TJSONValue;
+  AProc: TLogProc);
+var
+  Msg: String;
 begin
   if not Assigned(AParam) then
     Exit;
 
-  PrintDebug('DataSet=%s,ParamName=%s,DataType=%s,Value=%s',
+  Msg := Format('DataSet=%s,ParamName=%s,DataType=%s,Value=%s',
     [Self.Name, AParam.Name, AParam.DataTypeName, AValue.Value]);
+
+  if Assigned(AProc) then
+    AProc(mtDebug, 'SQLParameter', Msg)
+  else
+    PrintDebug(Msg);
 
   case AParam.DataType of
     ftUnknown:
@@ -215,7 +227,8 @@ begin
 
 end;
 
-procedure TFDQueryHelper.ParamByJSONArray(AValue: TJSONArray; AName: String);
+procedure TFDQueryHelper.ParamByJSONArray(AValue: TJSONArray; AName: String;
+  AProc: TLogProc);
 var
   MyElem: TJSONValue;
   Index: integer;
@@ -223,29 +236,31 @@ begin
   Index := 1;
   for MyElem in AValue do
   begin
-    ParamByJsonValue(MyElem, AName + '_' + Index.ToString);
+    ParamByJsonValue(MyElem, AName + '_' + Index.ToString, AProc);
     Inc(Index);
   end;
 end;
 
-procedure TFDQueryHelper.ParamByJSONObject(AObject: TJSONObject);
+procedure TFDQueryHelper.ParamByJSONObject(AObject: TJSONObject;
+  AProc: TLogProc);
 var
   MyElem: TJSONPair;
 begin
   for MyElem in AObject do
-    ParamByJsonValue(MyElem.JSONValue, MyElem.JsonString.Value);
+    ParamByJsonValue(MyElem.JSONValue, MyElem.JsonString.Value, AProc);
 end;
 
-procedure TFDQueryHelper.ParamByJsonValue(AValue: TJSONValue; AName: String);
+procedure TFDQueryHelper.ParamByJsonValue(AValue: TJSONValue; AName: String;
+  AProc: TLogProc);
 begin
   if AValue is TJSONObject then
-    ParamByJSONObject(AValue as TJSONObject)
+    ParamByJSONObject(AValue as TJSONObject, AProc)
   else if AValue is TJSONArray then
   begin
-    ParamByJSONArray(AValue as TJSONArray, AName)
+    ParamByJSONArray(AValue as TJSONArray, AName, AProc)
   end
   else
-    ParamByJsonValue(Self.FindParam(AName), AValue);
+    ParamByJsonValue(Self.FindParam(AName), AValue, AProc);
 end;
 
 function TFDQueryHelper.ToStream: TStream;
@@ -355,8 +370,8 @@ begin
       [Self.Name, AField.FieldName, integer(AField.DataType)]));
   end;
 
-  PrintDebug('DataSet=%s,FieldName=%s,DataType=%d,Value=%s',
-    [Self.Name, AField.FieldName, integer(AField.DataType), result.Value]);
+  // PrintDebug('DataSet=%s,FieldName=%s,DataType=%d,Value=%s',
+  // [Self.Name, AField.FieldName, integer(AField.DataType), result.Value]);
 end;
 
 function TFDDataSetHelper.GetJSONArray(AValue: TJSONArray; AName: String)
