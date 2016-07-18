@@ -72,13 +72,16 @@ type
     procedure Execute(AValue: T);
   End;
 
+  TMessageType = (mtDebug, mtLog, mtError, mtWarning, mtUnknown);
+
+  TLogProc = procedure(AType: TMessageType; ATitle: String;
+    AMessage: String = '') of object;
+
   TOnMessageEvent = procedure(const Sender: TObject; const AName: string;
     const AMessage: string = '') of object;
 
   TMsgOutput = (moDebugView, moLogFile, moCloudMessage);
   TMsgOutputs = set of TMsgOutput;
-
-  TMessageType = (mtDebug, mtLog, mtError, mtWarning, mtUnknown);
 
   TGlobalAbstract = class abstract
   strict protected
@@ -239,21 +242,27 @@ procedure CloudMessage(const ProjectCode, AppCode, TypeCode, ATitle,
   AMessage: String);
 var
   UDPClient: TIdUDPClient;
-  SysInfo, Msg: String;
+  SysInfo, Msg, DiskInfo: String;
+  GBFactor: double;
 begin
 {$IFDEF DEBUG}
   Exit;
 {$ENDIF}
-  SysInfo := 'OS=' + GetOSVersionString + ',TotalMem=' +
-    IntToStr(GetTotalPhysicalMemory) + ',FreeMem=' +
-    IntToStr(GetFreePhysicalMemory) + ',IPAddress=' +
-    GetIPAddress(GetLocalComputerName) + ',ComputerName=' +
-    GetLocalComputerName;
+  GBFactor := 1024 * 1024 * 1024;
+
+  SysInfo := Format('OS=%s,TotalMem=%.2f,FreeMem=%.2f,MemLoad=%d,IPAddress=%s',
+    [GetOSVersionString, GetTotalPhysicalMemory / GBFactor,
+    GetFreePhysicalMemory / GBFactor, GetMemoryLoad,
+    GetIPAddress(GetLocalComputerName)]);
+
+  DiskInfo := Format('C_Free=%.2f,C_Size=%.2f,D_Free=%.2f,D_Size=%.2f',
+    [DiskFree(3) / GBFactor, DiskSize(3) / GBFactor, DiskFree(4) / GBFactor,
+    DiskSize(4) / GBFactor]);
 
   Msg := Format
-    ('CloudLog,ProjectCode=%s,AppCode=%s,TypeCode=%s,Ticks=%d Title="%s",LogMessage="%s",SysInfo="%s"',
-    [ProjectCode, AppCode, TypeCode, GetTickCount, ATitle, AMessage,
-    QuotedStr(SysInfo)]);
+    ('CloudLog,ProjectCode=%s,AppCode=%s,TypeCode=%s,ComputerName=%s,Ticks=%d Title="%s",LogMessage="%s",SysInfo="%s",DiskInfo="%s"',
+    [ProjectCode, AppCode, TypeCode, GetLocalComputerName, GetTickCount, ATitle,
+    AMessage, SysInfo, DiskInfo]);
 
   UDPClient := TIdUDPClient.Create(nil);
   try
@@ -492,7 +501,8 @@ procedure TGlobalAbstract.ApplicationMessage(AType: TMessageType;
 begin
   case AType of
     mtDebug:
-      _ApplicationMessage(MESSAGE_TYPE_DEBUG, ATitle, AMessage, [moDebugView]);
+      _ApplicationMessage(MESSAGE_TYPE_DEBUG, ATitle, AMessage,
+        [moDebugView, moLogFile]);
     mtLog:
       _ApplicationMessage(MESSAGE_TYPE_LOG, ATitle, AMessage);
     mtError:
