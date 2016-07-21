@@ -61,7 +61,7 @@
     <PropertyGroup Condition="'$(Base_Win32)'!=''">
         <AppEnableRuntimeThemes>true</AppEnableRuntimeThemes>
         <DCC_ExeOutput>..\bin\$(Config)</DCC_ExeOutput>
-        <DCC_DcuOutput>.\DUCs</DCC_DcuOutput>
+        <DCC_DcuOutput>.\DCUs</DCC_DcuOutput>
         <DCC_UsePackage>RaizeComponentsXE2;JvGlobus;JvMM;JvManagedThreads;ZComponent;SerialNGCmp_XE2;JvDlgs;JvCrypt;TeeDB;Rave100VCL;vclib;inetdbbde;RyuCommand;JvNet;JvDotNetCtrls;DBXSybaseASEDriver;vclimg;fmi;JvXPCtrls;vcldb;vcldsnap;DBXDb2Driver;Intraweb_120_160;JvCore;vclribbon;frxe16;vcl;CloudService;DBXMSSQLDriver;FmxTeeUI;JvAppFrm;JvDB;JvRuntimeDesign;webdsnap;JclDeveloperTools;JvDocking;adortl;JvWizards;JvHMI;JvBands;vcldbx;ZDbc;frx16;ZPlain;JvPluginSystem;Tee;JclContainers;DBXOdbcDriver;JvCmp;JvSystem;svnui;ibxpress;JvTimeFramework;JvControls;intrawebdb_120_160;frxDB16;fs16;TeeUI;FMXTee;vclactnband;JvJans;bindcompvcl;JvStdCtrls;JvCustom;Jcl;vclie;JvPageComps;JvPrintPreview;ZCore;vcltouch;websnap;VclSmp;fsDB16;DataSnapConnectors;dsnapcon;JclVcl;JvPascalInterpreter;ZParseSql;vclx;svn;bdertl;JvBDE;$(DCC_UsePackage)</DCC_UsePackage>
         <VerInfo_IncludeVerInfo>true</VerInfo_IncludeVerInfo>
         <DCC_Namespace>Winapi;System.Win;Data.Win;Datasnap.Win;Web.Win;Soap.Win;Xml.Win;Bde;$(DCC_Namespace)</DCC_Namespace>
@@ -99,7 +99,7 @@
         <AppEnableRuntimeThemes>true</AppEnableRuntimeThemes>
         <DCC_ExeOutput>..\bin\$(Config)</DCC_ExeOutput>
         <VerInfo_Locale>1033</VerInfo_Locale>
-        <DCC_DcuOutput>.\DUCs</DCC_DcuOutput>
+        <DCC_DcuOutput>.\DCUs</DCC_DcuOutput>
         <VerInfo_Keys>CompanyName=playIoT.;FileDescription=playIoT Form Application Default.;FileVersion=1.0.0.0;InternalName=Form Templete;LegalCopyright=(c)playIoT.;LegalTrademarks=;OriginalFilename=;ProductName=FormTemplete;ProductVersion=1.0.0.0;Comments=playIoT Application.</VerInfo_Keys>
         <VerInfo_IncludeVerInfo>true</VerInfo_IncludeVerInfo>
     </PropertyGroup>
@@ -174,12 +174,27 @@
                         <Overwrite>true</Overwrite>
                     </Platform>
                 </DeployFile>
-                <DeployClass Name="ProjectiOSDeviceResourceRules">
+                <DeployClass Name="DependencyModule">
+                    <Platform Name="Win32">
+                        <Operation>0</Operation>
+                        <Extensions>.dll;.bpl</Extensions>
+                    </Platform>
                     <Platform Name="iOSDevice64">
                         <Operation>1</Operation>
+                        <Extensions>.dylib</Extensions>
+                    </Platform>
+                    <Platform Name="OSX32">
+                        <RemoteDir>Contents\MacOS</RemoteDir>
+                        <Operation>1</Operation>
+                        <Extensions>.dylib</Extensions>
                     </Platform>
                     <Platform Name="iOSDevice32">
                         <Operation>1</Operation>
+                        <Extensions>.dylib</Extensions>
+                    </Platform>
+                    <Platform Name="iOSSimulator">
+                        <Operation>1</Operation>
+                        <Extensions>.dylib</Extensions>
                     </Platform>
                 </DeployClass>
                 <DeployClass Name="ProjectOSXResource">
@@ -533,27 +548,12 @@
                         <Operation>1</Operation>
                     </Platform>
                 </DeployClass>
-                <DeployClass Name="DependencyModule">
-                    <Platform Name="Win32">
-                        <Operation>0</Operation>
-                        <Extensions>.dll;.bpl</Extensions>
-                    </Platform>
+                <DeployClass Name="ProjectiOSDeviceResourceRules">
                     <Platform Name="iOSDevice64">
                         <Operation>1</Operation>
-                        <Extensions>.dylib</Extensions>
-                    </Platform>
-                    <Platform Name="OSX32">
-                        <RemoteDir>Contents\MacOS</RemoteDir>
-                        <Operation>1</Operation>
-                        <Extensions>.dylib</Extensions>
                     </Platform>
                     <Platform Name="iOSDevice32">
                         <Operation>1</Operation>
-                        <Extensions>.dylib</Extensions>
-                    </Platform>
-                    <Platform Name="iOSSimulator">
-                        <Operation>1</Operation>
-                        <Extensions>.dylib</Extensions>
                     </Platform>
                 </DeployClass>
                 <ProjectRoot Platform="iOSDevice64" Name="$(PROJECTNAME).app"/>

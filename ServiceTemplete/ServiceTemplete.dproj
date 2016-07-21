@@ -65,7 +65,7 @@
         <DCC_UsePackage>DBXSqliteDriver;RESTComponents;DataSnapServerMidas;DBXDb2Driver;DBXInterBaseDriver;vclactnband;frxe23;vclFireDAC;emsclientfiredac;DataSnapFireDAC;svnui;tethering;JvGlobus;FireDACADSDriver;JvPluginSystem;DBXMSSQLDriver;JvMM;DatasnapConnectorsFreePascal;FireDACMSSQLDriver;vcltouch;JvBands;vcldb;bindcompfmx;svn;Intraweb;DBXOracleDriver;JvJans;JvNet;inetdb;JvAppFrm;FmxTeeUI;JvDotNetCtrls;FireDACIBDriver;fmx;fmxdae;vclib;JvWizards;FireDACDBXDriver;dbexpress;IndyCore;vclx;JvPageComps;dsnap;DataSnapCommon;emsclient;FireDACCommon;JvDB;RESTBackendComponents;DataSnapConnectors;VCLRESTComponents;soapserver;frxTee23;JclDeveloperTools;vclie;bindengine;DBXMySQLDriver;FireDACOracleDriver;CloudService;FireDACMySQLDriver;DBXFirebirdDriver;JvCmp;JvHMI;ComDrv32;FireDACCommonDriver;DataSnapClient;inet;bindcompdbx;IndyIPCommon;JvCustom;vcl;DBXSybaseASEDriver;IndyIPServer;JvXPCtrls;IndySystem;FireDACDb2Driver;dsnapcon;madExcept_;FireDACMSAccDriver;fmxFireDAC;FireDACInfxDriver;vclimg;madBasic_;TeeDB;FireDAC;Jcl;JvCore;JvCrypt;FireDACSqliteDriver;FireDACPgDriver;ibmonitor;FireDACASADriver;DBXOdbcDriver;FireDACTDataDriver;FMXTee;soaprtl;DbxCommonDriver;JvDlgs;JvRuntimeDesign;ibxpress;Tee;JvManagedThreads;DataSnapServer;xmlrtl;soapmidas;DataSnapNativeClient;fmxobj;vclwinx;ibxbindings;rtl;FireDACDSDriver;DbxClientDriver;JvTimeFramework;DBXSybaseASADriver;madDisAsm_;CustomIPTransport;vcldsnap;JvSystem;JvStdCtrls;bindcomp;appanalytics;DBXInformixDriver;IndyIPClient;bindcompvcl;frxDB23;TeeUI;vclribbon;dbxcds;VclSmp;JvDocking;adortl;FireDACODBCDriver;JvPascalInterpreter;JclVcl;DataSnapIndy10ServerTransport;SerialNGD2005;dsnapxml;DataSnapProviderClient;dbrtl;inetdbxpress;FireDACMongoDBDriver;IndyProtocols;frx23;JvControls;JvPrintPreview;JclContainers;fmxase;$(DCC_UsePackage)</DCC_UsePackage>
         <VerInfo_Keys>CompanyName=;FileDescription=;FileVersion=1.0.0.0;InternalName=;LegalCopyright=;LegalTrademarks=;OriginalFilename=;ProductName=;ProductVersion=1.0.0.0;Comments=</VerInfo_Keys>
         <VerInfo_Locale>1033</VerInfo_Locale>
-        <DCC_DcuOutput>.\DUCs</DCC_DcuOutput>
+        <DCC_DcuOutput>.\DCUs</DCC_DcuOutput>
         <VerInfo_IncludeVerInfo>true</VerInfo_IncludeVerInfo>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Base_Win64)'!=''">
@@ -80,7 +80,7 @@
         <DCC_RemoteDebug>true</DCC_RemoteDebug>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Cfg_1_Win32)'!=''">
-        <DCC_DcuOutput>.\DUCs</DCC_DcuOutput>
+        <DCC_DcuOutput>.\DCUs</DCC_DcuOutput>
         <DCC_ExeOutput>..\bin\$(Config)</DCC_ExeOutput>
         <AppEnableRuntimeThemes>true</AppEnableRuntimeThemes>
         <AppEnableHighDPI>true</AppEnableHighDPI>
@@ -153,27 +153,12 @@
                         <Overwrite>true</Overwrite>
                     </Platform>
                 </DeployFile>
-                <DeployClass Name="DependencyModule">
-                    <Platform Name="Win32">
-                        <Operation>0</Operation>
-                        <Extensions>.dll;.bpl</Extensions>
-                    </Platform>
+                <DeployClass Name="ProjectiOSDeviceResourceRules">
                     <Platform Name="iOSDevice64">
                         <Operation>1</Operation>
-                        <Extensions>.dylib</Extensions>
-                    </Platform>
-                    <Platform Name="OSX32">
-                        <RemoteDir>Contents\MacOS</RemoteDir>
-                        <Operation>1</Operation>
-                        <Extensions>.dylib</Extensions>
                     </Platform>
                     <Platform Name="iOSDevice32">
                         <Operation>1</Operation>
-                        <Extensions>.dylib</Extensions>
-                    </Platform>
-                    <Platform Name="iOSSimulator">
-                        <Operation>1</Operation>
-                        <Extensions>.dylib</Extensions>
                     </Platform>
                 </DeployClass>
                 <DeployClass Name="ProjectOSXResource">
@@ -527,12 +512,27 @@
                         <Operation>1</Operation>
                     </Platform>
                 </DeployClass>
-                <DeployClass Name="ProjectiOSDeviceResourceRules">
+                <DeployClass Name="DependencyModule">
+                    <Platform Name="Win32">
+                        <Operation>0</Operation>
+                        <Extensions>.dll;.bpl</Extensions>
+                    </Platform>
                     <Platform Name="iOSDevice64">
                         <Operation>1</Operation>
+                        <Extensions>.dylib</Extensions>
+                    </Platform>
+                    <Platform Name="OSX32">
+                        <RemoteDir>Contents\MacOS</RemoteDir>
+                        <Operation>1</Operation>
+                        <Extensions>.dylib</Extensions>
                     </Platform>
                     <Platform Name="iOSDevice32">
                         <Operation>1</Operation>
+                        <Extensions>.dylib</Extensions>
+                    </Platform>
+                    <Platform Name="iOSSimulator">
+                        <Operation>1</Operation>
+                        <Extensions>.dylib</Extensions>
                     </Platform>
                 </DeployClass>
                 <ProjectRoot Platform="iOSDevice64" Name="$(PROJECTNAME).app"/>
