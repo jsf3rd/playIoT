@@ -38,7 +38,6 @@ type
 
     function GetIdleConnection: TFDConnection;
     function GetIdleConnectionCount: Integer;
-    procedure ReleaseConnection(AConnection: TFDConnection);
   end;
 
 implementation
@@ -84,12 +83,6 @@ end;
 function TJdcConnectionPool.GetIdleConnectionCount: Integer;
 begin
   result := FMaxItems - FDManager.ConnectionCount;
-end;
-
-procedure TJdcConnectionPool.ReleaseConnection(AConnection: TFDConnection);
-begin
-  if Assigned(AConnection) then
-    AConnection.Free;
 end;
 
 end.
