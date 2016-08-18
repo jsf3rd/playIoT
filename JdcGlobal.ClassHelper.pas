@@ -1,3 +1,14 @@
+// *******************************************************
+//
+// playIoT Class Helper
+//
+// Copyright(c) 2016 playIoT.
+//
+// jsf3rd@playiot.biz
+//
+//
+// *******************************************************
+
 unit JdcGlobal.ClassHelper;
 
 interface

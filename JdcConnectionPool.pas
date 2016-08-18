@@ -1,10 +1,10 @@
 // *******************************************************
 //
-// playIoT DataSnap Common
+// playIoT FireDac Connection Pool
 //
 // Copyright(c) 2016 playIoT.
 //
-// jsf3rd@nate.com
+// jsf3rd@playiot.biz
 //
 // Update 2016. 04. 22
 //

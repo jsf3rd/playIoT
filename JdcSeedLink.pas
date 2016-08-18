@@ -1,3 +1,13 @@
+// *******************************************************
+//
+// playIoT SeedLink Client
+//
+// Copyright(c) 2016 playIoT.
+//
+// jsf3rd@playiot.biz
+//
+// *******************************************************
+
 unit JdcSeedLink;
 
 interface
