@@ -178,8 +178,8 @@ begin
   if not Assigned(AParam) then
     Exit;
 
-  Msg := Format('DataSet=%s,ParamName=%s,DataType=%s,Value=%s',
-    [Self.Name, AParam.Name, AParam.DataTypeName, AValue.Value]);
+  Msg := Format('DataSet=%s,ParamName=%s,DataType=%d,Value=%s',
+    [Self.Name, AParam.Name, integer(AParam.DataType), AValue.Value]);
 
   if Assigned(AProc) then
     AProc(mtDebug, 'SQLParameter', Msg)
