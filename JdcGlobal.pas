@@ -25,8 +25,10 @@ procedure PrintDebug(const Format: string; const Args: array of const);
   overload;
 procedure PrintDebug(const str: string); overload;
 
-procedure CloudMessage(const ProjectCode, AppCode, TypeCode, ATitle,
-  AMessage: String);
+function FileVersion(const FileName: String): String;
+
+procedure CloudMessage(const ProjectCode, AppCode, TypeCode, ATitle, AMessage,
+  AVersion: String);
 
 // 데이터 압축..
 function CompressStream(Stream: TStream; OutStream: TStream;
@@ -249,8 +251,37 @@ begin
   OutputDebugString(PChar('[JDC] ' + str));
 end;
 
-procedure CloudMessage(const ProjectCode, AppCode, TypeCode, ATitle,
-  AMessage: String);
+function FileVersion(const FileName: String): String;
+var
+  VerInfoSize: Cardinal;
+  VerValueSize: Cardinal;
+  Dummy: Cardinal;
+  PVerInfo: Pointer;
+  PVerValue: PVSFixedFileInfo;
+begin
+  result := '';
+
+  if not TFile.Exists(FileName) then
+    Exit;
+
+  VerInfoSize := GetFileVersionInfoSize(PChar(FileName), Dummy);
+  GetMem(PVerInfo, VerInfoSize);
+  try
+    if GetFileVersionInfo(PChar(FileName), 0, VerInfoSize, PVerInfo) then
+      if VerQueryValue(PVerInfo, '\', Pointer(PVerValue), VerValueSize) then
+        with PVerValue^ do
+          result := Format('v%d.%d.%d', [HiWord(dwFileVersionMS),
+            // Major
+            LoWord(dwFileVersionMS), // Minor
+            HiWord(dwFileVersionLS) // Release
+            ]);
+  finally
+    FreeMem(PVerInfo, VerInfoSize);
+  end;
+end;
+
+procedure CloudMessage(const ProjectCode, AppCode, TypeCode, ATitle, AMessage,
+  AVersion: String);
 var
   UDPClient: TIdUDPClient;
   SysInfo, Msg, DiskInfo: String;
@@ -271,9 +302,9 @@ begin
     DiskSize(4) / GBFactor]);
 
   Msg := Format
-    ('CloudLog,ProjectCode=%s,AppCode=%s,TypeCode=%s,ComputerName=%s,Ticks=%d Title="%s",LogMessage="%s",SysInfo="%s",DiskInfo="%s"',
-    [ProjectCode, AppCode, TypeCode, GetLocalComputerName, GetTickCount, ATitle,
-    AMessage, SysInfo, DiskInfo]);
+    ('CloudLog,ProjectCode=%s,AppCode=%s,TypeCode=%s,ComputerName=%s,Ticks=%d Version="%s",Title="%s",LogMessage="%s",SysInfo="%s",DiskInfo="%s"',
+    [ProjectCode, AppCode, TypeCode, GetLocalComputerName, GetTickCount,
+    AVersion, ATitle, AMessage, SysInfo, DiskInfo]);
 
   UDPClient := TIdUDPClient.Create(nil);
   try
@@ -559,7 +590,8 @@ begin
     PrintLog(FLogName, '<' + AType + '> ' + ATitle + ' - ' + AMessage);
 
   if moCloudMessage in AOutputs then
-    CloudMessage(FProjectCode, FAppCode, AType, ATitle, AMessage);
+    CloudMessage(FProjectCode, FAppCode, AType, ATitle, AMessage,
+      FileVersion(FExeName));
 end;
 
 end.
