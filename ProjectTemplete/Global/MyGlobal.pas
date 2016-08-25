@@ -22,18 +22,37 @@ type
 
     class function Obj: TGlobal;
 
+    procedure ApplicationMessage(AType: TMessageType; ATitle: String;
+      AMessage: String = ''); override;
+
     procedure Initialize; override;
     procedure Finalize; override;
   end;
 
 implementation
 
-uses MyOption;
+uses MyOption, JdcView;
 
 var
   MyObj: TGlobal = nil;
 
   { TGlobal }
+
+procedure TGlobal.ApplicationMessage(AType: TMessageType;
+  ATitle, AMessage: String);
+begin
+  inherited;
+
+  case AType of
+    mtDebug:
+      _ApplicationMessage(MESSAGE_TYPE_DEBUG, ATitle, AMessage,
+        [moCloudMessage]);
+    mtError:
+      TView.Obj.sp_ErrorMessage(ATitle, AMessage);
+    mtLog:
+      TView.Obj.sp_LogMessage(ATitle, AMessage);
+  end;
+end;
 
 constructor TGlobal.Create;
 begin

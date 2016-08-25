@@ -3,7 +3,8 @@ unit Core;
 interface
 
 uses Classes, SysUtils, System.IOUtils, Generics.Collections, Generics.Defaults,
-  MyGlobal, System.Threading, System.DateUtils;
+  System.Threading, System.DateUtils,
+  MyGlobal;
 
 type
   TCore = class
@@ -78,7 +79,6 @@ begin
 
         if SecondOf(Now) = 0 then
         begin
-          // TView.Obj.sp_DebugMessage('Task - 0 Seconds.');
           // raise Exception.Create('Task - 0 Seconds Error');
         end;
 

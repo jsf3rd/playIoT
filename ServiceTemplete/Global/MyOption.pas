@@ -3,7 +3,8 @@ unit MyOption;
 interface
 
 uses
-  Classes, SysUtils, JdcOption, MyGlobal, Winapi.Windows;
+  Classes, SysUtils, JdcOption, Winapi.Windows,
+  MyGlobal;
 
 type
   TOption = class(TOptionRegistry)

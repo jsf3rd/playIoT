@@ -16,6 +16,7 @@ type
     procedure ServiceShutdown(Sender: TService);
     procedure ServiceStop(Sender: TService; var Stopped: Boolean);
   private
+    procedure ServiceEnd;
     function GetExeName: String;
   public
     function GetServiceController: TServiceController; override;
@@ -28,7 +29,7 @@ implementation
 
 {$R *.dfm}
 
-uses JdcGlobal, MyGlobal, Core, MyOption;
+uses MyGlobal, MyOption, JdcGlobal, Core;
 
 procedure ServiceController(CtrlCode: DWord); stdcall;
 begin
@@ -81,20 +82,28 @@ begin
   Self.DisplayName := SERVICE_NAME;
 end;
 
+procedure TServiceMain.ServiceEnd;
+begin
+  TCore.Obj.Finalize;
+
+  TGlobal.Obj.ApplicationMessage(mtLog, 'Stop');
+end;
+
 procedure TServiceMain.ServiceExecute(Sender: TService);
 begin
   while not Terminated do
   begin
     // Main Process Code
 
-    Sleep(1);
+    Sleep(31);
     ServiceThread.ProcessRequests(false);
   end;
 end;
 
 procedure TServiceMain.ServiceShutdown(Sender: TService);
 begin
-  TCore.Obj.Finalize;
+  TGlobal.Obj.ApplicationMessage(mtLog, 'ServiceShutdown');
+  ServiceEnd;
 end;
 
 procedure TServiceMain.ServiceStart(Sender: TService; var Started: Boolean);
@@ -106,7 +115,7 @@ end;
 
 procedure TServiceMain.ServiceStop(Sender: TService; var Stopped: Boolean);
 begin
-  TCore.Obj.Finalize;
+  ServiceEnd;
 end;
 
 end.

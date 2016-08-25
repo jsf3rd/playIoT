@@ -29,7 +29,6 @@ type
     ShowLog1: TMenuItem;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
-    procedure FormClose(Sender: TObject; var Action: TCloseAction);
     procedure actAboutExecute(Sender: TObject);
     procedure ApplicationEventsException(Sender: TObject; E: Exception);
     procedure FormCloseQuery(Sender: TObject; var CanClose: Boolean);
@@ -39,12 +38,12 @@ type
     procedure actShowLogExecute(Sender: TObject);
     procedure actTestMenuExecute(Sender: TObject);
     procedure FormShow(Sender: TObject);
-  private
   published
     procedure rp_Terminate(APacket: TValueList);
     procedure rp_Init(APacket: TValueList);
 
-    procedure rp_ShowMessage(APacket: TValueList);
+    procedure rp_ErrorMessage(APacket: TValueList);
+    procedure rp_LogMessage(APacket: TValueList);
   end;
 
 var
@@ -96,15 +95,12 @@ begin
     [Sender.ClassName, E.Message]);
 end;
 
-procedure TfmMain.FormClose(Sender: TObject; var Action: TCloseAction);
-begin
-  TCore.Obj.Finalize;
-end;
-
 procedure TfmMain.FormCloseQuery(Sender: TObject; var CanClose: Boolean);
 begin
-  CanClose := MessageDlg(APPLICATION_TITLE + '을(를) 종료하시겠습니까?',
-    TMsgDlgType.mtConfirmation, mbYesNo, 0) = mrYes;
+  CanClose := false;
+  if MessageDlg(APPLICATION_TITLE + '을(를) 종료하시겠습니까?',
+    TMsgDlgType.mtConfirmation, mbYesNo, 0) = mrYes then
+    TCore.Obj.Finalize;
 end;
 
 procedure TfmMain.FormCreate(Sender: TObject);
@@ -115,7 +111,6 @@ end;
 
 procedure TfmMain.FormDestroy(Sender: TObject);
 begin
-  TGlobal.Obj.Finalize;
   TView.Obj.Remove(Self);
 end;
 
@@ -124,21 +119,28 @@ begin
   TCore.Obj.Initialize;
 end;
 
-procedure TfmMain.rp_Init(APacket: TValueList);
+procedure TfmMain.rp_ErrorMessage(APacket: TValueList);
 begin
-  // TODO : Form Initialized
-  Caption := APPLICATION_TITLE;
+  MessageDlg('오류 : ' + APacket.Values['Name'] + #13#10 + APacket.Values['Msg'],
+    TMsgDlgType.mtError, [mbOK], 0);
 end;
 
-procedure TfmMain.rp_ShowMessage(APacket: TValueList);
+procedure TfmMain.rp_Init(APacket: TValueList);
 begin
-  // TODO : Print User Message..
-  // PrintLog(mmLog, '<MSG> ' + APacket.Values['Msg']);
+  Caption := APPLICATION_TITLE;
+  TGlobal.Obj.ApplicationMessage(mtDebug, 'Start', TGlobal.Obj.ExeName);
+end;
+
+procedure TfmMain.rp_LogMessage(APacket: TValueList);
+begin
+  MessageDlg('알림 : ' + APacket.Values['Name'] + #13#10 + APacket.Values['Msg'],
+    TMsgDlgType.mtInformation, [mbOK], 0);
 end;
 
 procedure TfmMain.rp_Terminate(APacket: TValueList);
 begin
   Application.Terminate;
+  TGlobal.Obj.ApplicationMessage(mtDebug, 'Stop');
 end;
 
 end.

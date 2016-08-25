@@ -44,6 +44,8 @@ begin
   if FIsfinalized then
     Exit;
   FIsfinalized := true;
+
+  TView.Obj.sp_Terminate;
 end;
 
 procedure TCore.Initialize;
