@@ -87,14 +87,22 @@ type
 
   TMessageType = (mtDebug, mtLog, mtError, mtWarning, mtUnknown);
 
-  TLogProc = procedure(AType: TMessageType; ATitle: String;
-    AMessage: String = '') of object;
+  TLogProc = procedure(const AType: TMessageType; const ATitle: String;
+    const AMessage: String = '') of object;
 
   TOnMessageEvent = procedure(const Sender: TObject; const AName: string;
     const AMessage: string = '') of object;
 
   TMsgOutput = (moDebugView, moLogFile, moCloudMessage);
   TMsgOutputs = set of TMsgOutput;
+
+  TConnInfo = record
+    StringValue: string;
+    IntegerValue: integer;
+    constructor Create(AString: string; AInteger: integer);
+    function ToString: string;
+    function Equals(const ConnInfo: TConnInfo): boolean;
+  end;
 
   TGlobalAbstract = class abstract
   strict protected
@@ -592,6 +600,25 @@ begin
   if moCloudMessage in AOutputs then
     CloudMessage(FProjectCode, FAppCode, AType, ATitle, AMessage,
       FileVersion(FExeName));
+end;
+
+{ TConnInfo }
+
+constructor TConnInfo.Create(AString: string; AInteger: integer);
+begin
+  Self.StringValue := AString;
+  Self.IntegerValue := AInteger;
+end;
+
+function TConnInfo.Equals(const ConnInfo: TConnInfo): boolean;
+begin
+  result := Self.StringValue.Equals(ConnInfo.StringValue) and
+    (Self.IntegerValue = ConnInfo.IntegerValue);
+end;
+
+function TConnInfo.ToString: string;
+begin
+  result := Self.StringValue + ':' + Self.IntegerValue.ToString;
 end;
 
 end.
