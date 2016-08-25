@@ -44,8 +44,8 @@ constructor TJdcSharedMemWriter.Create(ACodeName: String; ADataSize: Cardinal;
 begin
   FCodeName := ACodeName;
   FDataInfo := SharedAllocMem(FCodeName + DATA_INFO, SizeOf(TDataInfo));
-  PrintDebug('[SharedMemAlloc] Name=%s,Addr=%p',
-    [FCodeName + DATA_INFO, FDataInfo]);
+  PrintDebug('[SharedMemAlloc] Name=%s,Addr=%p,Size=%d',
+    [FCodeName + DATA_INFO, FDataInfo, SizeOf(TDataInfo)]);
 
   FDataInfo.MaxCount := UInt32(AMaxCount);
   FDataInfo.Mask := UInt32(AMaxCount) - 1;
@@ -55,15 +55,15 @@ begin
   FDataList := SharedAllocMem(FCodeName + DATA_LIST, FDataInfo.DataLength *
     FDataInfo.MaxCount);
 
-  PrintDebug('[SharedMemAlloc] Name=%s,DataSize=%d,SaveCount=%d,Addr=%p',
-    [FCodeName + DATA_LIST, FDataInfo.DataLength, FDataInfo.MaxCount,
-    FDataList]);
+  PrintDebug('[SharedMemAlloc] Name=%s,Addr=%p,Size=%d,SaveCount=%d',
+    [FCodeName + DATA_LIST, FDataList, FDataInfo.DataLength,
+    FDataInfo.MaxCount]);
 end;
 
 destructor TJdcSharedMemWriter.Destroy;
 begin
   if SharedFreeMem(FDataInfo) and SharedFreeMem(FDataList) then
-    PrintDebug('Shared Memory Deallocated. Name : %s', [FCodeName]);
+    PrintDebug('[SharedMemDealloc] Name=%s', [FCodeName]);
 end;
 
 function TJdcSharedMemWriter.GetDataInfo: TDataInfo;
@@ -90,8 +90,8 @@ begin
 
   PData := FDataList;
   PData := Ptr(UInt32(PData) + (Position * FDataInfo.DataLength));
-  PrintDebug('[PutData] CodeName=%s,Sequence=%u,Positon=%u,Address=%p',
-    [FCodeName, FDataInfo.LastSequence, Position, PData]);
+  // PrintDebug('[PutData] CodeName=%s,Sequence=%u,Positon=%u,Address=%p',
+  // [FCodeName, FDataInfo.LastSequence, Position, PData]);
 
   CopyMemory(PData, @FDataInfo.LastSequence, SizeOf(Cardinal));
   PData := Ptr(Integer(PData) + SizeOf(Cardinal));

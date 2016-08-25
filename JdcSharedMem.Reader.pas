@@ -66,8 +66,8 @@ begin
   PData := FDataList;
   ReadPosition := FCurrentSequence and FDataInfo.Mask;
   PData := Ptr(UInt32(PData) + ReadPosition * FDataInfo.DataLength);
-  PrintDebug('[GetData] CodeName=%s,Seq=%u,Pos=%u,Addr=%p',
-    [FCodeName, FCurrentSequence, ReadPosition, PData]);
+  // PrintDebug('[GetData] CodeName=%s,Seq=%u,Pos=%u,Addr=%p',
+  // [FCodeName, FCurrentSequence, ReadPosition, PData]);
 
   CopyMemory(@Sequence, PData, SizeOf(Cardinal));
 
@@ -93,27 +93,27 @@ end;
 
 function TJdcSharedMemReader.GetFirstData: TStream;
 begin
-  FCurrentSequence := FDataInfo.LastSequence - FDataInfo.Mask;
-  result := GetData;
+  if FDataInfo.LastSequence = 0 then
+    FCurrentSequence := 0
+  else if FDataInfo.LastSequence < FDataInfo.Mask then
+    FCurrentSequence := 1
+  else
+    FCurrentSequence := FDataInfo.LastSequence - FDataInfo.Mask;
 
-  if Assigned(result) then
-    Exit;
-
-  FCurrentSequence := 1;
   result := GetData;
 end;
 
 function TJdcSharedMemReader.GetLastData: TStream;
 begin
-  if FDataInfo.LastSequence = 0 then
-    Exit(nil);
-
   FCurrentSequence := FDataInfo.LastSequence;
   result := GetData;
 end;
 
 function TJdcSharedMemReader.GetNextData: TStream;
 begin
+  if FCurrentSequence > FDataInfo.LastSequence then
+    FCurrentSequence := FDataInfo.LastSequence;
+
   if FCurrentSequence = FDataInfo.LastSequence then
     Exit(nil);
 
