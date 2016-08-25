@@ -28,14 +28,18 @@ type
     ChannelCode: string;
   end;
 
+  TSeedLinkInfo = record
+    ConnInfo: TConnInfo;
+    ChannelInfo: TSeedLinkChannel;
+  end;
+
   TJdcSeedLink = class
   private
     FIdTcpClient: TIdTCPClient;
     FThread: TThread;
 
     FOnReceiveDataEvent: TOnReceiveDataEvent;
-    FOnLogEvent: TOnMessageEvent;
-    FOnErrorEvent: TOnMessageEvent;
+    FOnLogEvent: TLogProc;
     FOnReceiveMSeed: TOnReceiveMSeedEvent;
 
     FTimeOutCount: Integer;
@@ -62,8 +66,7 @@ type
       write FOnReceiveDataEvent;
     property OnReceiveMSeed: TOnReceiveMSeedEvent read FOnReceiveMSeed
       write FOnReceiveMSeed;
-    property OnLog: TOnMessageEvent read FOnLogEvent write FOnLogEvent;
-    property OnError: TOnMessageEvent read FOnErrorEvent write FOnErrorEvent;
+    property OnLog: TLogProc read FOnLogEvent write FOnLogEvent;
   end;
 
 implementation
@@ -192,7 +195,7 @@ begin
   except
     on E: Exception do
     begin
-      OnLog(Self, 'Error on ProcessNewData, ' + E.Message);
+      OnLog(mtError, 'ProcessNewData', 'E=' + E.Message);
       raise E;
     end;
   end;
@@ -238,7 +241,7 @@ begin
     if Index < 0 then
       Exit;
 
-    OnLog(Self, 'SEEDLink Log - ' + BytesToString(buffer, Index, 8));
+    OnLog(mtDebug, 'SEEDLink', BytesToString(buffer, Index, 8));
 
     RemoveBytes(buffer, Index);
     FIdTcpClient.IOHandler.ReadBytes(buffer, Index);
@@ -268,7 +271,7 @@ begin
       if Msg.IsEmpty then
         Break
       else
-        OnLog(Self, 'RECV - ' + Msg);
+        OnLog(mtDebug, 'RECV', Msg);
 
       if Msg.Equals('OK') then
         Break;
@@ -278,7 +281,7 @@ begin
 
       on E: Exception do
       begin
-        OnError(Self, 'Error on RecvString', E.Message);
+        OnLog(mtError, 'RecvString', 'E=' + E.Message);
         Break;
       end;
     end;
@@ -294,7 +297,7 @@ end;
 
 procedure TJdcSeedLink.SendCommand(Value: string);
 begin
-  OnLog(Self, 'SEND - ' + Value);
+  OnLog(mtDebug, 'SEND', Value);
   FIdTcpClient.IOHandler.WriteLn(Value);
 end;
 
@@ -318,10 +321,10 @@ begin
             Inc(FTimeOutCount);
 
             if FTimeOutCount > 1 then
-              OnError(Self, 'EReadTimeOut on RecvData', E.Message);
+              OnLog(mtError, 'ReadTimeOut', 'E=' + E.Message);
           end;
           on E: Exception do
-            OnError(Self, 'Error on RecvData', E.Message);
+            OnLog(mtError, 'RecvData', 'E=' + E.Message);
         end;
       end;
       Sleep(1000);
