@@ -21,12 +21,12 @@
 
 unit SharedMMFMem;
 
-{$I jedi\jedi.inc}
+{$I jedi/jedi.inc}
 
 interface
 
 uses
-  Windows, SysUtils;
+  Windows, SysUtils, JdcGlobal;
 
 type
   ESharedMemError = class(Exception);
