@@ -29,6 +29,8 @@ type
   PDataInfo = ^TDataInfo;
 
 const
+  GLOBAL_PREFIX = 'Global\';
+
   DATA_INFO = '_DataInfo';
   DATA_LIST = '_DataList';
 
