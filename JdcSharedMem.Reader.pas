@@ -23,12 +23,14 @@ type
     FDataList: Pointer;
     FCodeName: String;
     FCurrentSequence: Cardinal;
-    function GetData: TStream;
+    function GetPointer: Pointer;
   public
     constructor Create(ACodeName: String);
-    function GetFirstData: TStream;
-    function GetNextData: TStream;
-    function GetLastData: TStream;
+    destructor Destroy; override;
+
+    function GetFirstPointer: Pointer;
+    function GetNextPointer: Pointer;
+    function GetLastPointer: Pointer;
 
     property Sequence: Cardinal read FCurrentSequence;
   end;
@@ -43,20 +45,20 @@ constructor TJdcSharedMemReader.Create(ACodeName: String);
 begin
   FCodeName := ACodeName;
   FCurrentSequence := 0;
-  if SharedOpenMem(FDataInfo, FCodeName + DATA_INFO, FILE_MAP_READ) then
-    PrintDebug('[SharedMemOpened] Name=%s,Addr=%p',
-      [FCodeName + DATA_INFO, FDataInfo])
-  else
+  if not SharedOpenMem(FDataInfo, FCodeName + DATA_INFO, FILE_MAP_READ) then
     raise Exception.Create('[OpenMemError] ' + FCodeName + DATA_INFO);
 
-  if SharedOpenMem(FDataList, FCodeName + DATA_LIST, FILE_MAP_READ) then
-    PrintDebug('[SharedMemOpened] Name=%s,Addr=%p',
-      [FCodeName + DATA_LIST, FDataList])
-  else
+  if not SharedOpenMem(FDataList, FCodeName + DATA_LIST, FILE_MAP_READ) then
     raise Exception.Create('[OpenMemError] ' + FCodeName + DATA_LIST);
 end;
 
-function TJdcSharedMemReader.GetData: TStream;
+destructor TJdcSharedMemReader.Destroy;
+begin
+  SharedFreeMem(FDataInfo);
+  SharedFreeMem(FDataList);
+end;
+
+function TJdcSharedMemReader.GetPointer: Pointer;
 var
   PData: Pointer;
   ReadPosition: Cardinal;
@@ -66,8 +68,8 @@ begin
   PData := FDataList;
   ReadPosition := FCurrentSequence and FDataInfo.Mask;
   PData := Ptr(UInt32(PData) + ReadPosition * FDataInfo.DataLength);
-  // PrintDebug('[GetData] CodeName=%s,Seq=%u,Pos=%u,Addr=%p',
-  // [FCodeName, FCurrentSequence, ReadPosition, PData]);
+  // PrintDebug('[GetData] CodeName=%s,Seq=%u,Pos=%u',
+  // [FCodeName, FCurrentSequence, ReadPosition]);
 
   CopyMemory(@Sequence, PData, SizeOf(Cardinal));
 
@@ -87,11 +89,10 @@ begin
   if MyVersion = 0 then
     Exit(nil);
 
-  result := TMemoryStream.Create;
-  result.Write(PData, FDataInfo.DataLength - SizeOf(Cardinal));
+  result := PData;
 end;
 
-function TJdcSharedMemReader.GetFirstData: TStream;
+function TJdcSharedMemReader.GetFirstPointer: Pointer;
 begin
   if FDataInfo.LastSequence = 0 then
     FCurrentSequence := 0
@@ -100,16 +101,16 @@ begin
   else
     FCurrentSequence := FDataInfo.LastSequence - FDataInfo.Mask;
 
-  result := GetData;
+  result := GetPointer;
 end;
 
-function TJdcSharedMemReader.GetLastData: TStream;
+function TJdcSharedMemReader.GetLastPointer: Pointer;
 begin
   FCurrentSequence := FDataInfo.LastSequence;
-  result := GetData;
+  result := GetPointer;
 end;
 
-function TJdcSharedMemReader.GetNextData: TStream;
+function TJdcSharedMemReader.GetNextPointer: Pointer;
 begin
   if FCurrentSequence > FDataInfo.LastSequence then
     FCurrentSequence := FDataInfo.LastSequence;
@@ -118,7 +119,7 @@ begin
     Exit(nil);
 
   FCurrentSequence := FCurrentSequence + 1;
-  result := GetData;
+  result := GetPointer;
 
   if not Assigned(result) then
     FCurrentSequence := FDataInfo.LastSequence;
