@@ -115,9 +115,9 @@ type
 
     procedure SetExeName(const Value: String); virtual; abstract;
 
-    procedure _ApplicationMessage(AType, ATitle, AMessage: String;
-      AOutputs: TMsgOutputs = [moDebugView, moLogFile, moCloudMessage]
-      ); virtual;
+    procedure _ApplicationMessage(const AType: string; const ATitle: string;
+      const AMessage: String; const AOutputs: TMsgOutputs = [moDebugView,
+      moLogFile, moCloudMessage]); virtual;
   public
     constructor Create; virtual;
     destructor Destroy; override;
@@ -125,10 +125,11 @@ type
     procedure Initialize; virtual; abstract;
     procedure Finalize; virtual; abstract;
 
-    procedure ApplicationMessage(AType: TMessageType; ATitle: String;
-      AMessage: String = ''); overload; virtual;
-    procedure ApplicationMessage(AType: TMessageType; ATitle: String;
-      AFormat: String; const Args: array of const); overload;
+    procedure ApplicationMessage(const AType: TMessageType;
+      const ATitle: String; const AMessage: String = ''); overload; virtual;
+    procedure ApplicationMessage(const AType: TMessageType;
+      const ATitle: String; const AFormat: String;
+      const Args: array of const); overload;
 
     property Initialized: boolean read FInitialized;
     property ExeName: String read FExeName write SetExeName;
@@ -546,8 +547,8 @@ end;
 
 { TGlobalAbstract }
 
-procedure TGlobalAbstract.ApplicationMessage(AType: TMessageType;
-  ATitle, AMessage: String);
+procedure TGlobalAbstract.ApplicationMessage(const AType: TMessageType;
+  const ATitle: string; const AMessage: String);
 begin
   case AType of
     mtDebug:
@@ -564,8 +565,8 @@ begin
   end;
 end;
 
-procedure TGlobalAbstract.ApplicationMessage(AType: TMessageType;
-  ATitle, AFormat: String; const Args: array of const);
+procedure TGlobalAbstract.ApplicationMessage(const AType: TMessageType;
+  const ATitle: string; const AFormat: String; const Args: array of const);
 var
   str: string;
 begin
@@ -587,8 +588,8 @@ begin
   inherited;
 end;
 
-procedure TGlobalAbstract._ApplicationMessage(AType, ATitle, AMessage: String;
-  AOutputs: TMsgOutputs);
+procedure TGlobalAbstract._ApplicationMessage(const AType: string;
+  const ATitle: string; const AMessage: String; const AOutputs: TMsgOutputs);
 begin
   if moDebugView in AOutputs then
     PrintDebug('<' + AType + '> [' + FAppCode + '] ' + ATitle + ' - ' +

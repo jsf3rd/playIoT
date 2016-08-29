@@ -31,6 +31,7 @@ object ServerContainer: TServerContainer
   object dscDataProvider: TDSServerClass
     OnGetClass = dscDataProviderGetClass
     Server = DSServer
+    LifeCycle = 'Server'
     Left = 200
     Top = 11
   end
