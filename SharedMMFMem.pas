@@ -109,6 +109,7 @@ begin
       Inc(Iterate^.References);
       Pointer(p) := Iterate^.Memory;
       Result := ERROR_ALREADY_EXISTS;
+      PrintDebug('[IncRef] Name=%s,Ref=%d', [Name, Iterate^.References]);
       Exit;
     end;
     Iterate := Iterate^.Next;
@@ -127,9 +128,13 @@ begin
 
     h := CreateFileMapping(INVALID_HANDLE_VALUE, nil, Protect, 0, Size,
       PChar(Name));
+    PrintDebug('[CreateMMF] Name=%s,Size=%u,Protect=%u', [Name, Size, Protect]);
   end
   else
+  begin
     Result := ERROR_ALREADY_EXISTS;
+    PrintDebug('[OpenMMF] Name=%s,DesiredAccess=%u', [Name, DesiredAccess]);
+  end;
 
   case GetLastError of
     ERROR_ALREADY_EXISTS:
@@ -206,10 +211,13 @@ begin
           Dec(Iterate^.References);
           Pointer(p) := nil;
           Result := True;
+          PrintDebug('[DecRef] Name=%s,Ref=%d',
+            [Iterate^.Name, Iterate^.References]);
           Exit;
         end;
 
-        UnmapViewOfFile(Iterate^.Memory);
+        if UnmapViewOfFile(Iterate^.Memory) then
+          PrintDebug('[CloseMMF] Name=%s', [Iterate^.Name]);
         CloseHandle(Iterate^.Handle);
 
         if n = nil then
