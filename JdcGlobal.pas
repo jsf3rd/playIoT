@@ -139,7 +139,7 @@ type
     MESSAGE_TYPE_LOG = 'LOG';
     MESSAGE_TYPE_ERROR = 'ERROR';
     MESSAGE_TYPE_DEBUG = 'DEBUG';
-    MESSAGE_TYPE_WRANING = 'WRANING';
+    MESSAGE_TYPE_WARNING = 'WARNING';
     MESSAGE_TYPE_UNKNOWN = 'UNKNOWN';
   end;
 
@@ -559,7 +559,7 @@ begin
     mtError:
       _ApplicationMessage(MESSAGE_TYPE_ERROR, ATitle, AMessage);
     mtWarning:
-      _ApplicationMessage(MESSAGE_TYPE_WRANING, ATitle, AMessage);
+      _ApplicationMessage(MESSAGE_TYPE_WARNING, ATitle, AMessage);
   else
     _ApplicationMessage(MESSAGE_TYPE_UNKNOWN, ATitle, AMessage);
   end;
