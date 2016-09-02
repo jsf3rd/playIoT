@@ -4,6 +4,7 @@ object ServerContainer: TServerContainer
   AllowPause = False
   DisplayName = 'DataSnap Service Templete'
   AfterInstall = ServiceAfterInstall
+  AfterUninstall = ServiceAfterUninstall
   OnExecute = ServiceExecute
   OnShutdown = ServiceShutdown
   OnStart = ServiceStart

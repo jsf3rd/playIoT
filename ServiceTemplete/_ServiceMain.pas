@@ -15,6 +15,7 @@ type
     procedure ServiceStart(Sender: TService; var Started: Boolean);
     procedure ServiceShutdown(Sender: TService);
     procedure ServiceStop(Sender: TService; var Stopped: Boolean);
+    procedure ServiceAfterUninstall(Sender: TService);
   private
     procedure ServiceEnd;
     function GetExeName: String;
@@ -29,7 +30,7 @@ implementation
 
 {$R *.dfm}
 
-uses MyGlobal, MyOption, JdcGlobal, Core;
+uses JdcGlobal, MyOption, MyGlobal, Core;
 
 procedure ServiceController(CtrlCode: DWord); stdcall;
 begin
@@ -74,6 +75,13 @@ begin
   finally
     Reg.Free;
   end;
+
+  TGlobal.Obj.ApplicationMessage(mtLog, 'Installed', SERVICE_NAME);
+end;
+
+procedure TServiceMain.ServiceAfterUninstall(Sender: TService);
+begin
+  TGlobal.Obj.ApplicationMessage(mtLog, 'Uninstalled', SERVICE_NAME);
 end;
 
 procedure TServiceMain.ServiceCreate(Sender: TObject);

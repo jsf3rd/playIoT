@@ -4,6 +4,7 @@ object ServiceMain: TServiceMain
   AllowPause = False
   DisplayName = 'Service Templete'
   AfterInstall = ServiceAfterInstall
+  AfterUninstall = ServiceAfterUninstall
   OnExecute = ServiceExecute
   OnShutdown = ServiceShutdown
   OnStart = ServiceStart

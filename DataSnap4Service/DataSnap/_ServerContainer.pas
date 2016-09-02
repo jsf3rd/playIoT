@@ -27,6 +27,7 @@ type
     procedure ServiceShutdown(Sender: TService);
     procedure ServiceStop(Sender: TService; var Stopped: Boolean);
     procedure ServiceAfterInstall(Sender: TService);
+    procedure ServiceAfterUninstall(Sender: TService);
   private
     FConnectionPool: TJdcConnectionPool;
 
@@ -243,6 +244,12 @@ begin
   finally
     Reg.Free;
   end;
+  TGlobal.Obj.ApplicationMessage(mtLog, 'Installed', SERVICE_NAME);
+end;
+
+procedure TServerContainer.ServiceAfterUninstall(Sender: TService);
+begin
+  TGlobal.Obj.ApplicationMessage(mtLog, 'Uninstalled', SERVICE_NAME);
 end;
 
 procedure TServerContainer.ServiceCreate(Sender: TObject);
