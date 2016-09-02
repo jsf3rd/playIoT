@@ -24,7 +24,7 @@ type
 
 implementation
 
-uses MyOption, JdcView2, MyCommon;
+uses MyOption, JdcView, MyCommon;
 
 var
   MyObj: TCore = nil;

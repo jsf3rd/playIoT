@@ -22,8 +22,8 @@ type
 
     class function Obj: TGlobal;
 
-    procedure ApplicationMessage(AType: TMessageType; ATitle: String;
-      AMessage: String = ''); override;
+    procedure ApplicationMessage(const AType: TMessageType;
+      const ATitle: String; const AMessage: String = ''); override;
 
     procedure Initialize; override;
     procedure Finalize; override;
@@ -38,8 +38,8 @@ var
 
   { TGlobal }
 
-procedure TGlobal.ApplicationMessage(AType: TMessageType;
-  ATitle, AMessage: String);
+procedure TGlobal.ApplicationMessage(const AType: TMessageType;
+  const ATitle: String; const AMessage: String);
 begin
   inherited;
 
