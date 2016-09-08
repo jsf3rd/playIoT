@@ -55,15 +55,13 @@ end;
 
 procedure TCore.Initialize;
 begin
-  TGlobal.Obj.Initialize;
-
   if FIsfinalized then
     Exit;
-
   if FIsInitialized then
     Exit;
-
   FIsInitialized := true;
+
+  TGlobal.Obj.Initialize;
 
   // Create Threads...
   FMyTask := TThread.CreateAnonymousThread(
@@ -96,5 +94,9 @@ procedure TCore.Start;
 begin
   FMyTask.Start;
 end;
+
+initialization
+
+MyObj := TCore.Create;
 
 end.

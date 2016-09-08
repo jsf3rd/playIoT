@@ -109,7 +109,8 @@ type
     FProjectCode: string;
     FAppCode: string;
 
-    FInitialized: boolean;
+    FIsInitialized: boolean;
+    FIsfinalized: boolean;
     FExeName: String;
     FLogName: string;
 
@@ -122,7 +123,6 @@ type
       moLogFile, moCloudMessage]); virtual;
   public
     constructor Create; virtual;
-    destructor Destroy; override;
 
     procedure Initialize; virtual;
     procedure Finalize; virtual;
@@ -133,7 +133,6 @@ type
       const ATitle: String; const AFormat: String;
       const Args: array of const); overload;
 
-    property Initialized: boolean read FInitialized;
     property ExeName: String read FExeName write SetExeName;
     property LogName: string read FLogName;
 
@@ -582,20 +581,13 @@ constructor TGlobalAbstract.Create;
 begin
   FExeName := '';
   FLogName := '';
-  FInitialized := False;
-end;
-
-destructor TGlobalAbstract.Destroy;
-begin
-  Finalize;
-
-  inherited;
+  FIsInitialized := False;
+  FIsfinalized := False;
 end;
 
 procedure TGlobalAbstract.Finalize;
 begin
   ApplicationMessage(mtInfo, 'Stop', 'StartTime=' + FStartTime.ToString);
-  FInitialized := False;
 end;
 
 procedure TGlobalAbstract.Initialize;

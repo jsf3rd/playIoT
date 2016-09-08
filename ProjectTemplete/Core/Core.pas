@@ -39,25 +39,24 @@ end;
 
 procedure TCore.Finalize;
 begin
-  TGlobal.Obj.Finalize;
-
   if FIsfinalized then
     Exit;
   FIsfinalized := true;
 
   TView.Obj.sp_Terminate;
+
+  TGlobal.Obj.Finalize;
 end;
 
 procedure TCore.Initialize;
 begin
-  TGlobal.Obj.Initialize;
-
   if FIsfinalized then
     Exit;
-
   if FIsInitialized then
     Exit;
   FIsInitialized := true;
+
+  TGlobal.Obj.Initialize;
 
   TView.Obj.sp_SyncMessage('Init');
 end;
@@ -68,5 +67,9 @@ begin
     MyObj := TCore.Create;
   result := MyObj;
 end;
+
+initialization
+
+MyObj := TCore.Create;
 
 end.

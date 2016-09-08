@@ -74,19 +74,20 @@ end;
 
 procedure TGlobal.Finalize;
 begin
-  if not FInitialized then
+  if FIsfinalized then
     Exit;
+  FIsfinalized := true;
 
   ApplicationMessage(mtDebug, 'Stop', 'StartTime=' + FStartTime.ToString);
-
-  FInitialized := false;
-
 end;
 
 procedure TGlobal.Initialize;
 begin
-  if FInitialized then
+  if FIsfinalized then
     Exit;
+  if FIsInitialized then
+    Exit;
+  FIsInitialized := true;
 
   FStartTime := now;
 
@@ -96,10 +97,7 @@ begin
 {$IFDEF WIN64}
   ApplicationMessage(mtDebug, 'Start', '(x64)' + FxeName);
 {$ENDIF}
-
   // Todo :
-
-  FInitialized := true;
 end;
 
 class function TGlobal.Obj: TGlobal;
@@ -119,5 +117,9 @@ begin
   if not TDirectory.Exists(ExtractFilePath(FLogName)) then
     TDirectory.CreateDirectory(ExtractFilePath(FLogName));
 end;
+
+initialization
+
+MyObj := TGlobal.Create;
 
 end.

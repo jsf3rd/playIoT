@@ -53,8 +53,9 @@ end;
 
 procedure TGlobal.Finalize;
 begin
-  if not FInitialized then
+  if FIsfinalized then
     Exit;
+  FIsfinalized := true;
 
   // Todo :
 
@@ -63,14 +64,16 @@ end;
 
 procedure TGlobal.Initialize;
 begin
-  if FInitialized then
+  if FIsfinalized then
     Exit;
+  if FIsInitialized then
+    Exit;
+  FIsInitialized := true;
 
   inherited;
 
   // Todo :
 
-  FInitialized := True;
 end;
 
 class function TGlobal.Obj: TGlobal;
@@ -88,5 +91,9 @@ begin
   if not TDirectory.Exists(ExtractFilePath(FLogName)) then
     TDirectory.CreateDirectory(ExtractFilePath(FLogName));
 end;
+
+initialization
+
+MyObj := TGlobal.Create;
 
 end.

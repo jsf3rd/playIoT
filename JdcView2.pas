@@ -154,13 +154,15 @@ begin
   sp_SyncMessage('Terminate', Msg);
 end;
 
-{ TView }
-
 class function TView.Obj: TView;
 begin
   if MyObj = nil then
     MyObj := TView.Create(nil);
   Result := MyObj;
 end;
+
+initialization
+
+MyObj := TView.Create(nil);
 
 end.
