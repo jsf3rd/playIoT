@@ -31,7 +31,7 @@ type
 
 implementation
 
-uses MyOption, JdcView;
+uses MyOption, JdcView, JdcGlobal.ClassHelper;
 
 var
   MyObj: TGlobal = nil;
@@ -49,7 +49,7 @@ begin
         [moCloudMessage]);
     mtError:
       TView.Obj.sp_ErrorMessage(ATitle, AMessage);
-    mtLog:
+    mtInfo:
       TView.Obj.sp_LogMessage(ATitle, AMessage);
   end;
 end;
@@ -76,6 +76,9 @@ procedure TGlobal.Finalize;
 begin
   if not FInitialized then
     Exit;
+
+  ApplicationMessage(mtDebug, 'Stop', 'StartTime=' + FStartTime.ToString);
+
   FInitialized := false;
 
 end;
@@ -84,6 +87,15 @@ procedure TGlobal.Initialize;
 begin
   if FInitialized then
     Exit;
+
+  FStartTime := now;
+
+{$IFDEF WIN32}
+  ApplicationMessage(mtDebug, 'Start', '(x86)' + FExeName);
+{$ENDIF}
+{$IFDEF WIN64}
+  ApplicationMessage(mtDebug, 'Start', '(x64)' + FxeName);
+{$ENDIF}
 
   // Todo :
 

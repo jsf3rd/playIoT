@@ -128,7 +128,6 @@ end;
 procedure TfmMain.rp_Init(APacket: TValueList);
 begin
   Caption := APPLICATION_TITLE;
-  TGlobal.Obj.ApplicationMessage(mtDebug, 'Start', TGlobal.Obj.ExeName);
 end;
 
 procedure TfmMain.rp_LogMessage(APacket: TValueList);
@@ -140,7 +139,6 @@ end;
 procedure TfmMain.rp_Terminate(APacket: TValueList);
 begin
   Application.Terminate;
-  TGlobal.Obj.ApplicationMessage(mtDebug, 'Stop');
 end;
 
 end.

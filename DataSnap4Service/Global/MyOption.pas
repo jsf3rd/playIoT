@@ -6,7 +6,7 @@ uses
   Classes, SysUtils, JdcOption, MyGlobal, Winapi.Windows;
 
 type
-  TOption = class(TOptionRegistry)
+  TOption = class(TOptionIniFiles)
   private
     function GetDBInfo: String;
     procedure SetDBInfo(ADBInfo: String);
@@ -33,7 +33,7 @@ var
 function TOption.GetDBInfo: String;
 begin
   // Server=db.playiot.biz,DataBase=mydb,User_Name=playiot,Password=playiot,Port=5432
-  result := GetStringValue('DB', 'Params', 'Edit Params');
+  result := GetStringValue('DB', 'Params', 'Edit DB connect params...');
 end;
 
 function TOption.GetTcpPort: Integer;
@@ -65,8 +65,8 @@ class function TOption.Obj: TOption;
 begin
   if MyObj = nil then
   begin
-    MyObj := TOption.Create(nil, HKEY_LOCAL_MACHINE);
-    MyObj.Path := '\playIoT\MyProject';
+    MyObj := TOption.Create(nil);
+    MyObj.Path := ChangeFileExt(TGlobal.Obj.ExeName, '.ini');
   end;
   result := MyObj;
 end;

@@ -76,12 +76,12 @@ begin
     Reg.Free;
   end;
 
-  TGlobal.Obj.ApplicationMessage(mtLog, 'Installed', SERVICE_NAME);
+  TGlobal.Obj.ApplicationMessage(mtWarning, 'Installed', SERVICE_NAME);
 end;
 
 procedure TServiceMain.ServiceAfterUninstall(Sender: TService);
 begin
-  TGlobal.Obj.ApplicationMessage(mtLog, 'Uninstalled', SERVICE_NAME);
+  TGlobal.Obj.ApplicationMessage(mtWarning, 'Uninstalled', SERVICE_NAME);
 end;
 
 procedure TServiceMain.ServiceCreate(Sender: TObject);
@@ -93,8 +93,6 @@ end;
 procedure TServiceMain.ServiceEnd;
 begin
   TCore.Obj.Finalize;
-
-  TGlobal.Obj.ApplicationMessage(mtLog, 'Stop');
 end;
 
 procedure TServiceMain.ServiceExecute(Sender: TService);
@@ -110,7 +108,7 @@ end;
 
 procedure TServiceMain.ServiceShutdown(Sender: TService);
 begin
-  TGlobal.Obj.ApplicationMessage(mtLog, 'ServiceShutdown');
+  TGlobal.Obj.ApplicationMessage(mtInfo, 'ServiceShutdown');
   ServiceEnd;
 end;
 

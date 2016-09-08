@@ -55,14 +55,18 @@ procedure TGlobal.Finalize;
 begin
   if not FInitialized then
     Exit;
-  FInitialized := False;
 
+  // Todo :
+
+  inherited;
 end;
 
 procedure TGlobal.Initialize;
 begin
   if FInitialized then
     Exit;
+
+  inherited;
 
   // Todo :
 

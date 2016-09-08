@@ -31,10 +31,10 @@ type
   private
     FConnectionPool: TJdcConnectionPool;
 
-    procedure _RaiseException(Msg: String; E: Exception);
-
+    procedure InitCode;
     procedure ServiceEnd;
     function GetExeName: String;
+    procedure _RaiseException(Msg: String; E: Exception);
   protected
     function DoStop: Boolean; override;
     function DoPause: Boolean; override;
@@ -80,7 +80,7 @@ begin
       AQuery.ParamByJSONObject(AParams, TGlobal.Obj.ApplicationMessage);
       AQuery.ExecSQL;
       result := true;
-      TGlobal.Obj.ApplicationMessage(mtLog, AProcName, 'Query=%s,SQL=%s',
+      TGlobal.Obj.ApplicationMessage(mtInfo, AProcName, 'Query=%s,SQL=%s',
         [AQuery.Name, AQuery.SQL.Text]);
     except
       on E: Exception do
@@ -130,6 +130,31 @@ begin
   result := ServiceController;
 end;
 
+procedure TServerContainer.InitCode;
+  procedure FDQueryToFDMemTab(AQuery: TFDQuery; AMemTab: TFDMemTable);
+  var
+    Conn: TFDConnection;
+  begin
+    Conn := FConnectionPool.GetIdleConnection;
+    try
+      AQuery.Connection := Conn;
+      AQuery.Open;
+
+      AMemTab.LoadFromDSStream(AQuery.ToStream);
+      AQuery.Close;
+
+      AMemTab.Open;
+      TGlobal.Obj.ApplicationMessage(mtInfo, AMemTab.Name + ' Record Count',
+        AMemTab.RecordCount.ToString);
+    finally
+      Conn.Free;
+    end;
+  end;
+
+begin
+  // FDQueryToFDMemTab(qryLogger, mtLogger);
+end;
+
 procedure TServerContainer.ApplyUpdate(AQuery: TFDQuery; AStream: TStream);
 var
   Conn: TFDConnection;
@@ -144,7 +169,7 @@ begin
       Exit;
 
     rlt := AQuery.ApplyUpdates;
-    TGlobal.Obj.ApplicationMessage(mtLog, 'ApplyUpdates',
+    TGlobal.Obj.ApplicationMessage(mtInfo, 'ApplyUpdates',
       'Query=%s,UpdateCount=%d', [AQuery.Name, rlt]);
   finally
     Conn.Free;
@@ -215,16 +240,12 @@ end;
 function TServerContainer.DoPause: Boolean;
 begin
   DSServer.Stop;
-
-  TGlobal.Obj.ApplicationMessage(mtLog, 'Stop');
   result := inherited;
 end;
 
 function TServerContainer.DoStop: Boolean;
 begin
   DSServer.Stop;
-
-  TGlobal.Obj.ApplicationMessage(mtLog, 'Stop');
   result := inherited;
 end;
 
@@ -244,12 +265,12 @@ begin
   finally
     Reg.Free;
   end;
-  TGlobal.Obj.ApplicationMessage(mtLog, 'Installed', SERVICE_NAME);
+  TGlobal.Obj.ApplicationMessage(mtWarning, 'Installed', SERVICE_NAME);
 end;
 
 procedure TServerContainer.ServiceAfterUninstall(Sender: TService);
 begin
-  TGlobal.Obj.ApplicationMessage(mtLog, 'Uninstalled', SERVICE_NAME);
+  TGlobal.Obj.ApplicationMessage(mtWarning, 'Uninstalled', SERVICE_NAME);
 end;
 
 procedure TServerContainer.ServiceCreate(Sender: TObject);
@@ -292,8 +313,17 @@ begin
   DSHTTPService.HttpPort := TOption.Obj.HttpPort;
   DSServer.Start;
 
-  TGlobal.Obj.ApplicationMessage(mtLog, 'Start', 'TCP=%d,HTTP=%d',
+  TGlobal.Obj.ApplicationMessage(mtInfo, 'DSServer', 'TCP=%d,HTTP=%d',
     [DSTCPServerTransport.Port, DSHTTPService.HttpPort]);
+
+  if Assigned(FConnectionPool) then
+    try
+      InitCode;
+    except
+      on E: Exception do
+        _RaiseException('DB Test Failed.', E);
+    end;
+
 end;
 
 procedure TServerContainer.ServiceStop(Sender: TService; var Stopped: Boolean);

@@ -616,7 +616,7 @@ begin
     PrintDebug('<%s> [%s] %s - %s', [AType, FAppCode, ATitle, AMessage]);
 
   if moLogFile in AOutputs then
-    PrintLog(FLogName, '<%s> %s - %s', [AType, ATitle, AMessage]);
+    PrintLog(FLogName, Format('<%s> %s - %s', [AType, ATitle, AMessage]));
 
   if moCloudMessage in AOutputs then
     CloudMessage(FProjectCode, FAppCode, AType, ATitle, AMessage,

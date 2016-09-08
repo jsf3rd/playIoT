@@ -41,8 +41,6 @@ end;
 
 procedure TCore.Finalize;
 begin
-  TGlobal.Obj.Finalize;
-
   if FIsfinalized then
     Exit;
   FIsfinalized := true;
@@ -52,7 +50,7 @@ begin
   FMyTask.WaitFor;
   FreeAndNil(FMyTask);
 
-  TGlobal.Obj.ApplicationMessage(mtLog, 'Service', 'Stop');
+  TGlobal.Obj.Finalize;
 end;
 
 procedure TCore.Initialize;
@@ -96,9 +94,6 @@ end;
 
 procedure TCore.Start;
 begin
-  // Start Thread
-  TGlobal.Obj.ApplicationMessage(mtLog, 'Service', 'Start');
-
   FMyTask.Start;
 end;
 
