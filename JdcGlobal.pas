@@ -85,7 +85,7 @@ type
     procedure Execute(AValue: T);
   End;
 
-  TMessageType = (mtDebug, mtLog, mtError, mtWarning, mtUnknown);
+  TMessageType = (mtDebug, mtInfo, mtError, mtWarning, mtUnknown);
 
   TLogProc = procedure(const AType: TMessageType; const ATitle: String;
     const AMessage: String = '') of object;
@@ -113,6 +113,8 @@ type
     FExeName: String;
     FLogName: string;
 
+    FStartTime: TDateTime;
+
     procedure SetExeName(const Value: String); virtual; abstract;
 
     procedure _ApplicationMessage(const AType: string; const ATitle: string;
@@ -122,8 +124,8 @@ type
     constructor Create; virtual;
     destructor Destroy; override;
 
-    procedure Initialize; virtual; abstract;
-    procedure Finalize; virtual; abstract;
+    procedure Initialize; virtual;
+    procedure Finalize; virtual;
 
     procedure ApplicationMessage(const AType: TMessageType;
       const ATitle: String; const AMessage: String = ''); overload; virtual;
@@ -136,7 +138,7 @@ type
     property LogName: string read FLogName;
 
   const
-    MESSAGE_TYPE_LOG = 'LOG';
+    MESSAGE_TYPE_INFO = 'INFO';
     MESSAGE_TYPE_ERROR = 'ERROR';
     MESSAGE_TYPE_DEBUG = 'DEBUG';
     MESSAGE_TYPE_WARNING = 'WARNING';
@@ -144,6 +146,8 @@ type
   end;
 
 implementation
+
+uses JdcGlobal.ClassHelper;
 
 function DefaultFormatSettings: TFormatSettings;
 begin
@@ -554,8 +558,8 @@ begin
     mtDebug:
       _ApplicationMessage(MESSAGE_TYPE_DEBUG, ATitle, AMessage,
         [moDebugView, moLogFile]);
-    mtLog:
-      _ApplicationMessage(MESSAGE_TYPE_LOG, ATitle, AMessage);
+    mtInfo:
+      _ApplicationMessage(MESSAGE_TYPE_INFO, ATitle, AMessage);
     mtError:
       _ApplicationMessage(MESSAGE_TYPE_ERROR, ATitle, AMessage);
     mtWarning:
@@ -588,15 +592,31 @@ begin
   inherited;
 end;
 
+procedure TGlobalAbstract.Finalize;
+begin
+  ApplicationMessage(mtInfo, 'Stop', 'StartTime=' + FStartTime.ToString);
+  FInitialized := False;
+end;
+
+procedure TGlobalAbstract.Initialize;
+begin
+  FStartTime := now;
+{$IFDEF WIN32}
+  ApplicationMessage(mtInfo, 'Start', '(x86) ' + FExeName);
+{$ENDIF}
+{$IFDEF WIN64}
+  ApplicationMessage(mtInfo, 'Start', '(x64) ' + FExeName);
+{$ENDIF}
+end;
+
 procedure TGlobalAbstract._ApplicationMessage(const AType: string;
   const ATitle: string; const AMessage: String; const AOutputs: TMsgOutputs);
 begin
   if moDebugView in AOutputs then
-    PrintDebug('<' + AType + '> [' + FAppCode + '] ' + ATitle + ' - ' +
-      AMessage);
+    PrintDebug('<%s> [%s] %s - %s', [AType, FAppCode, ATitle, AMessage]);
 
   if moLogFile in AOutputs then
-    PrintLog(FLogName, '<' + AType + '> ' + ATitle + ' - ' + AMessage);
+    PrintLog(FLogName, '<%s> %s - %s', [AType, ATitle, AMessage]);
 
   if moCloudMessage in AOutputs then
     CloudMessage(FProjectCode, FAppCode, AType, ATitle, AMessage,
