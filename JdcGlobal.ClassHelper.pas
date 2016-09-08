@@ -186,16 +186,16 @@ var
 begin
   Result := GetValue(Name);
 
+  if Assigned(Result) then
+    Exit;
+
   Names := '';
   for MyElem in Self do
-  begin
     Names := Names + MyElem.JsonString.Value + ', ';
-  end;
 
-  if not Assigned(Result) then
-    raise Exception.Create
-      (Format('JSON name [%s] is not exist. Other name list [%s]',
-      [Name, Names]));
+  raise Exception.Create
+    (Format('JSON name [%s] is not exist. Other name list [%s]',
+    [Name, Names]));
 end;
 
 class function TJSONObjectHelper.ParseFile(FileName: String): TJSONValue;
