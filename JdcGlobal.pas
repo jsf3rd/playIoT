@@ -110,7 +110,7 @@ type
     FAppCode: string;
 
     FIsInitialized: boolean;
-    FIsfinalized: boolean;
+    FIsFinalized: boolean;
     FExeName: String;
     FLogName: string;
 
@@ -582,7 +582,7 @@ begin
   FExeName := '';
   FLogName := '';
   FIsInitialized := False;
-  FIsfinalized := False;
+  FIsFinalized := False;
 end;
 
 procedure TGlobalAbstract.Finalize;
@@ -594,10 +594,10 @@ procedure TGlobalAbstract.Initialize;
 begin
   FStartTime := now;
 {$IFDEF WIN32}
-  ApplicationMessage(mtInfo, 'Start', '(x86) ' + FExeName);
+  ApplicationMessage(mtInfo, 'Start', '(x86)' + FExeName);
 {$ENDIF}
 {$IFDEF WIN64}
-  ApplicationMessage(mtInfo, 'Start', '(x64) ' + FExeName);
+  ApplicationMessage(mtInfo, 'Start', '(x64)' + FExeName);
 {$ENDIF}
 end;
 
