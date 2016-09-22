@@ -1,7 +1,7 @@
 object fmMain: TfmMain
   Left = 0
   Top = 0
-  Caption = 'miniSeed Parser v1.0'
+  Caption = 'miniSEED Parser v1.2'
   ClientHeight = 362
   ClientWidth = 634
   Color = clBtnFace
@@ -25,9 +25,9 @@ object fmMain: TfmMain
     Lines.Strings = (
       'Do not use commercial purpose.'
       ''
-      'jsf3rd@enbgroup.co.kr.'
+      'jsf3rd@playiot.biz'
       ''
-      '(c)ENBGROUP 2014, JUDICO.'
+      '(c)playIoT 2016.'
       ''
       '----------------------------------------------------')
     ReadOnly = True
