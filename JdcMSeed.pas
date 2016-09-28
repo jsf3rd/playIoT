@@ -134,7 +134,7 @@ var
   Format: TEncodingFormat;
 begin
   Format := TEncodingFormat(AParam.encoding);
-  if (Format <> efStaim1) and (Format <> efStaim2) then
+  if (Format <> efSteim1) and (Format <> efSteim2) then
     raise Exception.Create('This encoding format is not surpported. ' +
       AParam.encoding.ToString);
 
@@ -149,7 +149,8 @@ var
   MyElem: Integer;
   FixedHeader: TFixedHeader;
   SteimDecoder: TSteimDecoder;
-  DataRecord: TArray<TDataFrame>;
+  DataRecord: TDataRecord;
+  I: Integer;
 begin
   result := TRawData.Create;
 
@@ -162,8 +163,9 @@ begin
     if not FixedHeader.IsSteimEncoding then
       raise Exception.Create('not a steim format.');
 
-    SetLength(DataRecord, FixedHeader.Blkt1001.GetFrameCount);
-    AStream.Read(DataRecord[0], Length(DataRecord) * SizeOf(TDataFrame));
+    SetLength(DataRecord, FixedHeader.FrameCount);
+    for I := Low(DataRecord) to High(DataRecord) do
+      AStream.Read(DataRecord[I], SizeOf(TDataFrame));
 
     SteimDecoder := SteimDecoderFactory(FixedHeader.Blkt1000);
     try
@@ -238,13 +240,14 @@ var
   SteimEncoder: TSteimEncoder;
 
   Peeks: TPeeks;
+  I: Integer;
 begin
   SteimType := TSteimType(AFixedHeader.Blkt1000.encoding);
 
   Stream := TFile.Create(APath);
   try
-    SteimEncoder := TSteimEncoder.Create(SteimType, boBig,
-      AFixedHeader.Blkt1001.framecnt);
+    SteimEncoder := TSteimEncoder.Create(SteimType,
+      TByteOrder(AFixedHeader.Blkt1000.byteorder), AFixedHeader.FrameCount);
     try
       Index := 0;
       Peeks := ARawData.Peeks;
@@ -259,7 +262,9 @@ begin
 
         AFixedHeader.Header.numsamples := Rev2Bytes(SampleNum);
         AFixedHeader.WriteTo(Stream);
-        Stream.Write(@DataRecord, SizeOf(TDataRecord));
+
+        for I := Low(DataRecord) to High(DataRecord) do
+          Stream.Write(DataRecord[I], SizeOf(TDataFrame));
       end;
     finally
       SteimEncoder.Free;
@@ -346,8 +351,7 @@ begin
   RawData := ExtractRawData(ACode, APeriod);
   try
     FixedHeader.Blkt1000.encoding := Byte(AType);
-     FixedHeader.Blkt1000.reclen := 9; // Log2(RECORD_SIZE);
-     FixedHeader.Blkt1001.framecnt := FRAMES_PER_RECORD;
+    FixedHeader.Blkt1000.byteorder := Byte(boBig);
     SaveToMSeed(APath, RawData, FixedHeader)
   finally
     RawData.Free;
