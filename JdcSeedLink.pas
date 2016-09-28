@@ -126,7 +126,7 @@ var
   Format: TEncodingFormat;
 begin
   Format := TEncodingFormat(AParam.encoding);
-  if (Format <> efStaim1) and (Format <> efStaim2) then
+  if (Format <> efSteim1) and (Format <> efSteim2) then
     raise Exception.Create('This encoding format is not surpported. ' +
       AParam.encoding.ToString);
 
