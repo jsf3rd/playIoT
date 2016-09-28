@@ -40,12 +40,12 @@ type
     IsFirstDiff: boolean;
     FRefValue: TRefValue;
     FPeeks: TList<Integer>;
-    FDataRecord: TArray<TDataFrame>;
+    FDataRecord: TDataRecord;
     procedure _DecodeData(AIndex: Integer);
     function DecompressSteim(subcode: Byte; accum: Integer): TPeeks;
     procedure SetRefValue(AIndex, AValue: Integer);
   public
-    function DecodeData(ADataRecord: TArray<TDataFrame>): TPeeks;
+    function DecodeData(ADataRecord: TDataRecord): TPeeks;
     constructor Create(AType: TSteimType; AOrder: TByteOrder);
     destructor Destroy; override;
   end;
@@ -78,11 +78,15 @@ begin
   FSteimType := AType;
   FByteOrder := AOrder; // Only Big Endian.
 
+  if FByteOrder = boLittle then
+    raise Exception.Create
+      ('Decoder "BigEndian" Expected but "LittleEndian" found');
+
   FRefValue.Reset;
   IsFirstDiff := false;
 end;
 
-function TSteimDecoder.DecodeData(ADataRecord: TArray<TDataFrame>): TPeeks;
+function TSteimDecoder.DecodeData(ADataRecord: TDataRecord): TPeeks;
 var
   I: Integer;
 begin
@@ -321,6 +325,10 @@ begin
   FSteimType := AType;
   FFrameCount := ACount;
   FByteOrder := AOrder; // Only Big Endian.
+
+  if FByteOrder = boLittle then
+    raise Exception.Create
+      ('Encoder "BigEndian" Expected but "LittleEndian" found');
 end;
 
 function TSteimEncoder.EncodeData(APeeks: TPeeks; AIndex: Integer): TDataRecord;
@@ -347,16 +355,14 @@ var
   FrameIndex: Integer;
   DataFrame: TDataFrame;
 begin
-  FrameIndex := 0;
-  while FrameIndex < FFrameCount do
+  SetLength(result, FFrameCount);
+  for FrameIndex := Low(result) to High(result) do
   begin
     DataFrame := BuildDataFrame(FrameIndex);
 
     result[FrameIndex].ctrl := Rev4Bytes(DataFrame.ctrl);
     for I := 0 to WORDS_PER_FRAME - 1 do
       result[FrameIndex].w[I] := Rev4Bytes(DataFrame.w[I]);
-
-    inc(FrameIndex);
   end;
   result[0].w[1] := Rev4Bytes(FLastSample);
 end;
