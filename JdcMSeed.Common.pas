@@ -16,14 +16,21 @@ uses System.classes, System.SysUtils, Winapi.Windows, JdcGlobal, IdGlobal,
   System.DateUtils, System.Generics.Collections, System.Math;
 
 const
+  FIXED_DATA_OFFSET = $4000; // 64
   BLOCKETTE_CODE_1000 = $E803;
   BLOCKETTE_CODE_1001 = $E903;
-  BLOCKETTE1001_OFFSET = $3800;
+  BLOCKETTE_1001_OFFSET = $3800; // 56
 
   WORDS_PER_FRAME = 15;
-  FRAME_SIZE = (WORDS_PER_FRAME * 4 + 4);
-  FRAMES_PER_RECORD = 7;
-  RECORD_SIZE = FRAME_SIZE * (FRAMES_PER_RECORD + 1);
+  FRAME_SIZE = (WORDS_PER_FRAME * 4 + 4); // 64
+
+  FILE_RECORD_LENGTH = Byte(12); // Power(2, 12) = 4096
+  FILE_FRAMES_COUNT = Byte(63);
+  // (FILE_RECORD_LENGTH - FIXED_DATA_OFFSET ) / FRAME_SIZE
+
+  STREAM_RECORD_LENGTH = Byte(9); // Power(2, 9) = 512
+  STREAM_FRAMES_COUNT = Byte(7);
+  // (STREAM_RECORD_LENGTH - FIXED_DATA_OFFSET ) / FRAME_SIZE
 
 type
   TBlocketteTypeException = class(Exception)
@@ -34,7 +41,7 @@ type
   TMSeedContainer = TDictionary<String, TStream>;
 
   TEncodingFormat = (efAscii = 0, efInt16 = 1, efInt24 = 2, efInt32 = 3,
-    efFloat = 4, efDouble = 5, efStaim1 = 10, efStaim2 = 11);
+    efFloat = 4, efDouble = 5, efSteim1 = 10, efSteim2 = 11);
 
   TSteimType = (stLevel1 = 10, stLevel2 = 11);
   TByteOrder = (boLittle, boBig);
@@ -54,7 +61,7 @@ type
     constructor Create(AStream: TStream); overload;
   end;
 
-  TDataRecord = Array [0 .. FRAMES_PER_RECORD - 1] of TDataFrame;
+  TDataRecord = TArray<TDataFrame>;
 
   TPeriod = record
     StartDateTime: TDateTime;
@@ -116,7 +123,7 @@ type
     reserved: Byte;
 
     constructor Create(AStream: TStream); overload;
-    constructor Create(AType: TSteimType); overload;
+    constructor Create(AType: TSteimType; ALength: Byte); overload;
     function IsValid: boolean;
     function RecordLength: Integer;
     function ToString: String;
@@ -132,9 +139,8 @@ type
 
     function ToString: String;
     constructor Create(AStream: TStream); overload;
-    constructor Create(ATemp: Integer); overload;
+    constructor Create(ACount: Byte); overload;
     function IsValid: boolean;
-    function GetFrameCount: Integer;
   end;
 
   TFixedHeader = packed record
@@ -148,6 +154,7 @@ type
     function IsSteimEncoding: boolean;
     function DataLength: Integer;
     procedure WriteTo(ASteram: TStream);
+    function FrameCount: Integer;
   private
     procedure Recode4YDP;
   end;
@@ -387,13 +394,13 @@ end;
 
 { TBlockette1000 }
 
-constructor TBlockette1000.Create(AType: TSteimType);
+constructor TBlockette1000.Create(AType: TSteimType; ALength: Byte);
 begin
   Self.blockette_code := BLOCKETTE_CODE_1000;
-  Self.next_blockette_offset := Rev2Bytes(56);
+  Self.next_blockette_offset := BLOCKETTE_1001_OFFSET;
   Self.encoding := Byte(AType);
-  Self.byteorder := 1;
-  Self.reclen := 9;
+  Self.byteorder := Byte(boBig);
+  Self.reclen := ALength;
   Self.reserved := 0;
 end;
 
@@ -428,22 +435,14 @@ end;
 
 { TBlockette1001 }
 
-constructor TBlockette1001.Create(ATemp: Integer);
+constructor TBlockette1001.Create(ACount: Byte);
 begin
   Self.blockette_code := BLOCKETTE_CODE_1001;
   Self.next_blockette_offset := 0;
   Self.timing_qual := 0;
   Self.usec := 0;
   Self.reserved := 0;
-  Self.framecnt := FRAMES_PER_RECORD;
-end;
-
-function TBlockette1001.GetFrameCount: Integer;
-begin
-  if IsValid then
-    result := framecnt
-  else
-    result := FRAMES_PER_RECORD;
+  Self.framecnt := ACount;
 end;
 
 constructor TBlockette1001.Create(AStream: TStream);
@@ -566,6 +565,11 @@ end;
 constructor TFixedHeader.Create(AStream: TStream);
 begin
   Self.Header := TMSeedHeader.Create(AStream);
+
+  if Self.Header.data_offset <> FIXED_DATA_OFFSET then
+    raise Exception.Create('DataOffset 64 Expected but ' +
+      Rev2Bytes(Self.Header.data_offset).ToString + ' found');
+
   Self.Blkt1000 := TBlockette1000.Create(AStream);
   Self.Blkt1001 := TBlockette1001.Create(AStream);
 
@@ -577,8 +581,8 @@ end;
 constructor TFixedHeader.Create(AHeader: TMSeedHeader; AType: TSteimType);
 begin
   Self.Header := AHeader;
-  Self.Blkt1000 := TBlockette1000.Create(AType);
-  Self.Blkt1001 := TBlockette1001.Create(0);
+  Self.Blkt1000 := TBlockette1000.Create(AType, FILE_RECORD_LENGTH);
+  Self.Blkt1001 := TBlockette1001.Create(FILE_FRAMES_COUNT);
 end;
 
 function TFixedHeader.DataLength: Integer;
@@ -586,13 +590,21 @@ begin
   result := Self.Blkt1000.RecordLength - SizeOf(Self);
 end;
 
+function TFixedHeader.FrameCount: Integer;
+begin
+  if Blkt1001.IsValid then
+    Exit(Blkt1001.framecnt);
+
+  result := Self.DataLength div FRAME_SIZE;
+end;
+
 function TFixedHeader.IsSteimEncoding: boolean;
 var
   Format: TEncodingFormat;
 begin
   Format := TEncodingFormat(Blkt1000.encoding);
-  result := (Format = TEncodingFormat.efStaim1) or
-    (Format = TEncodingFormat.efStaim2);
+  result := (Format = TEncodingFormat.efSteim1) or
+    (Format = TEncodingFormat.efSteim2);
 end;
 
 procedure TFixedHeader.Validate;
