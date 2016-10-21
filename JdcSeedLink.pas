@@ -141,13 +141,15 @@ var
   MyElem: Integer;
   SteimDecoder: TSteimDecoder;
   DataRecord: TArray<TDataFrame>;
+  I: Integer;
 begin
   result := TList<Integer>.Create;
 
   while AStream.Position < AStream.Size do
   begin
-    SetLength(DataRecord, FixedHeader.Blkt1001.GetFrameCount);
-    AStream.Read(DataRecord[0], Length(DataRecord) * SizeOf(TDataFrame));
+    SetLength(DataRecord, FixedHeader.FrameCount);
+    for I := Low(DataRecord) to High(DataRecord) do
+      AStream.Read(DataRecord[I], SizeOf(TDataFrame));
 
     SteimDecoder := SteimDecoderFactory(FixedHeader.Blkt1000);
     try
