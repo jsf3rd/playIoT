@@ -1,7 +1,7 @@
 object fmMain: TfmMain
   Left = 0
   Top = 0
-  Caption = 'miniSEED Parser v1.2'
+  Caption = 'miniSEED Parser v1.3'
   ClientHeight = 362
   ClientWidth = 634
   Color = clBtnFace
