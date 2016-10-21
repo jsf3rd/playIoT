@@ -63,11 +63,11 @@ var
   PData: Pointer;
   ReadPosition: Cardinal;
   Sequence: Cardinal;
-  MyVersion: Byte;
 begin
   PData := FDataList;
   ReadPosition := FCurrentSequence and FDataInfo.Mask;
   PData := Ptr(UInt32(PData) + ReadPosition * FDataInfo.DataLength);
+
   // PrintDebug('[GetData] CodeName=%s,Seq=%u,Pos=%u',
   // [FCodeName, FCurrentSequence, ReadPosition]);
 
@@ -84,11 +84,6 @@ begin
   end;
 
   PData := Ptr(Integer(PData) + SizeOf(Cardinal));
-  CopyMemory(@MyVersion, PData, SizeOf(Byte));
-
-  if MyVersion = 0 then
-    Exit(nil);
-
   result := PData;
 end;
 
