@@ -271,7 +271,6 @@ begin
   Self.FetchAll;
   Self.SaveToStream(result, sfBinary);
   result.Position := 0;
-  Self.Close;
 end;
 
 function TFDQueryHelper.ToJSON: TJSONObject;
