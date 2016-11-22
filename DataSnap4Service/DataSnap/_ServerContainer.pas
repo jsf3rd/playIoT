@@ -45,6 +45,7 @@ type
     function GetIdleConnection: TFDConnection;
     function GetServiceController: TServiceController; override;
 
+    function OpenInstanceQuery(AQuery: TFDQuery; AParams: TJSONObject): TStream;
     function OpenQuery(AQuery: TFDQuery; AParams: TJSONObject): TStream;
     function ExecQuery(AQuery: TFDQuery; AParams: TJSONObject;
       AProcName: String): Boolean;
@@ -80,8 +81,8 @@ begin
       AQuery.ParamByJSONObject(AParams, TGlobal.Obj.ApplicationMessage);
       AQuery.ExecSQL;
       result := true;
-      TGlobal.Obj.ApplicationMessage(mtInfo, AProcName, 'Query=%s,SQL=%s',
-        [AQuery.Name, AQuery.SQL.Text]);
+      TGlobal.Obj.ApplicationMessage(mtInfo, AProcName,
+        'Query=%s,RowsAffected=%d', [AQuery.Name, AQuery.RowsAffected]);
     except
       on E: Exception do
       begin
@@ -89,7 +90,6 @@ begin
         CreateDBPool;
       end;
     end;
-
   finally
     Conn.Free;
   end;
@@ -170,9 +170,31 @@ begin
 
     rlt := AQuery.ApplyUpdates;
     TGlobal.Obj.ApplicationMessage(mtInfo, 'ApplyUpdates',
-      'Query=%s,UpdateCount=%d', [AQuery.Name, rlt]);
+      'Query=%s,RowsAffected=%d', [AQuery.Name, rlt]);
   finally
     Conn.Free;
+  end;
+end;
+
+function TServerContainer.OpenInstanceQuery(AQuery: TFDQuery;
+  AParams: TJSONObject): TStream;
+var
+  MyQuery: TFDQuery;
+  I: integer;
+begin
+  MyQuery := TFDQuery.Create(Self);
+  try
+    MyQuery.SQL.Text := AQuery.SQL.Text;
+    MyQuery.Name := AQuery.Name + '_' + TThread.CurrentThread.ThreadID.ToString;
+
+    for I := 0 to AQuery.ParamCount - 1 do
+    begin
+      MyQuery.Params.Items[I].DataType := AQuery.Params.Items[I].DataType;
+    end;
+
+    result := ServerContainer.OpenQuery(MyQuery, AParams);
+  finally
+    MyQuery.Free;
   end;
 end;
 
@@ -194,12 +216,12 @@ begin
       on E: Exception do
       begin
         CreateDBPool;
-        raise E;
+        raise Exception.Create(E.Message);
       end;
     end;
 
-    TGlobal.Obj.ApplicationMessage(mtDebug, 'OpenQuery', 'Query=%s,SQL=%s',
-      [AQuery.Name, AQuery.SQL.Text]);
+    TGlobal.Obj.ApplicationMessage(mtDebug, 'OpenQuery',
+      'Query=%s,RecordCount=%d', [AQuery.Name, AQuery.RecordCount]);
   finally
     Conn.Free;
   end;
@@ -311,7 +333,13 @@ begin
 
   DSTCPServerTransport.Port := TOption.Obj.TcpPort;
   DSHTTPService.HttpPort := TOption.Obj.HttpPort;
-  DSServer.Start;
+  try
+    DSServer.Start;
+  except
+    on E: Exception do
+      _RaiseException(Format('TCP=%d,HTTP=%d,E=%s', [DSTCPServerTransport.Port,
+        DSHTTPService.HttpPort, E.Message]), E);
+  end;
 
   TGlobal.Obj.ApplicationMessage(mtInfo, 'DSServer', 'TCP=%d,HTTP=%d',
     [DSTCPServerTransport.Port, DSHTTPService.HttpPort]);
