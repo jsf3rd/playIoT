@@ -37,6 +37,8 @@ type
       APeriod: TPeriod);
     procedure SaveToMSeed(APath: String; ARawData: TRawData;
       AFixedHeader: TFixedHeader);
+
+    function _GetStartTime(AStream: TStream): TDateTime;
   public
     constructor Create(AFile: String = '');
     destructor Destroy; override;
@@ -59,6 +61,8 @@ type
     procedure ExtractToMSeed(APath, ACode: String; AType: TSteimType); overload;
     procedure ExtractToMSeed(APath, ACode: String; AType: TSteimType;
       ABegin, AEnd: TDateTime); overload;
+
+    function GetStartTime(ACode: string): TDateTime;
   end;
 
 implementation
@@ -211,7 +215,7 @@ begin
   try
     for I := 0 to RawData.Count - 1 do
       Stream.WriteLine(FormatDateTime('YYYY-MM-DD HH:NN:SS.zzz',
-        RawData.Items[I].DateTime) + ' ' + RawData.Items[I].Peek.ToString);
+        RawData.Items[I].DateTime) + ',' + RawData.Items[I].Peek.ToString);
   finally
     FreeAndNil(Stream);
   end;
@@ -292,10 +296,10 @@ procedure TMSeedFile.AsciiToMSeed(ASource: String; AHeader: TMSeedHeader;
 
   function ReadFile(AFile: String): TRawData;
   var
-    tmp: String;
     MyRecord: String;
     DateTime: TDateTime;
     Stream: TStreamReader;
+    Splited: TArray<String>;
   begin
     result := TRawData.Create;
 
@@ -307,11 +311,9 @@ procedure TMSeedFile.AsciiToMSeed(ASource: String; AHeader: TMSeedHeader;
         if MyRecord = '' then
           break;
 
-        tmp := MyRecord.Split([' '])[0] + ' ' + MyRecord.Split([' '])[1];
-        DateTime := StrToDateTime(tmp);
-
-        tmp := MyRecord.Split([' '])[2];
-        result.Add(TPeekValue.Create(DateTime, tmp.ToInteger));
+        Splited := MyRecord.Split([',']);
+        DateTime := StrToDateTime(Splited[0]);
+        result.Add(TPeekValue.Create(DateTime, Splited[1].ToInteger));
       end;
     finally
       Stream.Free;
@@ -356,6 +358,16 @@ begin
   finally
     RawData.Free;
   end;
+end;
+
+function TMSeedFile._GetStartTime(AStream: TStream): TDateTime;
+var
+  FixedHeader: TFixedHeader;
+begin
+  AStream.Position := 0;
+  FixedHeader := TFixedHeader.Create(AStream);
+  FixedHeader.Validate;
+  result := FixedHeader.Header.start_time.DateTime;
 end;
 
 procedure TMSeedFile.AddFile(AFile: String);
@@ -433,6 +445,19 @@ end;
 function TMSeedFile.GetChannelList: TArray<String>;
 begin
   result := FContainer.Keys.ToArray;
+end;
+
+function TMSeedFile.GetStartTime(ACode: string): TDateTime;
+begin
+  if not FContainer.ContainsKey(ACode) then
+    raise Exception.Create('Channel code error. ' + ACode);
+
+  try
+    result := _GetStartTime(FContainer.Items[ACode]);
+  except
+    on E: Exception do
+      raise Exception.Create('GetStartTime error. ' + E.Message);
+  end;
 end;
 
 procedure TMSeedFile.RevemoveChannel(AChannel: String);
