@@ -67,6 +67,7 @@ object fmMain: TfmMain
       Top = 16
       Width = 187
       Height = 21
+      AddQuotes = False
       ImeName = 'Microsoft Office IME 2007'
       TabOrder = 0
       Text = ''

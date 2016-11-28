@@ -123,49 +123,49 @@ begin
 
     for I := 0 to SmapleCount do
     begin
-      Sample.WriteLine(FormatDateTime('YYYY-MM-DD HH:NN:SS.zzz', DateTime) + ' '
+      Sample.WriteLine(FormatDateTime('YYYY-MM-DD HH:NN:SS.zzz', DateTime) + ','
         + Random(8).ToString);
       DateTime := IncMilliSecond(DateTime, 10);
     end;
 
     for I := 0 to SmapleCount do
     begin
-      Sample.WriteLine(FormatDateTime('YYYY-MM-DD HH:NN:SS.zzz', DateTime) + ' '
+      Sample.WriteLine(FormatDateTime('YYYY-MM-DD HH:NN:SS.zzz', DateTime) + ','
         + Random(32).ToString);
       DateTime := IncMilliSecond(DateTime, 10);
     end;
 
     for I := 0 to SmapleCount do
     begin
-      Sample.WriteLine(FormatDateTime('YYYY-MM-DD HH:NN:SS.zzz', DateTime) + ' '
+      Sample.WriteLine(FormatDateTime('YYYY-MM-DD HH:NN:SS.zzz', DateTime) + ','
         + Random(128).ToString);
       DateTime := IncMilliSecond(DateTime, 10);
     end;
 
     for I := 0 to SmapleCount do
     begin
-      Sample.WriteLine(FormatDateTime('YYYY-MM-DD HH:NN:SS.zzz', DateTime) + ' '
+      Sample.WriteLine(FormatDateTime('YYYY-MM-DD HH:NN:SS.zzz', DateTime) + ','
         + Random(256).ToString);
       DateTime := IncMilliSecond(DateTime, 10);
     end;
 
     for I := 0 to SmapleCount * 2 do
     begin
-      Sample.WriteLine(FormatDateTime('YYYY-MM-DD HH:NN:SS.zzz', DateTime) + ' '
+      Sample.WriteLine(FormatDateTime('YYYY-MM-DD HH:NN:SS.zzz', DateTime) + ','
         + Random(500000000).ToString);
       DateTime := IncMilliSecond(DateTime, 10);
     end;
 
     for I := 0 to SmapleCount do
     begin
-      Sample.WriteLine(FormatDateTime('YYYY-MM-DD HH:NN:SS.zzz', DateTime) + ' '
+      Sample.WriteLine(FormatDateTime('YYYY-MM-DD HH:NN:SS.zzz', DateTime) + ','
         + Random(65535).ToString);
       DateTime := IncMilliSecond(DateTime, 10);
     end;
 
     for I := 0 to SmapleCount do
     begin
-      Sample.WriteLine(FormatDateTime('YYYY-MM-DD HH:NN:SS.zzz', DateTime) + ' '
+      Sample.WriteLine(FormatDateTime('YYYY-MM-DD HH:NN:SS.zzz', DateTime) + ','
         + Random(16).ToString);
       DateTime := IncMilliSecond(DateTime, 10);
     end;
@@ -204,6 +204,8 @@ procedure TfmMain.Test;
 var
   File1, File2: String;
   Header: TMSeedHeader;
+  MSeedFile: TMSeedFile;
+  ACode: string;
 begin
   TDirectory.CreateDirectory('D:\TEST');
 
@@ -223,19 +225,31 @@ begin
   btnMSeed2MSeed_ST2.Click;
 
   btnMSeed2ASCII.Click;
-  File2 := ExtractFilePath(edtFileName.Text) + Header.ChannelCode + '_' +
-    FormatDateTime('YYYYMMDD', now) + '.txt';
-  CompareFile(File1, File2);
+  MSeedFile := TMSeedFile.Create(edtFileName.Text);
+  try
+    ACode := MSeedFile.GetChannelList[0];
+    File2 := ExtractFilePath(edtFileName.Text) + Header.ChannelCode + '_' +
+      FormatDateTime('YYYYMMDD_HHNNSS', MSeedFile.GetStartTime(ACode)) + '.txt';
+    CompareFile(File1, File2);
+  finally
+    MSeedFile.Free;
+  end;
 
   edtFileName.Text := File2;
   ASCII2MSeed(Header, stLevel2);
   File2 := ExtractFilePath(edtFileName.Text) + Header.ChannelCode + '.mseed';
   edtFileName.Text := File2;
-  btnMSeed2ASCII.Click;
-  File2 := ExtractFilePath(edtFileName.Text) + Header.ChannelCode + '_' +
-    FormatDateTime('YYYYMMDD', now) + '.txt';
 
-  CompareFile(File1, File2);
+  btnMSeed2ASCII.Click;
+  MSeedFile := TMSeedFile.Create(edtFileName.Text);
+  try
+    ACode := MSeedFile.GetChannelList[0];
+    File2 := ExtractFilePath(edtFileName.Text) + Header.ChannelCode + '_' +
+      FormatDateTime('YYYYMMDD_HHNNSS', MSeedFile.GetStartTime(ACode)) + '.txt';
+    CompareFile(File1, File2);
+  finally
+    MSeedFile.Free;
+  end;
 
   TDirectory.Delete('D:\TEST', True);
 end;
@@ -257,8 +271,15 @@ begin
 
   for MyElem in MSeedFile.GetChannelList do
   begin
-    FileName := ExtractFilePath(edtFileName.Text) + MyElem + '_' +
-      FormatDateTime('YYYYMMDD', now) + '.txt';
+    try
+      FileName := ExtractFilePath(edtFileName.Text) + MyElem + '_' +
+        FormatDateTime('YYYYMMDD_HHNNSS', MSeedFile.GetStartTime(MyElem)
+        ) + '.txt';
+    except
+      on E: Exception do
+        FileName := ExtractFilePath(edtFileName.Text) + MyElem + '_' +
+          FormatDateTime('YYYYMMDD', now) + '.txt';
+    end;
 
     try
       MSeedFile.ExtractToASCii(FileName, MyElem, BeginTime, EndTime);
