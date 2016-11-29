@@ -29,7 +29,6 @@ type
     procedure InitConnecitonPool;
   public
     function GetIdleConenction: TFDConnection;
-    procedure ReleaseConnection(AConn: TFDConnection);
   end;
 
 var
@@ -70,7 +69,7 @@ begin
   DSHTTPService.HttpPort := TOption.Obj.HttpPort;
   DSServer.Start;
 
-  TGlobal.Obj.ApplicationMessage(mtLog, 'DSServer', 'Start,TCP:%d, HTTP:%d',
+  TGlobal.Obj.ApplicationMessage(mtInfo, 'DSServer', 'Start,TCP:%d, HTTP:%d',
     [DSTCPServerTransport.Port, DSHTTPService.HttpPort]);
 
   InitConnecitonPool;
@@ -112,7 +111,7 @@ begin
   SessionID := IntToStr(TDSSessionManager.Instance.GetThreadSession.Id);
   TDSSessionManager.Instance.GetThreadSession.PutData('IP', UserIP);
 
-  TGlobal.Obj.ApplicationMessage(mtLog, 'UserConnect', 'IP:%s,SessionID:%s',
+  TGlobal.Obj.ApplicationMessage(mtInfo, 'UserConnect', 'IP:%s,SessionID:%s',
     [UserIP, SessionID]);
 end;
 
@@ -124,13 +123,8 @@ end;
 procedure TServerContainer.OnChannelStateChanged(Sender: TObject;
   const EventItem: TDSCallbackTunnelEventItem);
 begin
-  TGlobal.Obj.ApplicationMessage(mtLog, 'ChannelStateChanged', 'UserCount:%d',
+  TGlobal.Obj.ApplicationMessage(mtInfo, 'ChannelStateChanged', 'UserCount:%d',
     [DSServer.GetAllChannelClientId(CHANNEL_DEFAULT).Count]);
-end;
-
-procedure TServerContainer.ReleaseConnection(AConn: TFDConnection);
-begin
-  FConnectionPool.ReleaseConnection(AConn);
 end;
 
 initialization
@@ -153,7 +147,7 @@ SessionEvent :=
         ;
       SessionClose:
         begin
-          TGlobal.Obj.ApplicationMessage(mtLog, 'UserDisconnect',
+          TGlobal.Obj.ApplicationMessage(mtInfo, 'UserDisconnect',
             'IP:%s,SessionID:%s', [UserIP, SessionID]);
         end;
     end;
