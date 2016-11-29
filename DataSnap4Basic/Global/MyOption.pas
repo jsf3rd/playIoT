@@ -3,11 +3,14 @@ unit MyOption;
 interface
 
 uses
-  Classes, SysUtils, JdcOption, MyGlobal;
+  Classes, SysUtils, MyGlobal, System.IniFiles, Registry,
+  Winapi.Windows;
 
 type
-  // TOption = class(TOptionIniFiles)
-  TOption = class(TOptionRegistry)
+  TOption = class
+  private
+    FIniFile: TCustomIniFile;
+    constructor Create;
   private
     function GetDBInfo: String;
     procedure SetDBInfo(ADBInfo: String);
@@ -18,6 +21,8 @@ type
 
   public
     class function Obj: TOption;
+
+    destructor Destroy; override;
 
     property TcpPort: Integer read GetTcpPort write SetTcpPort;
     property HttpPort: Integer read GetHttpPort write SetHttpPort;
@@ -31,43 +36,63 @@ var
 
   { TOption }
 
+constructor TOption.Create;
+var
+  FileName: string;
+begin
+  // IniFile...
+  FileName := ChangeFileExt(TGlobal.Obj.LogName, '.ini');
+  FIniFile := TIniFile.Create(FileName);
+
+  // FIniFile := TMemIniFile.Create(FileName);
+
+  // Registry...
+  // FileName:= ''SOFTWARE\PlayIoT\' + PROJECT_CODE;
+  // FIniFile := TRegistryIniFile.Create(FileName);
+  // TRegistryIniFile(FIniFile).RegIniFile.RootKey := HKEY_CURRENT_USER;
+end;
+
+destructor TOption.Destroy;
+begin
+
+  inherited;
+end;
+
 function TOption.GetDBInfo: String;
 begin
-  result := GetStringValue('DB', 'Params', '');
+  result := FIniFile.ReadString('DB', 'Params', '');
 end;
 
 function TOption.GetTcpPort: Integer;
 begin
-  result := GetIntegerValue('DSServer', 'TCPPort', 211);
+  result := FIniFile.ReadInteger('DSServer', 'TCPPort', 211);
 end;
 
 function TOption.GetHttpPort: Integer;
 begin
-  result := GetIntegerValue('DSServer', 'HTTPPort', 80);
+  result := FIniFile.ReadInteger('DSServer', 'HTTPPort', 80);
 end;
 
 procedure TOption.SetDBInfo(ADBInfo: String);
 begin
-  SetStringValue('DB', 'Params', ADBInfo);
+  FIniFile.WriteString('DB', 'Params', ADBInfo);
 end;
 
 procedure TOption.SetTcpPort(const Value: Integer);
 begin
-  SetIntegerValue('DSServer', 'TCPPort', Value);
+  FIniFile.WriteInteger('DSServer', 'TCPPort', Value);
 end;
 
 procedure TOption.SetHttpPort(const Value: Integer);
 begin
-  SetIntegerValue('DSServer', 'HTTPPort', Value);
+  FIniFile.WriteInteger('DSServer', 'HTTPPort', Value);
 end;
 
 class function TOption.Obj: TOption;
 begin
   if MyObj = nil then
   begin
-    MyObj := TOption.Create(nil);
-    // MyObj.Path := ChangeFileExt(TGlobal.Obj.LogName, '.ini'); // ini
-    MyObj.Path := '\playIoT\MyProject'; // registry
+    MyObj := TOption.Create;
   end;
   result := MyObj;
 end;

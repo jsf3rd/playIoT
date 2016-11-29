@@ -60,20 +60,27 @@ end;
 
 procedure TGlobal.Finalize;
 begin
-  if not FInitialized then
+  if FIsfinalized then
     Exit;
-  FInitialized := false;
+  FIsfinalized := true;
 
+  // Todo :
+
+  inherited;
 end;
 
 procedure TGlobal.Initialize;
 begin
-  if FInitialized then
+  if FIsfinalized then
     Exit;
+  if FIsInitialized then
+    Exit;
+  FIsInitialized := true;
+
+  inherited;
 
   // Todo :
 
-  FInitialized := true;
 end;
 
 class function TGlobal.Obj: TGlobal;

@@ -3,20 +3,24 @@ unit MyOption;
 interface
 
 uses
-  Classes, SysUtils, JdcOption, Winapi.Windows,
-  MyGlobal;
+  Classes, SysUtils, System.IniFiles, Registry,
+  Winapi.Windows, MyGlobal;
 
 type
-  TOption = class(TOptionRegistry)
+  TOption = class
+  private
+    FIniFile: TCustomIniFile;
+    constructor Create;
+
   private
     function GetInterval: Integer;
     procedure SetInterval(const Value: Integer);
 
   public
+    class function Obj: TOption;
+    destructor Destroy; override;
 
     property Interval: Integer read GetInterval write SetInterval;
-
-    class function Obj: TOption;
   end;
 
 implementation
@@ -26,24 +30,47 @@ var
 
   { TOption }
 
+constructor TOption.Create;
+var
+  FileName: string;
+begin
+  // IniFile...
+  FileName := ChangeFileExt(TGlobal.Obj.LogName, '.ini');
+  FIniFile := TIniFile.Create(FileName);
+
+  // FIniFile := TMemIniFile.Create(FileName);
+
+  // Registry...
+  // FileName:= ''SOFTWARE\PlayIoT\' + PROJECT_CODE;
+  // FIniFile := TRegistryIniFile.Create(FileName);
+  // TRegistryIniFile(FIniFile).RegIniFile.RootKey := HKEY_CURRENT_USER;
+end;
+
+destructor TOption.Destroy;
+begin
+  if Assigned(FIniFile) then
+    FIniFile.Free;
+
+  inherited;
+end;
+
 function TOption.GetInterval: Integer;
 begin
-  result := GetIntegerValue('Config', 'Inverval', 1000);
+  result := FIniFile.ReadInteger('Config', 'Inverval', 1000);
 end;
 
 class function TOption.Obj: TOption;
 begin
   if MyObj = nil then
   begin
-    MyObj := TOption.Create(nil, HKEY_LOCAL_MACHINE);
-    MyObj.Path := '\PlayIoT\MyProject';
+    MyObj := TOption.Create;
   end;
   result := MyObj;
 end;
 
 procedure TOption.SetInterval(const Value: Integer);
 begin
-  SetIntegerValue('Config', 'Inverval', Value);
+  FIniFile.WriteInteger('Config', 'Inverval', Value);
 end;
 
 end.

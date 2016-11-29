@@ -75,7 +75,7 @@ end;
 procedure TfmMain.actShowIniExecute(Sender: TObject);
 begin
   ShellExecute(handle, 'open', PWideChar('notepad.exe'),
-    PWideChar(TOption.Obj.Path), '', SW_SHOWNORMAL);
+    PWideChar(TOption.Obj.IniFile.FileName), '', SW_SHOWNORMAL);
 end;
 
 procedure TfmMain.actShowLogExecute(Sender: TObject);
@@ -128,6 +128,9 @@ end;
 procedure TfmMain.rp_Init(APacket: TValueList);
 begin
   Caption := APPLICATION_TITLE;
+
+  TOption.Obj.AppName := Caption;
+  Caption := TOption.Obj.AppName;
 end;
 
 procedure TfmMain.rp_LogMessage(APacket: TValueList);
