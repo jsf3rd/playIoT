@@ -6,8 +6,9 @@ uses
   Classes, SysUtils, IOUtils, JdcGlobal, MyCommon;
 
 const
+  PROJECT_CODE = 'MyProject';
   APPLICATION_CODE = 'playIoT Application';
-  APPLICATION_TITLE = 'palyIoT Form Application Templete';
+  APPLICATION_TITLE = 'playIoT Form Application Templete';
   APPLICATION_VERSION = 'v1.0';
   COPY_RIGHT_SIGN = '¨Ï 2016 playIoT';
   HOME_PAGE_URL = 'http://www.playIoT.biz';
@@ -111,7 +112,7 @@ procedure TGlobal.SetExeName(const Value: String);
 begin
   FExeName := Value;
   FLogName := ChangeFileExt(FExeName, '.log');
-  FLogName := GetEnvironmentVariable('LOCALAPPDATA') + '\palyIoT\' +
+  FLogName := GetEnvironmentVariable('LOCALAPPDATA') + '\playIoT\' +
     ExtractFileName(FLogName);
 
   if not TDirectory.Exists(ExtractFilePath(FLogName)) then
