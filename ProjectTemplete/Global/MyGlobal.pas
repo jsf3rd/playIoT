@@ -79,6 +79,8 @@ begin
     Exit;
   FIsfinalized := true;
 
+  // Todo :
+
   ApplicationMessage(mtDebug, 'Stop', 'StartTime=' + FStartTime.ToString);
 end;
 
