@@ -198,8 +198,8 @@ type
       AType: TSteimType): Integer;
     class function GetSubCode(steim: TSteimType; dnib: Byte;
       accum: Integer): Byte;
-    class function MSeedToRawData(FixedHeader: TFixedHeader; AStream: TStream)
-      : TList<Integer>;
+    class function MSeedToRawData(FixedHeader: TFixedHeader;
+      AStream: TStream): TPeeks;
 
   const
     B1X32 = 0;
@@ -522,13 +522,12 @@ begin
 end;
 
 class function TMSeedCommon.MSeedToRawData(FixedHeader: TFixedHeader;
-  AStream: TStream): TList<Integer>;
+  AStream: TStream): TPeeks;
 var
   MyElem: Integer;
   SteimDecoder: TSteimDecoder;
   DataRecord: TArray<TDataFrame>;
   I: Integer;
-  Peeks: TPeeks;
 begin
   while AStream.Position < AStream.Size do
   begin
@@ -538,13 +537,7 @@ begin
 
     SteimDecoder := TSteimDecoder.Factory(FixedHeader.Blkt1000);
     try
-      Peeks := SteimDecoder.DecodeData(DataRecord);
-      result.Capacity := result.Capacity + Length(Peeks);
-
-      for MyElem in Peeks do
-      begin
-        result.Add(MyElem);
-      end;
+      result := SteimDecoder.DecodeData(DataRecord);
     finally
       SteimDecoder.Free;
     end;
