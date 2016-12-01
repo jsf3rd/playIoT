@@ -26,7 +26,8 @@ type
     FConnectionPool: TJdcConnectionPool;
     procedure OnChannelStateChanged(Sender: TObject;
       const EventItem: TDSCallbackTunnelEventItem);
-    procedure InitConnecitonPool;
+    procedure CreateDBPool;
+    procedure _RaiseException(Msg: String; E: Exception);
   public
     function GetIdleConenction: TFDConnection;
   end;
@@ -44,7 +45,7 @@ uses Winapi.Windows, _smDataLoader, _smDataProvider, MyGlobal, MyOption,
 var
   SessionEvent: TDSSessionEvent;
 
-procedure TServerContainer.InitConnecitonPool;
+procedure TServerContainer.CreateDBPool;
 var
 
   ConnStr: string;
@@ -55,7 +56,23 @@ begin
   DefName := 'Test_Pooled'; // Unique Name
   DriverName := 'MSSQL';
 
-  FConnectionPool := TJdcConnectionPool.Create(ConnStr, DefName, DriverName);
+  if Assigned(FConnectionPool) then
+    FreeAndNil(FConnectionPool);
+
+  try
+    FConnectionPool := TJdcConnectionPool.Create(TOption.Obj.DBInfo, DefName,
+      DriverName);
+    TGlobal.Obj.ApplicationMessage(mtDebug, 'CreateDBPool', TOption.Obj.DBInfo);
+  except
+    on E: Exception do
+      _RaiseException('DB Connection Failed.' + TOption.Obj.DBInfo, E);
+  end;
+end;
+
+procedure TServerContainer._RaiseException(Msg: String; E: Exception);
+begin
+  TGlobal.Obj.ApplicationMessage(mtError, Msg, E.Message);
+  raise Exception.Create(Msg + #13#10 + E.Message);
 end;
 
 procedure TServerContainer.DataModuleCreate(Sender: TObject);
@@ -72,7 +89,7 @@ begin
   TGlobal.Obj.ApplicationMessage(mtInfo, 'DSServer', 'Start,TCP:%d, HTTP:%d',
     [DSTCPServerTransport.Port, DSHTTPService.HttpPort]);
 
-  InitConnecitonPool;
+  CreateDBPool;
 end;
 
 procedure TServerContainer.DataModuleDestroy(Sender: TObject);
@@ -117,7 +134,18 @@ end;
 
 function TServerContainer.GetIdleConenction: TFDConnection;
 begin
-  result := FConnectionPool.GetIdleConnection;
+  if not Assigned(FConnectionPool) then
+    raise Exception.Create('DB Connection Failed.');
+
+  try
+    result := FConnectionPool.GetIdleConnection;
+  except
+    on E: Exception do
+    begin
+      CreateDBPool;
+      raise Exception.Create('GetIdleConnection - ' + E.Message);
+    end;
+  end;
 end;
 
 procedure TServerContainer.OnChannelStateChanged(Sender: TObject;
