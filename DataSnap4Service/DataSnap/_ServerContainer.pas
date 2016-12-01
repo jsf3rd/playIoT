@@ -122,7 +122,15 @@ begin
   if not Assigned(FConnectionPool) then
     raise Exception.Create('DB Connection Failed.');
 
-  result := FConnectionPool.GetIdleConnection;
+  try
+    result := FConnectionPool.GetIdleConnection;
+  except
+    on E: Exception do
+    begin
+      CreateDBPool;
+      raise Exception.Create('GetIdleConnection - ' + E.Message);
+    end;
+  end;
 end;
 
 function TServerContainer.GetServiceController: TServiceController;
@@ -216,6 +224,7 @@ begin
       on E: Exception do
       begin
         CreateDBPool;
+        result := TStream.Create;
         raise Exception.Create(E.Message);
       end;
     end;
