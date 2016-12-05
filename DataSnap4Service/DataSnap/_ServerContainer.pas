@@ -120,7 +120,7 @@ end;
 function TServerContainer.GetIdleConnection: TFDConnection;
 begin
   if not Assigned(FConnectionPool) then
-    raise Exception.Create('DB Connection Failed.');
+    CreateDBPool;
 
   try
     result := FConnectionPool.GetIdleConnection;
