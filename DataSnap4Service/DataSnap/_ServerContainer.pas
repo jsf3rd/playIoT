@@ -19,6 +19,7 @@ type
     DSTCPServerTransport: TDSTCPServerTransport;
     DSHTTPService: TDSHTTPService;
     dscDataProvider: TDSServerClass;
+    DSAuthenticationManager: TDSAuthenticationManager;
     procedure dscDataProviderGetClass(DSServerClass: TDSServerClass;
       var PersistentClass: TPersistentClass);
     procedure ServiceStart(Sender: TService; var Started: Boolean);
@@ -28,6 +29,9 @@ type
     procedure ServiceStop(Sender: TService; var Stopped: Boolean);
     procedure ServiceAfterInstall(Sender: TService);
     procedure ServiceAfterUninstall(Sender: TService);
+    procedure DSAuthenticationManagerUserAuthenticate(Sender: TObject;
+      const Protocol, Context, User, Password: string; var valid: Boolean;
+      UserRoles: TStrings);
   private
     FConnectionPool: TJdcConnectionPool;
 
@@ -85,10 +89,7 @@ begin
         'Query=%s,RowsAffected=%d', [AQuery.Name, AQuery.RowsAffected]);
     except
       on E: Exception do
-      begin
         TGlobal.Obj.ApplicationMessage(mtError, AProcName, E.Message);
-        CreateDBPool;
-      end;
     end;
   finally
     Conn.Free;
@@ -126,10 +127,7 @@ begin
     result := FConnectionPool.GetIdleConnection;
   except
     on E: Exception do
-    begin
-      CreateDBPool;
       raise Exception.Create('GetIdleConnection - ' + E.Message);
-    end;
   end;
 end;
 
@@ -200,7 +198,7 @@ begin
       MyQuery.Params.Items[I].DataType := AQuery.Params.Items[I].DataType;
     end;
 
-    result := ServerContainer.OpenQuery(MyQuery, AParams);
+    result := OpenQuery(MyQuery, AParams);
   finally
     MyQuery.Free;
   end;
@@ -222,11 +220,7 @@ begin
       result := AQuery.ToStream;
     except
       on E: Exception do
-      begin
-        CreateDBPool;
-        result := TStream.Create;
-        raise Exception.Create(E.Message);
-      end;
+        raise Exception.Create('OpenQuery - ' + AQuery.Name + ', ' + E.Message);
     end;
 
     TGlobal.Obj.ApplicationMessage(mtDebug, 'OpenQuery',
@@ -241,19 +235,18 @@ var
   DefName: string;
   DriverName: string;
 begin
+  if Assigned(FConnectionPool) then
+    Exit;
+
   DefName := 'DataSnap';
   DriverName := 'PG';
-
-  if Assigned(FConnectionPool) then
-    FreeAndNil(FConnectionPool);
-
   try
     FConnectionPool := TJdcConnectionPool.Create(TOption.Obj.DBInfo, DefName,
       DriverName);
     TGlobal.Obj.ApplicationMessage(mtDebug, 'CreateDBPool', TOption.Obj.DBInfo);
   except
     on E: Exception do
-      _RaiseException('DB Connection Failed.' + TOption.Obj.DBInfo, E);
+      raise Exception.Create('CreateDBPool-' + E.Message);
   end;
 end;
 
@@ -278,6 +271,17 @@ function TServerContainer.DoStop: Boolean;
 begin
   DSServer.Stop;
   result := inherited;
+end;
+
+procedure TServerContainer.DSAuthenticationManagerUserAuthenticate
+  (Sender: TObject; const Protocol, Context, User, Password: string;
+  var valid: Boolean; UserRoles: TStrings);
+
+const
+  ID = 'palyIoT';
+  PW = 'play345';
+begin
+  valid := (User = ID) and (Password = PW);
 end;
 
 procedure TServerContainer.ServiceAfterInstall(Sender: TService);
