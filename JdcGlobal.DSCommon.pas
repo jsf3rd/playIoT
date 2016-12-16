@@ -268,7 +268,7 @@ begin
   result := TBytesStream.Create;
   Self.Close;
   Self.Open;
-  Self.FetchAll;
+  Self.Refresh;
   Self.SaveToStream(result, sfBinary);
   result.Position := 0;
 end;
