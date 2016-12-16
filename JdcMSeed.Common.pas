@@ -109,6 +109,7 @@ type
     function ChannelCode: String;
     function ToString: String;
     function Interval: Integer;
+    function LastTime: TDateTime;
     constructor Create(AStream: TStream); overload;
     constructor Create(station, location, channel, network: Ansistring;
       samprate_fact: Word); overload;
@@ -323,6 +324,16 @@ begin
   result := Trunc(1000 / Rev2Bytes(samprate_fact));
 end;
 
+function TMSeedHeader.LastTime: TDateTime;
+var
+  StartTime: TDateTime;
+  MSec: Integer;
+begin
+  StartTime := Self.start_time.DateTime;
+  MSec := (Rev2Bytes(Self.numsamples) - 1) * Self.Interval;
+  result := IncMilliSecond(StartTime, MSec);
+end;
+
 function TMSeedHeader.StationCode: String;
 var
   Bytes: TIdBytes;
@@ -524,7 +535,6 @@ end;
 class function TMSeedCommon.MSeedToRawData(FixedHeader: TFixedHeader;
   AStream: TStream): TPeeks;
 var
-  MyElem: Integer;
   SteimDecoder: TSteimDecoder;
   DataRecord: TArray<TDataFrame>;
   I: Integer;
@@ -601,8 +611,8 @@ begin
   Self.Blkt1001 := TBlockette1001.Create(AStream);
 
   // 영등포 구청 전용 코드.
-  if Self.Header.StationCode.StartsWith('SLYP') then
-    Recode4YDP;
+  // if Self.Header.StationCode.StartsWith('SLYP') then
+  // Recode4YDP;
 end;
 
 constructor TFixedHeader.Create(AHeader: TMSeedHeader; AType: TSteimType);
