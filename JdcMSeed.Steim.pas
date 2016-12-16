@@ -48,6 +48,8 @@ type
     function DecodeData(ADataRecord: TDataRecord): TPeeks;
     constructor Create(AType: TSteimType; AOrder: TByteOrder);
     destructor Destroy; override;
+
+    class function Factory(AParam: TBlockette1000): TSteimDecoder;
   end;
 
   TSteimEncoder = class
@@ -128,6 +130,19 @@ begin
   else
     // Header, Null
       ;
+end;
+
+class function TSteimDecoder.Factory(AParam: TBlockette1000): TSteimDecoder;
+var
+  Format: TEncodingFormat;
+begin
+  Format := TEncodingFormat(AParam.encoding);
+  if (Format <> efSteim1) and (Format <> efSteim2) then
+    raise Exception.Create('This encoding format is not surpported. ' +
+      AParam.encoding.ToString);
+
+  result := TSteimDecoder.Create(TSteimType(Format),
+    TByteOrder(AParam.byteorder));
 end;
 
 function TSteimDecoder.DecompressSteim(subcode: Byte; accum: Integer): TPeeks;
