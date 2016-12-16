@@ -17,9 +17,9 @@ uses System.Classes, System.SysUtils, IdTCPClient, JdcMSeed.Common,
   IdExceptionCore, JdcGlobal;
 
 type
-  TOnReceiveDataEvent = procedure(ACode: string; AStartTime: TDateTime;
+  TOnReceiveDataEvent = procedure(ACode: string; AFixedHeader: TFixedHeader;
     const AData: TPeeks) of object;
-  TOnReceiveMSeedEvent = procedure(ACode: string; AStartTime: TDateTime;
+  TOnReceiveMSeedEvent = procedure(ACode: string; AFixedHeader: TFixedHeader;
     AStream: TStream) of object;
 
   TSeedLinkChannel = record
@@ -44,8 +44,6 @@ type
 
     FTimeOutCount: Integer;
 
-    function GetCodeKey(AHeader: TMSeedHeader): string;
-
     procedure SendCommand(Value: string);
     procedure RecvString;
     procedure RecvData;
@@ -58,9 +56,6 @@ type
     procedure SendHello;
     procedure AddStation(Channel: TSeedLinkChannel);
     procedure SendEnd;
-
-    function MSeedToRawData(FixedHeader: TFixedHeader; AStream: TStream)
-      : TList<Integer>;
 
     property OnReceiveData: TOnReceiveDataEvent read FOnReceiveDataEvent
       write FOnReceiveDataEvent;
@@ -121,77 +116,48 @@ begin
   inherited;
 end;
 
-function SteimDecoderFactory(AParam: TBlockette1000): TSteimDecoder;
-var
-  Format: TEncodingFormat;
-begin
-  Format := TEncodingFormat(AParam.encoding);
-  if (Format <> efSteim1) and (Format <> efSteim2) then
-    raise Exception.Create('This encoding format is not surpported. ' +
-      AParam.encoding.ToString);
+procedure TJdcSeedLink.ProcessNewData(Stream: TMemoryStream);
 
-  result := TSteimDecoder.Create(TSteimType(Format),
-    TByteOrder(AParam.byteorder));
-end;
-
-function TJdcSeedLink.MSeedToRawData(FixedHeader: TFixedHeader;
-  AStream: TStream): TList<Integer>;
-var
-  Peeks: TPeeks;
-  MyElem: Integer;
-  SteimDecoder: TSteimDecoder;
-  DataRecord: TArray<TDataFrame>;
-  I: Integer;
-begin
-  result := TList<Integer>.Create;
-
-  while AStream.Position < AStream.Size do
+  function GetCodeKey(AHeader: TMSeedHeader): string;
+  var
+    Bytes: TIdBytes;
   begin
-    SetLength(DataRecord, FixedHeader.FrameCount);
-    for I := Low(DataRecord) to High(DataRecord) do
-      AStream.Read(DataRecord[I], SizeOf(TDataFrame));
+    SetLength(Bytes, 2);
+    CopyMemory(Bytes, @AHeader.network, 2);
+    result := BytesToString(Bytes);
 
-    SteimDecoder := SteimDecoderFactory(FixedHeader.Blkt1000);
-    try
-      Peeks := SteimDecoder.DecodeData(DataRecord);
-      result.Capacity := result.Capacity + Length(Peeks);
+    SetLength(Bytes, 5);
+    CopyMemory(Bytes, @AHeader.station, 5);
+    result := result + BytesToString(Bytes) + '_';
 
-      for MyElem in Peeks do
-      begin
-        result.Add(MyElem);
-      end;
-    finally
-      SteimDecoder.Free;
-    end;
+    SetLength(Bytes, 3);
+    CopyMemory(Bytes, @AHeader.Channel, 3);
+    result := result + BytesToString(Bytes);
+
+    result := result.Replace(' ', '');
   end;
 
-end;
-
-procedure TJdcSeedLink.ProcessNewData(Stream: TMemoryStream);
 var
   FixedHeader: TFixedHeader;
-  RawData: TList<Integer>;
+  RawData: TPeeks;
+  CodeKey: string;
 begin
   try
     Stream.Position := 0;
     FixedHeader := TFixedHeader.Create(Stream);
     FixedHeader.Validate;
 
+    CodeKey := GetCodeKey(FixedHeader.Header);
+
     if Assigned(OnReceiveData) then
     begin
-      RawData := MSeedToRawData(FixedHeader, Stream);
-      try
-        OnReceiveData(GetCodeKey(FixedHeader.Header),
-          FixedHeader.Header.start_time.DateTime, RawData.ToArray);
-      finally
-        FreeAndNil(RawData);
-      end;
+      RawData := TMSeedCommon.MSeedToRawData(FixedHeader, Stream);
+      OnReceiveData(CodeKey, FixedHeader, RawData);
     end;
 
     if Assigned(OnReceiveMSeed) then
     begin
-      OnReceiveMSeed(GetCodeKey(FixedHeader.Header),
-        FixedHeader.Header.start_time.DateTime, Stream);
+      OnReceiveMSeed(CodeKey, FixedHeader, Stream);
     end;
 
   except
@@ -201,25 +167,6 @@ begin
       raise E;
     end;
   end;
-end;
-
-function TJdcSeedLink.GetCodeKey(AHeader: TMSeedHeader): string;
-var
-  Bytes: TIdBytes;
-begin
-  SetLength(Bytes, 2);
-  CopyMemory(Bytes, @AHeader.network, 2);
-  result := BytesToString(Bytes);
-
-  SetLength(Bytes, 5);
-  CopyMemory(Bytes, @AHeader.station, 5);
-  result := result + BytesToString(Bytes) + '_';
-
-  SetLength(Bytes, 3);
-  CopyMemory(Bytes, @AHeader.Channel, 3);
-  result := result + BytesToString(Bytes);
-
-  result := result.Replace(' ', '');
 end;
 
 procedure TJdcSeedLink.RecvData;
