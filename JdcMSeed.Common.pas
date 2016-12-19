@@ -157,7 +157,7 @@ type
     procedure WriteTo(ASteram: TStream);
     function FrameCount: Integer;
   private
-    procedure Recode4YDP;
+
   end;
 
   TCompPacket = record
@@ -609,10 +609,6 @@ begin
 
   Self.Blkt1000 := TBlockette1000.Create(AStream);
   Self.Blkt1001 := TBlockette1001.Create(AStream);
-
-  // 영등포 구청 전용 코드.
-  // if Self.Header.StationCode.StartsWith('SLYP') then
-  // Recode4YDP;
 end;
 
 constructor TFixedHeader.Create(AHeader: TMSeedHeader; AType: TSteimType);
@@ -658,24 +654,6 @@ end;
 procedure TFixedHeader.WriteTo(ASteram: TStream);
 begin
   ASteram.Write(Self, SizeOf(Self));
-end;
-
-procedure TFixedHeader.Recode4YDP;
-begin
-  // Basalt 펌웨어 수정 전 영등포 구청 전용 코드 (ex SLYPG => YPG''''으로 변경)
-  if Self.Header.station[0] = Ord('S') then
-  begin
-    Self.Header.station[0] := Self.Header.station[2];
-    Self.Header.station[1] := Self.Header.station[3];
-    Self.Header.station[2] := Self.Header.station[4];
-    Self.Header.station[3] := $20;
-    Self.Header.station[4] := $20;
-  end;
-  // Basalt 펌웨어 수정 전 영등포 구청 전용 코드
-  if Self.Header.channel[1] = Ord('V') then
-    Self.Header.channel[1] := Ord('C');
-  if Self.Header.channel[1] = Ord('T') then
-    Self.Header.channel[1] := Ord('C');
 end;
 
 { TRawData }
