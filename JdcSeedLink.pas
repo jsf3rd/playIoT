@@ -42,12 +42,14 @@ type
     FOnLogEvent: TLogProc;
     FOnReceiveMSeed: TOnReceiveMSeedEvent;
 
-    FTimeOutCount: Integer;
+    FLastTime: TDictionary<string, TDateTime>; // 이전 데이터 마지막 시간.
 
     procedure SendCommand(Value: string);
+    procedure RecvOK;
     procedure RecvString;
     procedure RecvData;
     procedure ProcessNewData(Stream: TMemoryStream);
+    procedure CheckDataLoss(ACode: string; AHeader: TMSeedHeader);
   public
     constructor Create(ATcpClient: TIdTCPClient);
     destructor Destroy; override;
@@ -66,7 +68,7 @@ type
 
 implementation
 
-uses IdGlobal, JdcMSeed.Steim;
+uses IdGlobal, JdcMSeed.Steim, JdcGlobal.ClassHelper;
 
 const
   COMMAND_CAT = 'CAT';
@@ -83,29 +85,22 @@ procedure TJdcSeedLink.AddStation(Channel: TSeedLinkChannel);
 begin
   SendCommand(COMMAND_STATION + '  ' + Channel.StationCode + ' ' +
     Channel.NetworkCode);
-  RecvString;
+  RecvOK;
   SendCommand(COMMAND_SELECT + ' ' + Channel.ChannelCode);
-  RecvString;
+  RecvOK;
   SendCommand(COMMAND_DATA);
-  RecvString;
+  RecvOK;
 end;
 
 constructor TJdcSeedLink.Create(ATcpClient: TIdTCPClient);
 begin
   FIdTcpClient := ATcpClient;
   FThread := nil;
-  FTimeOutCount := 0;
+  FLastTime := TDictionary<string, TDateTime>.Create;
 end;
 
 destructor TJdcSeedLink.Destroy;
 begin
-  try
-    SendCommand(COMMAND_BYE);
-  except
-    on E: Exception do
-      raise Exception.Create(Self.ClassName + ' Destroy Error,' + E.Message);
-  end;
-
   if Assigned(FThread) then
   begin
     FThread.Terminate;
@@ -113,7 +108,38 @@ begin
     FreeAndNil(FThread);
   end;
 
+  try
+    SendCommand(COMMAND_BYE);
+  except
+    on E: Exception do
+      raise Exception.Create(Self.ClassName + ' Destroy Error,' + E.Message);
+  end;
+
+  if Assigned(FLastTime) then
+    FreeAndNil(FLastTime);
+
   inherited;
+end;
+
+procedure TJdcSeedLink.CheckDataLoss(ACode: string; AHeader: TMSeedHeader);
+var
+  StartTime, LastTime: TDateTime;
+  Interval: Integer;
+begin
+  StartTime := AHeader.start_time.DateTime;
+  Interval := AHeader.Interval;
+
+  if not FLastTime.ContainsKey(ACode) then
+    FLastTime.Add(ACode, IncMilliSecond(StartTime, -Interval));
+
+  LastTime := FLastTime.Items[ACode];
+  if StartTime <> IncMilliSecond(LastTime, Interval) then
+  begin
+    OnLog(mtWarning, 'DataLoss', Format('Code=%s,StartTime=%s,EndTime=%s',
+      [AHeader.ChannelCode, LastTime.ToString, StartTime.ToString]));
+  end;
+
+  FLastTime.Items[ACode] := AHeader.LastTime;
 end;
 
 procedure TJdcSeedLink.ProcessNewData(Stream: TMemoryStream);
@@ -160,6 +186,7 @@ begin
       OnReceiveMSeed(CodeKey, FixedHeader, Stream);
     end;
 
+    CheckDataLoss(CodeKey, FixedHeader.Header);
   except
     on E: Exception do
     begin
@@ -190,11 +217,10 @@ begin
     if Index < 0 then
       Exit;
 
-    OnLog(mtDebug, 'SEEDLink', BytesToString(buffer, Index, 8));
-
     RemoveBytes(buffer, Index);
     FIdTcpClient.IOHandler.ReadBytes(buffer, Index);
-    Exit;
+    OnLog(mtDebug, 'SEEDLink', BytesToString(buffer, 0, 8) + ',' +
+      Length(buffer).ToString);
   end;
 
   Stream := TMemoryStream.Create;
@@ -203,6 +229,39 @@ begin
     ProcessNewData(Stream);
   finally
     FreeAndNil(Stream);
+  end;
+end;
+
+procedure TJdcSeedLink.RecvOK;
+var
+  Msg: string;
+begin
+  if not FIdTcpClient.Connected then
+    Exit;
+
+  while True do
+  begin
+    try
+      Msg := FIdTcpClient.IOHandler.ReadLn;
+      if Msg.IsEmpty then
+        Break
+      else if Msg.Contains('OK') then
+      begin
+        OnLog(mtDebug, 'RECV', Format('OK(%d)', [Msg.Length]));
+        Break;
+      end
+      else
+        OnLog(mtDebug, 'RECV', Format('NotOK(%d)', [Msg.Length]));
+    except
+      on E: EIdReadTimeout do
+        Break;
+
+      on E: Exception do
+      begin
+        OnLog(mtError, 'RecvOK', 'E=' + E.Message);
+        Break;
+      end;
+    end;
   end;
 end;
 
@@ -221,9 +280,6 @@ begin
         Break
       else
         OnLog(mtDebug, 'RECV', Msg);
-
-      if Msg.Equals('OK') then
-        Break;
     except
       on E: EIdReadTimeout do
         Break;
@@ -234,14 +290,13 @@ begin
         Break;
       end;
     end;
-
   end;
 end;
 
 procedure TJdcSeedLink.SendCAT;
 begin
   SendCommand(COMMAND_CAT);
-  RecvString;
+  RecvOK;
 end;
 
 procedure TJdcSeedLink.SendCommand(Value: string);
@@ -252,7 +307,6 @@ end;
 
 procedure TJdcSeedLink.SendEnd;
 begin
-  // RecvString;
   SendCommand(COMMAND_END);
 
   FThread := TThread.CreateAnonymousThread(
@@ -263,17 +317,16 @@ begin
         try
           Sleep(1);
           RecvData;
-          FTimeOutCount := 0;
         except
           on E: EIdReadTimeout do
           begin
-            Inc(FTimeOutCount);
-
-            if FTimeOutCount > 1 then
-              OnLog(mtError, 'ReadTimeOut', 'E=' + E.Message);
+            OnLog(mtDebug, 'ReadTimeOut', 'E=' + E.Message);
           end;
           on E: Exception do
+          begin
             OnLog(mtError, 'RecvData', 'E=' + E.Message);
+            Sleep(1000);
+          end;
         end;
       end;
       Sleep(1000);
