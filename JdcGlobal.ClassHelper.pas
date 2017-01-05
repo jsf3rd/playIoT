@@ -46,6 +46,8 @@ type
 
     function AddPair(const Str: string; const Val: integer)
       : TJSONObject; overload;
+    function AddPair(const Str: string; const Val: double)
+      : TJSONObject; overload;
 
     function ToRecord<T: record >: T;
     function ToObject<T: class>: T;
@@ -135,6 +137,14 @@ begin
         (Format('JSON name [%s] can not cast to TJSONObject. \n %s',
         [Name, JSONValue.ToString]));
   end;
+end;
+
+function TJSONObjectHelper.AddPair(const Str: string; const Val: double)
+  : TJSONObject;
+begin
+  if not Str.IsEmpty then
+    AddPair(TJSONPair.Create(Str, TJSONNumber.Create(Val)));
+  Result := Self;
 end;
 
 procedure TJSONObjectHelper.Clear;
