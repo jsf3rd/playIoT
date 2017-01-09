@@ -314,9 +314,9 @@ begin
     DiskSize(4) / GBFactor]);
 
   Msg := Format
-    ('CloudLog,ProjectCode=%s,AppCode=%s,TypeCode=%s,ComputerName=%s,Ticks=%d Version="%s",Title="%s",LogMessage="%s",SysInfo="%s",DiskInfo="%s"',
-    [ProjectCode, AppCode, TypeCode, GetLocalComputerName, GetTickCount,
-    AVersion, ATitle, AMessage, SysInfo, DiskInfo]);
+    ('CloudLog,ProjectCode=%s,AppCode=%s,TypeCode=%s,ComputerName=%s,Title=%s,Ticks=%d Version="%s",LogMessage="%s",SysInfo="%s",DiskInfo="%s"',
+    [ProjectCode, AppCode, TypeCode, GetLocalComputerName, ATitle, GetTickCount,
+    AVersion, AMessage, SysInfo, DiskInfo]);
 
   UDPClient := TIdUDPClient.Create(nil);
   try
