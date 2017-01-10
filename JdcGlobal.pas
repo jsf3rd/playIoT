@@ -244,7 +244,7 @@ begin
     end;
   except
     on E: Exception do
-      //
+      PrintDebug(E.Message + ', ' + AMessage);
   end;
 
 end;
