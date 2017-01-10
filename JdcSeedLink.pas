@@ -191,7 +191,7 @@ begin
     on E: Exception do
     begin
       OnLog(mtError, 'ProcessNewData', 'E=' + E.Message);
-      raise E;
+      raise;
     end;
   end;
 end;
@@ -296,7 +296,7 @@ end;
 procedure TJdcSeedLink.SendCAT;
 begin
   SendCommand(COMMAND_CAT);
-  RecvOK;
+  RecvString;
 end;
 
 procedure TJdcSeedLink.SendCommand(Value: string);
