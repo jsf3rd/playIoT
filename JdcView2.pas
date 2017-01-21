@@ -91,7 +91,7 @@ begin
   ValueList := TValueList.Create;
   try
     ValueList.Values['Code'] := 'ErrorMessage';
-    ValueList.Values['Msg'] := ErrorName; // old version.
+    ValueList.Values['Msg'] := ErrorName + ', ' + ErrorMsg; // old version.
     ValueList.Values['ErrorName'] := ErrorName;
     ValueList.Values['ErrorMsg'] := ErrorMsg;
     Broadcast(ValueList);
