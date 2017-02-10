@@ -2,7 +2,7 @@ program ServiceTemplete;
 
 uses
   Vcl.SvcMgr,
-  _ServiceMain in '_ServiceMain.pas' {ServiceMain: TService},
+  _ServiceMain in '_ServiceMain.pas' {ServiceMain: TService} ,
   MyCommon in 'Global\MyCommon.pas',
   MyGlobal in 'Global\MyGlobal.pas',
   MyOption in 'Global\MyOption.pas',
