@@ -16,6 +16,8 @@ Type
     Reserved: Byte;
     StationCode: array [0 .. 4] of Byte;
     DateTime: DWORD;
+    function GetStateCode: string;
+    function GetEventDateTime: TDateTime;
   end;
 
   TMMA = Packed record
@@ -58,6 +60,7 @@ Type
     Correlation: DWORD;
     ChannelNumber: WORD;
     Reserved: WORD;
+    function GetTPGAValue: Double;
   end;
 
   // Protocol.
@@ -76,35 +79,38 @@ Type
     Body: TQscdBody;
   end;
 
-  TPGAHeader = record
-    Station: string;
-    EventDate: Double;
-  end;
-
-  TJdcQscd = class
-  public
-    class function GetHeaderInfo(AHeader: TQscdHeader): TPGAHeader;
-  end;
-
 implementation
 
 uses IdGlobal;
 
-class function TJdcQscd.GetHeaderInfo(AHeader: TQscdHeader): TPGAHeader;
+{ TQscdBody }
+
+function TQscdBody.GetTPGAValue: Double;
 var
-  buffer: TIdBytes;
-  DateTime: TDateTime;
+  tmp: Integer;
+begin
+  CopyMemory(@tmp, @Self.TPGA, 4);
+  Result := Rev4BytesF(tmp);
+end;
+
+{ TQscdHeader }
+
+function TQscdHeader.GetEventDateTime: TDateTime;
+var
   Seconds: Integer;
 begin
-  SetLength(buffer, Sizeof(AHeader.StationCode));
-  CopyMemory(buffer, @AHeader.StationCode, Sizeof(AHeader.StationCode));
-  CopyMemory(@Seconds, @AHeader.DateTime, Sizeof(AHeader.DateTime));
+  CopyMemory(@Seconds, @Self.DateTime, Sizeof(Self.DateTime));
+  Result := StrToDateTime('1970-01-01 09:00:00');
+  Result := IncSecond(Result, Rev4Bytes(Seconds));
+end;
 
-  DateTime := StrToDateTime('1970-01-01 09:00:00');
-  DateTime := IncSecond(DateTime, Rev4Bytes(Seconds));
-
-  Result.Station := BytesToString(buffer);
-  Result.EventDate := DateTime;
+function TQscdHeader.GetStateCode: string;
+var
+  buffer: TIdBytes;
+begin
+  SetLength(buffer, Sizeof(Self.StationCode));
+  CopyMemory(buffer, @Self.StationCode, Sizeof(Self.StationCode));
+  Result := BytesToString(buffer);
 end;
 
 end.
