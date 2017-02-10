@@ -53,7 +53,7 @@ type
     function OpenQuery(AQuery: TFDQuery; AParams: TJSONObject): TStream;
     function ExecQuery(AQuery: TFDQuery; AParams: TJSONObject;
       AProcName: String): Boolean;
-    procedure ApplyUpdate(AQuery: TFDQuery; AStream: TStream);
+    function ApplyUpdate(AQuery: TFDQuery; AStream: TStream): Boolean;
   end;
 
 var
@@ -161,22 +161,31 @@ begin
   // FDQueryToFDMemTab(qryLogger, mtLogger);
 end;
 
-procedure TServerContainer.ApplyUpdate(AQuery: TFDQuery; AStream: TStream);
+function TServerContainer.ApplyUpdate(AQuery: TFDQuery;
+  AStream: TStream): Boolean;
 var
   Conn: TFDConnection;
-  rlt: integer;
+  Errors: integer;
 begin
   Conn := GetIdleConnection;
   try
-    AQuery.Connection := Conn;
-    AQuery.LoadFromDSStream(AStream);
+    try
+      AQuery.Connection := Conn;
+      AQuery.LoadFromDSStream(AStream);
 
-    if AQuery.IsEmpty then
-      Exit;
+      Errors := AQuery.ApplyUpdates;
+      TGlobal.Obj.ApplicationMessage(mtInfo, 'ApplyUpdates',
+        'Query=%s,Rows=%d,Errors=%d', [AQuery.Name, AQuery.RecordCount,
+        Errors]);
 
-    rlt := AQuery.ApplyUpdates;
-    TGlobal.Obj.ApplicationMessage(mtInfo, 'ApplyUpdates',
-      'Query=%s,RowsAffected=%d', [AQuery.Name, rlt]);
+      result := Errors = 0;
+    except
+      on E: Exception do
+      begin
+        TGlobal.Obj.ApplicationMessage(mtError, AQuery.Name, E.Message);
+        result := false;
+      end;
+    end;
   finally
     Conn.Free;
   end;
@@ -218,13 +227,15 @@ begin
 
     try
       result := AQuery.ToStream;
+      TGlobal.Obj.ApplicationMessage(mtDebug, 'OpenQuery',
+        'Query=%s,RecordCount=%d', [AQuery.Name, AQuery.RecordCount]);
     except
       on E: Exception do
+      begin
+        result := TStream.Create;
         raise Exception.Create('OpenQuery - ' + AQuery.Name + ', ' + E.Message);
+      end;
     end;
-
-    TGlobal.Obj.ApplicationMessage(mtDebug, 'OpenQuery',
-      'Query=%s,RecordCount=%d', [AQuery.Name, AQuery.RecordCount]);
   finally
     Conn.Free;
   end;
