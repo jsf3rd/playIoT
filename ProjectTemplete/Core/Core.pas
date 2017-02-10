@@ -15,11 +15,11 @@ type
   public
     class function Obj: TCore;
 
-    procedure Initialize;
     /// TCore에서 사용하는 객체들에 대한 초기화.
-    procedure Finalize;
-    /// TCore에서 사용하는 객체들에 대한 종료 처리.
+    procedure Initialize;
 
+    /// TCore에서 사용하는 객체들에 대한 종료 처리.
+    procedure Finalize;
   end;
 
 implementation
