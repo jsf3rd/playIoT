@@ -15,18 +15,18 @@ interface
 
 uses
   Classes, SysUtils, Windows, ZLib, IdGlobal, IOUtils, StdCtrls, JclFileUtils,
-  IdUDPClient, JclSysInfo;
+  IdUDPClient, JclSysInfo, psAPI;
 
 // ·Î±× Âï±â..
-procedure PrintLog(const AFile, AMessage: String); overload;
-procedure PrintLog(AMemo: TMemo; const AMsg: String); overload;
+procedure PrintLog(const AFile: string; AMessage: String = ''); overload;
+procedure PrintLog(AMemo: TMemo; const AMsg: String = ''); overload;
 
 procedure PrintDebug(const Format: string; const Args: array of const);
   overload;
 procedure PrintDebug(const str: string); overload;
 
+function CurrentProcessMemory: Cardinal;
 function FileVersion(const FileName: String): String;
-
 procedure CloudMessage(const ProjectCode, AppCode, TypeCode, ATitle, AMessage,
   AVersion: String);
 
@@ -206,13 +206,13 @@ begin
   if AMemo.Lines.Count > 5000 then
     AMemo.Lines.Clear;
 
-  if AMsg = '' then
+  if AMsg.IsEmpty then
     AMemo.Lines.Add('')
   else
     AMemo.Lines.Add(FormatDateTime('YYYY-MM-DD, HH:NN:SS.zzz, ', now) + AMsg);
 end;
 
-procedure PrintLog(const AFile, AMessage: String);
+procedure PrintLog(const AFile: string; AMessage: String);
 var
   Stream: TStreamWriter;
   FileName: String;
@@ -237,8 +237,11 @@ begin
   try
     Stream := TFile.AppendText(FileName);
     try
-      Stream.WriteLine(FormatDateTime('YYYY-MM-DD, HH:NN:SS.zzz, ', now) +
-        AMessage);
+      if AMessage.IsEmpty then
+        Stream.WriteLine
+      else
+        Stream.WriteLine(FormatDateTime('YYYY-MM-DD, HH:NN:SS.zzz, ', now) +
+          AMessage);
     finally
       FreeAndNil(Stream);
     end;
@@ -261,6 +264,18 @@ end;
 procedure PrintDebug(const str: string); overload;
 begin
   OutputDebugString(PChar('[JDC] ' + str));
+end;
+
+function CurrentProcessMemory: Cardinal;
+var
+  MemCounters: TProcessMemoryCounters;
+begin
+  MemCounters.cb := SizeOf(MemCounters);
+  if GetProcessMemoryInfo(GetCurrentProcess, @MemCounters, SizeOf(MemCounters))
+  then
+    result := MemCounters.WorkingSetSize
+  else
+    result := 0;
 end;
 
 function FileVersion(const FileName: String): String;
@@ -297,26 +312,30 @@ procedure CloudMessage(const ProjectCode, AppCode, TypeCode, ATitle, AMessage,
 var
   UDPClient: TIdUDPClient;
   SysInfo, Msg, DiskInfo: String;
-  GBFactor: double;
+  MBFactor, GBFactor: double;
+  _Title: string;
 begin
 {$IFDEF DEBUG}
   Exit;
 {$ENDIF}
-  GBFactor := 1024 * 1024 * 1024;
+  MBFactor := 1024 * 1024;
+  GBFactor := MBFactor * 1024;
 
-  SysInfo := Format('OS=%s,TotalMem=%.2f,FreeMem=%.2f,MemLoad=%d,IPAddress=%s',
-    [GetOSVersionString, GetTotalPhysicalMemory / GBFactor,
-    GetFreePhysicalMemory / GBFactor, GetMemoryLoad,
+  SysInfo :=
+    Format('OS=%s,MemUsage=%.2fMB,TotalMem=%.2fGB,FreeMem=%.2fGB,IPAddress=%s',
+    [GetOSVersionString, CurrentProcessMemory / MBFactor,
+    GetTotalPhysicalMemory / GBFactor, GetFreePhysicalMemory / GBFactor,
     GetIPAddress(GetLocalComputerName)]);
 
-  DiskInfo := Format('C_Free=%.2f,C_Size=%.2f,D_Free=%.2f,D_Size=%.2f',
+  DiskInfo := Format('C_Free=%.2fGB,C_Size=%.2fGB,D_Free=%.2fGB,D_Size=%.2fGB',
     [DiskFree(3) / GBFactor, DiskSize(3) / GBFactor, DiskFree(4) / GBFactor,
     DiskSize(4) / GBFactor]);
 
+  _Title := ATitle.Replace(' ', '_', [rfReplaceAll]);
   Msg := Format
-    ('CloudLog,ProjectCode=%s,AppCode=%s,TypeCode=%s,ComputerName=%s,Title=%s,Ticks=%d Version="%s",LogMessage="%s",SysInfo="%s",DiskInfo="%s"',
-    [ProjectCode, AppCode, TypeCode, GetLocalComputerName, ATitle, GetTickCount,
-    AVersion, AMessage, SysInfo, DiskInfo]);
+    ('CloudLog,ProjectCode=%s,AppCode=%s,TypeCode=%s,ComputerName=%s,Title=%s Version="%s",LogMessage="%s",SysInfo="%s",DiskInfo="%s"',
+    [ProjectCode, AppCode, TypeCode, GetLocalComputerName, _Title, AVersion,
+    AMessage, SysInfo, DiskInfo]);
 
   UDPClient := TIdUDPClient.Create(nil);
   try
