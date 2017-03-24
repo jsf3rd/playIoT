@@ -11,9 +11,11 @@ uses
 
 type
   TsmDataProvider = class(TDSServerModule)
+    procedure DSServerModuleCreate(Sender: TObject);
   private
   public
     function GetData(AValue: TJSONValue): TStream;
+    function EchoString(AValue: string): string;
   public
   end;
 
@@ -24,6 +26,17 @@ implementation
 uses ServerContainerUnit, MyOption, JdcGlobal, MyGlobal;
 
 { TsmDataProvider }
+
+procedure TsmDataProvider.DSServerModuleCreate(Sender: TObject);
+begin
+  Randomize;
+end;
+
+function TsmDataProvider.EchoString(AValue: string): string;
+begin
+  Sleep(60000);
+  result := AValue;
+end;
 
 function TsmDataProvider.GetData(AValue: TJSONValue): TStream;
 begin

@@ -30,8 +30,6 @@ object fmMain: TfmMain
     ReadOnly = True
     ScrollBars = ssVertical
     TabOrder = 0
-    ExplicitLeft = 200
-    ExplicitWidth = 434
   end
   object StatusBar: TStatusBar
     Left = 0
@@ -100,5 +98,10 @@ object fmMain: TfmMain
         Action = actAbout
       end
     end
+  end
+  object ApplicationEvents: TApplicationEvents
+    OnException = ApplicationEventsException
+    Left = 176
+    Top = 16
   end
 end

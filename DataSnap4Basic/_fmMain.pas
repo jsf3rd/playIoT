@@ -6,7 +6,8 @@ uses Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants,
   System.Classes, Vcl.Graphics, Vcl.Controls, Vcl.Forms, Vcl.Dialogs,
   Vcl.StdCtrls, Vcl.Mask, JvExMask, JvToolEdit, JvCombobox, JvExStdCtrls,
   JvDBCombobox, ValueList, Vcl.ActnList, Vcl.ComCtrls, Vcl.ExtCtrls,
-  JvTextListBox, Vcl.Menus, DBXJSON, System.Actions, System.UITypes;
+  JvTextListBox, Vcl.Menus, DBXJSON, System.Actions, System.UITypes,
+  Vcl.AppEvnts;
 
 type
   TfmMain = class(TForm)
@@ -26,6 +27,7 @@ type
     X1: TMenuItem;
     N1: TMenuItem;
     Exit1: TMenuItem;
+    ApplicationEvents: TApplicationEvents;
     procedure FormCreate(Sender: TObject);
     procedure actClearLogExecute(Sender: TObject);
     procedure actOptionsExecute(Sender: TObject);
@@ -33,6 +35,7 @@ type
     procedure actAboutExecute(Sender: TObject);
     procedure FormShow(Sender: TObject);
     procedure FormClose(Sender: TObject; var Action: TCloseAction);
+    procedure ApplicationEventsException(Sender: TObject; E: Exception);
   private
 
   public
@@ -70,6 +73,11 @@ begin
   fmOptions := TfmOption.Create(Self);
   fmOptions.ShowModal;
   fmOptions.Free;
+end;
+
+procedure TfmMain.ApplicationEventsException(Sender: TObject; E: Exception);
+begin
+  mmLog.Lines.Add('SysError, ' + E.Message);
 end;
 
 procedure TfmMain.FormClose(Sender: TObject; var Action: TCloseAction);

@@ -31,6 +31,7 @@ object ServerContainer: TServerContainer
   object DSHTTPService: TDSHTTPService
     Server = DSServer
     Filters = <>
+    SessionTimeout = 5000
     Left = 96
     Top = 136
   end
