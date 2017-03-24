@@ -42,8 +42,6 @@ type
 
 implementation
 
-uses JdcView2;
-
 { TJdcConnectionPool }
 
 constructor TJdcConnectionPool.Create(CommaText, DefName, DriverID: String;
