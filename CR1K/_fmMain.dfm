@@ -1,7 +1,7 @@
 object fmMain: TfmMain
   Left = 0
   Top = 0
-  Caption = 'fmMain'
+  Caption = 'CR1K Tester.'
   ClientHeight = 457
   ClientWidth = 635
   Color = clBtnFace

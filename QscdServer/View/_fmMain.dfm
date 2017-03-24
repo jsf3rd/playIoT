@@ -23,7 +23,6 @@ object fmMain: TfmMain
     Height = 65
     Align = alTop
     TabOrder = 0
-    ExplicitWidth = 959
     object Label2: TLabel
       Left = 287
       Top = 16
@@ -41,7 +40,7 @@ object fmMain: TfmMain
       EditLabel.Caption = 'MMA/S '#49688#49888' Port'
       NumbersOnly = True
       TabOrder = 0
-      Text = '5002'
+      Text = '5031'
     end
     object cmbData: TComboBox
       Left = 287
@@ -76,7 +75,7 @@ object fmMain: TfmMain
       EditLabel.Height = 13
       EditLabel.Caption = #53076#46300
       TabOrder = 3
-      Text = 'SLKMB'
+      Text = 'KCGGG'
     end
   end
   object Panel2: TPanel
@@ -87,10 +86,6 @@ object fmMain: TfmMain
     Align = alClient
     Caption = 'Panel2'
     TabOrder = 1
-    ExplicitLeft = 656
-    ExplicitTop = 16
-    ExplicitWidth = 185
-    ExplicitHeight = 41
     object Chart3: TChart
       Left = 1
       Top = 473
@@ -129,7 +124,6 @@ object fmMain: TfmMain
       Align = alBottom
       Color = clBlack
       TabOrder = 0
-      ExplicitTop = 479
       DefaultCanvas = 'TGDIPlusCanvas'
       ColorPaletteIndex = 16
       object LineSeries3: TLineSeries
@@ -183,8 +177,6 @@ object fmMain: TfmMain
       Align = alClient
       Color = clBlack
       TabOrder = 1
-      ExplicitLeft = 2
-      ExplicitTop = 231
       DefaultCanvas = 'TGDIPlusCanvas'
       ColorPaletteIndex = 16
       object LineSeries1: TLineSeries
@@ -238,7 +230,6 @@ object fmMain: TfmMain
       Align = alTop
       Color = clBlack
       TabOrder = 2
-      ExplicitWidth = 957
       DefaultCanvas = 'TGDIPlusCanvas'
       ColorPaletteIndex = 16
       object LineSeries2: TLineSeries

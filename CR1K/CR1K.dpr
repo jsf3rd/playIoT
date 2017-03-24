@@ -1,11 +1,6 @@
 program CR1K;
 
 uses
-  madExcept,
-  madLinkDisAsm,
-  madListHardware,
-  madListProcesses,
-  madListModules,
   Vcl.Forms,
   _fmMain in '_fmMain.pas' {fmMain};
 

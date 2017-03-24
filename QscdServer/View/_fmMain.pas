@@ -152,15 +152,13 @@ procedure TfmMain.IdUDPServerUDPRead(AThread: TIdUDPListenerThread;
 var
   QscdHeader: TQscdHeader;
   QscdBody: TQscdBody;
-  PgaHeader: TPGAHeader;
   QscdData: TQscdData;
 begin
   CopyMemory(@QscdHeader, @AData[0], Sizeof(TQscdHeader));
   CopyMemory(@QscdBody, @AData[Sizeof(TQscdHeader)], Sizeof(TQscdBody));
 
-  PgaHeader := TJdcQscd.GetHeaderInfo(QscdHeader);
-  QscdData.KeyCode := PgaHeader.Station;
-  QscdData.EventDate := PgaHeader.EventDate;
+  QscdData.KeyCode := QscdHeader.GetStateCode;
+  QscdData.EventDate := QscdHeader.GetEventDateTime;
   QscdData.Body := QscdBody;
 
   OnQscd(QscdData);

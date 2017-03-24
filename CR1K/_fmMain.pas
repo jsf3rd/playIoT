@@ -105,8 +105,6 @@ begin
   Opened := FCR1K.OpenPort(string(edtPort.Text).ToInteger,
     string(edtBaudRate.Text).ToInteger);
 
-  // Opened := FCR1K.OpenPort('155.91.37.219', 7001);
-
   if Opened then
   begin
     PrintLog(Memo1, '연결 성공');
