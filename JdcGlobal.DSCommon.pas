@@ -47,8 +47,8 @@ type
       deprecated 'TFDMemTableHelper.ToStream';
 
     // DataSnap TStream to TFDDataSet
-    class procedure DSStreamToFDDataSet(AStream: TStream; ADataSet: TFDDataSet);
-      static; deprecated 'TFDDataSetHelper.LoadFromDSStream';
+    class procedure DSStreamToFDDataSet(AStream: TStream; ADataSet: TFDDataSet); static;
+      deprecated 'TFDDataSetHelper.LoadFromDSStream';
   end;
 
   TFDDataSetHelper = class helper for TFDDataSet
@@ -71,8 +71,7 @@ type
     procedure ParamByJsonValue(AValue: TJSONValue; AName: String;
       AProc: TLogProc = nil); overload;
 
-    procedure ParamByJSONArray(AValue: TJSONArray; AName: String;
-      AProc: TLogProc = nil);
+    procedure ParamByJSONArray(AValue: TJSONArray; AName: String; AProc: TLogProc = nil);
   public
     function Clone: TFDQuery;
     function ToStream: TStream;
@@ -160,8 +159,7 @@ begin
   result.Position := 0;
 end;
 
-class procedure TDSCommon.DSStreamToFDDataSet(AStream: TStream;
-  ADataSet: TFDDataSet);
+class procedure TDSCommon.DSStreamToFDDataSet(AStream: TStream; ADataSet: TFDDataSet);
 begin
   ADataSet.LoadFromDSStream(AStream);
 end;
@@ -172,6 +170,8 @@ var
   I: Integer;
 begin
   result := TFDQuery.Create(Self);
+  result.OnExecuteError := Self.OnExecuteError;
+  result.OnReconcileError := Self.OnReconcileError;
   result.SQL.Text := Self.SQL.Text;
   result.Name := Self.Name + '_' + TThread.CurrentThread.ThreadID.ToString;
   for I := 0 to Self.ParamCount - 1 do
@@ -237,22 +237,19 @@ begin
       if Self.Params.ArraySize = 0 then
         AParam.AsDate := ISO8601ToDate((AValue as TJSONString).Value)
       else
-        AParam.AsDates[Self.Tag] :=
-          ISO8601ToDate((AValue as TJSONString).Value);
+        AParam.AsDates[Self.Tag] := ISO8601ToDate((AValue as TJSONString).Value);
 
     ftTime:
       if Self.Params.ArraySize = 0 then
         AParam.AsTime := ISO8601ToDate((AValue as TJSONString).Value)
       else
-        AParam.AsTimes[Self.Tag] :=
-          ISO8601ToDate((AValue as TJSONString).Value);
+        AParam.AsTimes[Self.Tag] := ISO8601ToDate((AValue as TJSONString).Value);
 
     ftDateTime:
       if Self.Params.ArraySize = 0 then
         AParam.AsDateTime := ISO8601ToDate((AValue as TJSONString).Value)
       else
-        AParam.AsDateTimes[Self.Tag] :=
-          ISO8601ToDate((AValue as TJSONString).Value);
+        AParam.AsDateTimes[Self.Tag] := ISO8601ToDate((AValue as TJSONString).Value);
 
     ftTimeStamp:
       if Self.Params.ArraySize = 0 then
@@ -292,15 +289,13 @@ begin
       else
         AParam.AsSingles[Self.Tag] := (AValue as TJSONNumber).AsDouble;
   else
-    raise Exception.Create
-      (Format('DataSet=%s,ParamName=%s,UnsurportDataType=%s',
+    raise Exception.Create(Format('DataSet=%s,ParamName=%s,UnsurportDataType=%s',
       [Self.Name, AParam.Name, AParam.DataTypeName]));
   end;
 
 end;
 
-procedure TFDQueryHelper.ParamByJSONArray(AValue: TJSONArray; AName: String;
-  AProc: TLogProc);
+procedure TFDQueryHelper.ParamByJSONArray(AValue: TJSONArray; AName: String; AProc: TLogProc);
 var
   MyElem: TJSONValue;
   Index: Integer;
@@ -313,8 +308,7 @@ begin
   end;
 end;
 
-procedure TFDQueryHelper.ParamByJSONObject(AObject: TJSONObject;
-  AProc: TLogProc);
+procedure TFDQueryHelper.ParamByJSONObject(AObject: TJSONObject; AProc: TLogProc);
 var
   MyElem: TJSONPair;
 begin
@@ -322,8 +316,7 @@ begin
     ParamByJsonValue(MyElem.JSONValue, MyElem.JsonString.Value, AProc);
 end;
 
-procedure TFDQueryHelper.ParamByJsonValue(AValue: TJSONValue; AName: String;
-  AProc: TLogProc);
+procedure TFDQueryHelper.ParamByJsonValue(AValue: TJSONValue; AName: String; AProc: TLogProc);
 begin
   if AValue is TJSONObject then
     ParamByJSONObject(AValue as TJSONObject, AProc)
@@ -423,8 +416,7 @@ begin
     ftDate, ftTime, ftDateTime:
       result := TJSONString.Create(AField.AsDateTime.ToISO8601);
     ftTimeStamp:
-      result := TJSONString.Create(SQLTimeStampToDateTime(AField.AsSQLTimeStamp)
-        .ToISO8601);
+      result := TJSONString.Create(SQLTimeStampToDateTime(AField.AsSQLTimeStamp).ToISO8601);
     ftLargeint:
       result := TJSONNumber.Create(AField.AsLargeInt);
     ftGuid:
@@ -436,8 +428,7 @@ begin
     ftSingle:
       result := TJSONNumber.Create(AField.AsSingle);
   else
-    raise Exception.Create
-      (Format('DataSet=%s,FieldName=%s,UnsurportDataType=TFieldType(%d)',
+    raise Exception.Create(Format('DataSet=%s,FieldName=%s,UnsurportDataType=TFieldType(%d)',
       [Self.Name, AField.FieldName, Integer(AField.DataType)]));
   end;
 
@@ -445,8 +436,7 @@ begin
   // [Self.Name, AField.FieldName, integer(AField.DataType), result.Value]);
 end;
 
-function TFDDataSetHelper.GetJSONArray(AValue: TJSONArray; AName: String)
-  : TJSONArray;
+function TFDDataSetHelper.GetJSONArray(AValue: TJSONArray; AName: String): TJSONArray;
 var
   I: Integer;
   Key: string;
@@ -468,8 +458,7 @@ begin
 {$ENDIF}
 end;
 
-function TFDDataSetHelper.GetJSONObject(AValue: TJSONObject; AName: String)
-  : TJSONObject;
+function TFDDataSetHelper.GetJSONObject(AValue: TJSONObject; AName: String): TJSONObject;
 var
   MyElem: TJSONPair;
   Key: string;
@@ -482,13 +471,11 @@ begin
       Key := '';
 
     Key := Key + MyElem.JsonString.Value;
-    result.AddPair(MyElem.JsonString.Value,
-      GetNameValue(MyElem.JSONValue, Key));
+    result.AddPair(MyElem.JsonString.Value, GetNameValue(MyElem.JSONValue, Key));
   end;
 end;
 
-function TFDDataSetHelper.GetNameValue(AValue: TJSONValue; AName: String)
-  : TJSONValue;
+function TFDDataSetHelper.GetNameValue(AValue: TJSONValue; AName: String): TJSONValue;
 begin
   if AValue is TJSONObject then
     result := GetJSONObject(AValue as TJSONObject, AName)
