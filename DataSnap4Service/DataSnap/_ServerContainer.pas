@@ -11,7 +11,7 @@ uses System.SysUtils, System.Classes,
   JdcConnectionPool, FireDAC.Stan.Intf, FireDAC.Stan.Option, FireDAC.Stan.Error,
   FireDAC.UI.Intf, FireDAC.Phys.Intf, FireDAC.Stan.Def, FireDAC.Stan.Pool,
   FireDAC.Stan.Async, FireDAC.Phys, FireDAC.VCLUI.Wait, Data.DB,
-  FireDAC.Comp.Client, System.JSON, FireDAC.Stan.Param;
+  FireDAC.Comp.Client, System.JSON, FireDAC.Stan.Param, System.StrUtils;
 
 type
   TServerContainer = class(TService)
@@ -49,11 +49,19 @@ type
     function GetIdleConnection: TFDConnection;
     function GetServiceController: TServiceController; override;
 
-    function OpenInstanceQuery(AQuery: TFDQuery; AParams: TJSONObject): TStream;
-    function OpenQuery(AQuery: TFDQuery; AParams: TJSONObject): TStream;
-    function ExecQuery(AQuery: TFDQuery; AParams: TJSONObject;
-      AProcName: String): Boolean;
-    function ApplyUpdate(AQuery: TFDQuery; AStream: TStream): Boolean;
+    function OpenInstantQuery(AQuery: TFDQuery; AParams: TJSONObject;
+      AProcName: String = ''): TStream;
+    function OpenQuery(AQuery: TFDQuery; AParams: TJSONObject; AProcName: String = '')
+      : TStream;
+    function ExecInstantQuery(AQuery: TFDQuery; AParams: TJSONObject; AProcName: String = '')
+      : Boolean; overload;
+    function ExecInstantQuery(AQuery: TFDQuery; AParams: TJSONArray; AProcName: String = '')
+      : Boolean; overload;
+    function ExecQuery(AQuery: TFDQuery; AParams: TJSONObject; AProcName: String = '')
+      : Boolean; overload;
+    function ExecQuery(AQuery: TFDQuery; AParams: TJSONArray; AProcName: String = '')
+      : Boolean; overload;
+    function ApplyUpdate(AQuery: TFDQuery; AStream: TStream; AProcName: String = ''): Boolean;
   end;
 
 var
@@ -65,28 +73,94 @@ implementation
 
 uses _smDataProvider, JdcGlobal, MyGlobal, JdcGlobal.DSCommon;
 
-procedure TServerContainer.dscDataProviderGetClass(DSServerClass
-  : TDSServerClass; var PersistentClass: TPersistentClass);
+procedure TServerContainer.dscDataProviderGetClass(DSServerClass: TDSServerClass;
+  var PersistentClass: TPersistentClass);
 begin
   PersistentClass := _smDataProvider.TsmDataProvider;
+end;
+
+function TServerContainer.ExecInstantQuery(AQuery: TFDQuery; AParams: TJSONObject;
+  AProcName: String): Boolean;
+var
+  MyQuery: TFDQuery;
+begin
+  MyQuery := AQuery.Clone;
+  try
+    result := ServerContainer.ExecQuery(MyQuery, AParams, AProcName);
+  finally
+    MyQuery.Free;
+  end;
+end;
+
+function TServerContainer.ExecInstantQuery(AQuery: TFDQuery; AParams: TJSONArray;
+  AProcName: String): Boolean;
+var
+  MyQuery: TFDQuery;
+begin
+  MyQuery := AQuery.Clone;
+  try
+    result := ServerContainer.ExecQuery(MyQuery, AParams, AProcName);
+  finally
+    MyQuery.Free;
+  end;
+end;
+
+function TServerContainer.ExecQuery(AQuery: TFDQuery; AParams: TJSONArray;
+  AProcName: String): Boolean;
+var
+  Conn: TFDConnection;
+  ExecTime: TDateTime;
+  I: integer;
+  Params: TJSONObject;
+begin
+  result := false;
+  Conn := GetIdleConnection;
+  try
+    AQuery.Connection := Conn;
+    try
+      AQuery.Params.ArraySize := AParams.Count;
+      for I := 0 to AParams.Count - 1 do
+      begin
+        Params := AParams.Items[I] as TJSONObject;
+        AQuery.Tag := I;
+        AQuery.ParamByJSONObject(Params);
+      end;
+
+      ExecTime := Now;
+      AQuery.Execute(AParams.Count);
+      TGlobal.Obj.ApplicationMessage(mtInfo, StrDefault(AProcName, 'ExecQuery'),
+        'Query=%s,RowsAffected=%d,ExecTime=%s', [AQuery.Name, AQuery.RowsAffected,
+        FormatDateTime('NN:SS.zzz', Now - ExecTime)]);
+      result := AQuery.RowsAffected = AParams.Count;
+    except
+      on E: Exception do
+        TGlobal.Obj.ApplicationMessage(mtError, AProcName, E.Message);
+    end;
+  finally
+    Conn.Free;
+  end;
+
 end;
 
 function TServerContainer.ExecQuery(AQuery: TFDQuery; AParams: TJSONObject;
   AProcName: String): Boolean;
 var
   Conn: TFDConnection;
+  ExecTime: TDateTime;
 begin
   result := false;
-
   Conn := GetIdleConnection;
   try
     AQuery.Connection := Conn;
     try
-      AQuery.ParamByJSONObject(AParams, TGlobal.Obj.ApplicationMessage);
+      AQuery.ParamByJSONObject(AParams);
+
+      ExecTime := Now;
       AQuery.ExecSQL;
+      TGlobal.Obj.ApplicationMessage(mtInfo, StrDefault(AProcName, 'ExecQuery'),
+        'Query=%s,RowsAffected=%d,ExecTime=%s', [AQuery.Name, AQuery.RowsAffected,
+        FormatDateTime('NN:SS.zzz', Now - ExecTime)]);
       result := true;
-      TGlobal.Obj.ApplicationMessage(mtInfo, AProcName,
-        'Query=%s,RowsAffected=%d', [AQuery.Name, AQuery.RowsAffected]);
     except
       on E: Exception do
         TGlobal.Obj.ApplicationMessage(mtError, AProcName, E.Message);
@@ -161,10 +235,11 @@ begin
   // FDQueryToFDMemTab(qryLogger, mtLogger);
 end;
 
-function TServerContainer.ApplyUpdate(AQuery: TFDQuery;
-  AStream: TStream): Boolean;
+function TServerContainer.ApplyUpdate(AQuery: TFDQuery; AStream: TStream;
+  AProcName: String): Boolean;
 var
   Conn: TFDConnection;
+  ExecTime: TDateTime;
   Errors: integer;
 begin
   Conn := GetIdleConnection;
@@ -173,10 +248,11 @@ begin
       AQuery.Connection := Conn;
       AQuery.LoadFromDSStream(AStream);
 
+      ExecTime := Now;
       Errors := AQuery.ApplyUpdates;
-      TGlobal.Obj.ApplicationMessage(mtInfo, 'ApplyUpdates',
-        'Query=%s,Rows=%d,Errors=%d', [AQuery.Name, AQuery.RecordCount,
-        Errors]);
+      TGlobal.Obj.ApplicationMessage(mtInfo, StrDefault(AProcName, 'ApplyUpdates'),
+        'Query=%s,ChangeCount=%d,Errors=%d,ExecTime=%s', [AQuery.Name, AQuery.ChangeCount,
+        Errors, FormatDateTime('NN:SS.zzz', Now - ExecTime)]);
 
       result := Errors = 0;
     except
@@ -191,32 +267,24 @@ begin
   end;
 end;
 
-function TServerContainer.OpenInstanceQuery(AQuery: TFDQuery;
-  AParams: TJSONObject): TStream;
+function TServerContainer.OpenInstantQuery(AQuery: TFDQuery; AParams: TJSONObject;
+  AProcName: String): TStream;
 var
   MyQuery: TFDQuery;
-  I: integer;
 begin
-  MyQuery := TFDQuery.Create(Self);
+  MyQuery := AQuery.Clone;
   try
-    MyQuery.SQL.Text := AQuery.SQL.Text;
-    MyQuery.Name := AQuery.Name + '_' + TThread.CurrentThread.ThreadID.ToString;
-
-    for I := 0 to AQuery.ParamCount - 1 do
-    begin
-      MyQuery.Params.Items[I].DataType := AQuery.Params.Items[I].DataType;
-    end;
-
-    result := OpenQuery(MyQuery, AParams);
+    result := ServerContainer.OpenQuery(MyQuery, AParams, AProcName);
   finally
     MyQuery.Free;
   end;
 end;
 
-function TServerContainer.OpenQuery(AQuery: TFDQuery;
-  AParams: TJSONObject): TStream;
+function TServerContainer.OpenQuery(AQuery: TFDQuery; AParams: TJSONObject;
+  AProcName: String): TStream;
 var
   Conn: TFDConnection;
+  ExecTime: TDateTime;
 begin
   Conn := GetIdleConnection;
   try
@@ -226,9 +294,11 @@ begin
       AQuery.ParamByJSONObject(AParams, TGlobal.Obj.ApplicationMessage);
 
     try
+      ExecTime := Now;
       result := AQuery.ToStream;
-      TGlobal.Obj.ApplicationMessage(mtDebug, 'OpenQuery',
-        'Query=%s,RecordCount=%d', [AQuery.Name, AQuery.RecordCount]);
+      TGlobal.Obj.ApplicationMessage(mtDebug, StrDefault(AProcName, 'OpenQuery'),
+        'Query=%s,RecordCount=%d,ExecTime=%s', [AQuery.Name, AQuery.RecordCount,
+        FormatDateTime('NN:SS.zzz', Now - ExecTime)]);
     except
       on E: Exception do
       begin
@@ -252,8 +322,7 @@ begin
   DefName := 'DataSnap';
   DriverName := 'PG';
   try
-    FConnectionPool := TJdcConnectionPool.Create(TOption.Obj.DBInfo, DefName,
-      DriverName);
+    FConnectionPool := TJdcConnectionPool.Create(TOption.Obj.DBInfo, DefName, DriverName);
     TGlobal.Obj.ApplicationMessage(mtDebug, 'CreateDBPool', TOption.Obj.DBInfo);
   except
     on E: Exception do
@@ -284,9 +353,8 @@ begin
   result := inherited;
 end;
 
-procedure TServerContainer.DSAuthenticationManagerUserAuthenticate
-  (Sender: TObject; const Protocol, Context, User, Password: string;
-  var valid: Boolean; UserRoles: TStrings);
+procedure TServerContainer.DSAuthenticationManagerUserAuthenticate(Sender: TObject;
+  const Protocol, Context, User, Password: string; var valid: Boolean; UserRoles: TStrings);
 
 const
   ID = 'palyIoT';
@@ -302,8 +370,7 @@ begin
   Reg := TRegistry.Create(KEY_READ or KEY_WRITE);
   try
     Reg.RootKey := HKEY_LOCAL_MACHINE;
-    if Reg.OpenKey('\SYSTEM\CurrentControlSet\Services\' + Self.Name, false)
-    then
+    if Reg.OpenKey('\SYSTEM\CurrentControlSet\Services\' + Self.Name, false) then
     begin
       Reg.WriteString('Description', SERVICE_DESCRIPTION);
       Reg.CloseKey;
