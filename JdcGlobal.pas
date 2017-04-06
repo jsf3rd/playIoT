@@ -21,8 +21,7 @@ uses
 procedure PrintLog(const AFile: string; AMessage: String = ''); overload;
 procedure PrintLog(AMemo: TMemo; const AMsg: String = ''); overload;
 
-procedure PrintDebug(const Format: string; const Args: array of const);
-  overload;
+procedure PrintDebug(const Format: string; const Args: array of const); overload;
 procedure PrintDebug(const str: string); overload;
 
 function CurrentProcessMemory: Cardinal;
@@ -31,8 +30,8 @@ procedure CloudMessage(const ProjectCode, AppCode, TypeCode, ATitle, AMessage,
   AVersion: String);
 
 // 데이터 압축..
-function CompressStream(Stream: TStream; OutStream: TStream;
-  OnProgress: TNotifyEvent): boolean;
+function CompressStream(Stream: TStream; OutStream: TStream; OnProgress: TNotifyEvent)
+  : boolean;
 
 // 데이터 압축 해제..
 function DeCompressStream(Stream: TStream; OutStream: TStream;
@@ -40,8 +39,7 @@ function DeCompressStream(Stream: TStream; OutStream: TStream;
 
 // 응답 검사..
 function Contains(Contents: string; const str: array of const): boolean;
-function IsGoodResponse(Text, Command: string;
-  Response: array of const): boolean;
+function IsGoodResponse(Text, Command: string; Response: array of const): boolean;
 
 // Reverse 2Btyes..
 function Rev2Bytes(w: WORD): WORD;
@@ -62,17 +60,16 @@ function DWordToBytes(AValue: DWORD): TIdBytes;
 function HexStrToWord(const ASource: string; const AIndex: integer = 1): WORD;
 
 function HexStrToByte(const ASource: String; const AIndex: integer = 1): Byte;
-function HexStrToBytes(const ASource: string; const AIndex: integer = 1)
-  : TIdBytes;
+function HexStrToBytes(const ASource: string; const AIndex: integer = 1): TIdBytes;
 
-function IdBytesToHex(const AValue: TIdBytes;
-  const ASpliter: String = ' '): String;
+function IdBytesToHex(const AValue: TIdBytes; const ASpliter: String = ' '): String;
 function BytesToHex(const AValue: TBytes; const ASpliter: String = ' '): String;
 
-function IdBytesPos(const SubIdBytes, IdBytes: TIdBytes;
-  const AIndex: integer = 0): integer;
+function IdBytesPos(const SubIdBytes, IdBytes: TIdBytes; const AIndex: integer = 0): integer;
 
 function DefaultFormatSettings: TFormatSettings;
+
+function StrDefault(str: string; Default: string): string;
 
 type
   IExecuteFunc<T> = Interface
@@ -119,19 +116,18 @@ type
     procedure SetExeName(const Value: String); virtual; abstract;
 
     procedure _ApplicationMessage(const AType: string; const ATitle: string;
-      const AMessage: String; const AOutputs: TMsgOutputs = [moDebugView,
-      moLogFile, moCloudMessage]); virtual;
+      const AMessage: String; const AOutputs: TMsgOutputs = [moDebugView, moLogFile,
+      moCloudMessage]); virtual;
   public
     constructor Create; virtual;
 
     procedure Initialize; virtual;
     procedure Finalize; virtual;
 
-    procedure ApplicationMessage(const AType: TMessageType;
-      const ATitle: String; const AMessage: String = ''); overload; virtual;
-    procedure ApplicationMessage(const AType: TMessageType;
-      const ATitle: String; const AFormat: String;
-      const Args: array of const); overload;
+    procedure ApplicationMessage(const AType: TMessageType; const ATitle: String;
+      const AMessage: String = ''); overload; virtual;
+    procedure ApplicationMessage(const AType: TMessageType; const ATitle: String;
+      const AFormat: String; const Args: array of const); overload;
 
     property ExeName: String read FExeName write SetExeName;
     property LogName: string read FLogName;
@@ -161,8 +157,7 @@ begin
   result.TimeSeparator := ':';
 end;
 
-function IdBytesPos(const SubIdBytes, IdBytes: TIdBytes;
-  const AIndex: integer = 0): integer;
+function IdBytesPos(const SubIdBytes, IdBytes: TIdBytes; const AIndex: integer = 0): integer;
 var
   Index: integer;
   I: integer;
@@ -224,12 +219,11 @@ begin
     if JclFileUtils.FileGetSize(FileName) > 1024 * 1024 * 5 then
     begin
       try
-        FileMove(AFile, ChangeFileExt(FileName,
-          FormatDateTime('_YYYYMMDD_HHNNSS', now) + '.bak'), true);
+        FileMove(AFile, ChangeFileExt(FileName, FormatDateTime('_YYYYMMDD_HHNNSS', now) +
+          '.bak'), true);
       except
         on E: Exception do
-          FileName := ChangeFileExt(FileName, FormatDateTime('_YYYYMMDD', now)
-            + '.tmp');
+          FileName := ChangeFileExt(FileName, FormatDateTime('_YYYYMMDD', now) + '.tmp');
       end;
     end;
   end;
@@ -240,8 +234,7 @@ begin
       if AMessage.IsEmpty then
         Stream.WriteLine
       else
-        Stream.WriteLine(FormatDateTime('YYYY-MM-DD, HH:NN:SS.zzz, ', now) +
-          AMessage);
+        Stream.WriteLine(FormatDateTime('YYYY-MM-DD, HH:NN:SS.zzz, ', now) + AMessage);
     finally
       FreeAndNil(Stream);
     end;
@@ -252,8 +245,7 @@ begin
 
 end;
 
-procedure PrintDebug(const Format: string; const Args: array of const);
-  overload;
+procedure PrintDebug(const Format: string; const Args: array of const); overload;
 var
   str: string;
 begin
@@ -271,8 +263,7 @@ var
   MemCounters: TProcessMemoryCounters;
 begin
   MemCounters.cb := SizeOf(MemCounters);
-  if GetProcessMemoryInfo(GetCurrentProcess, @MemCounters, SizeOf(MemCounters))
-  then
+  if GetProcessMemoryInfo(GetCurrentProcess, @MemCounters, SizeOf(MemCounters)) then
     result := MemCounters.WorkingSetSize
   else
     result := 0;
@@ -321,11 +312,9 @@ begin
   MBFactor := 1024 * 1024;
   GBFactor := MBFactor * 1024;
 
-  SysInfo :=
-    Format('OS=%s,MemUsage=%.2fMB,TotalMem=%.2fGB,FreeMem=%.2fGB,IPAddress=%s',
-    [GetOSVersionString, CurrentProcessMemory / MBFactor,
-    GetTotalPhysicalMemory / GBFactor, GetFreePhysicalMemory / GBFactor,
-    GetIPAddress(GetLocalComputerName)]);
+  SysInfo := Format('OS=%s,MemUsage=%.2fMB,TotalMem=%.2fGB,FreeMem=%.2fGB,IPAddress=%s',
+    [GetOSVersionString, CurrentProcessMemory / MBFactor, GetTotalPhysicalMemory / GBFactor,
+    GetFreePhysicalMemory / GBFactor, GetIPAddress(GetLocalComputerName)]);
 
   DiskInfo := Format('C_Free=%.2fGB,C_Size=%.2fGB,D_Free=%.2fGB,D_Size=%.2fGB',
     [DiskFree(3) / GBFactor, DiskSize(3) / GBFactor, DiskFree(4) / GBFactor,
@@ -334,8 +323,8 @@ begin
   _Title := ATitle.Replace(' ', '_', [rfReplaceAll]);
   Msg := Format
     ('CloudLog,ProjectCode=%s,AppCode=%s,TypeCode=%s,ComputerName=%s,Title=%s Version="%s",LogMessage="%s",SysInfo="%s",DiskInfo="%s"',
-    [ProjectCode, AppCode, TypeCode, GetLocalComputerName, _Title, AVersion,
-    AMessage, SysInfo, DiskInfo]);
+    [ProjectCode, AppCode, TypeCode, GetLocalComputerName, _Title, AVersion, AMessage, SysInfo,
+    DiskInfo]);
 
   UDPClient := TIdUDPClient.Create(nil);
   try
@@ -349,8 +338,8 @@ begin
   end;
 end;
 
-function CompressStream(Stream: TStream; OutStream: TStream;
-  OnProgress: TNotifyEvent): boolean;
+function CompressStream(Stream: TStream; OutStream: TStream; OnProgress: TNotifyEvent)
+  : boolean;
 var
   CS: TZCompressionStream;
 begin
@@ -384,8 +373,7 @@ begin
   result := true;
 end;
 
-function IsGoodResponse(Text, Command: string;
-  Response: array of const): boolean;
+function IsGoodResponse(Text, Command: string; Response: array of const): boolean;
 var
   SL: TStringList;
 begin
@@ -562,20 +550,18 @@ begin
   end;
 
   if j <> 0 then
-    raise Exception.Create
-      ('Input contains an odd number of hexadecimal digits.[' + ASource + '/' +
-      IntToStr(AIndex) + ']');
+    raise Exception.Create('Input contains an odd number of hexadecimal digits.[' + ASource +
+      '/' + IntToStr(AIndex) + ']');
 end;
 
 { TGlobalAbstract }
 
-procedure TGlobalAbstract.ApplicationMessage(const AType: TMessageType;
-  const ATitle: string; const AMessage: String);
+procedure TGlobalAbstract.ApplicationMessage(const AType: TMessageType; const ATitle: string;
+  const AMessage: String);
 begin
   case AType of
     mtDebug:
-      _ApplicationMessage(MESSAGE_TYPE_DEBUG, ATitle, AMessage,
-        [moDebugView, moLogFile]);
+      _ApplicationMessage(MESSAGE_TYPE_DEBUG, ATitle, AMessage, [moDebugView, moLogFile]);
     mtInfo:
       _ApplicationMessage(MESSAGE_TYPE_INFO, ATitle, AMessage);
     mtError:
@@ -587,8 +573,8 @@ begin
   end;
 end;
 
-procedure TGlobalAbstract.ApplicationMessage(const AType: TMessageType;
-  const ATitle: string; const AFormat: String; const Args: array of const);
+procedure TGlobalAbstract.ApplicationMessage(const AType: TMessageType; const ATitle: string;
+  const AFormat: String; const Args: array of const);
 var
   str: string;
 begin
@@ -620,8 +606,8 @@ begin
 {$ENDIF}
 end;
 
-procedure TGlobalAbstract._ApplicationMessage(const AType: string;
-  const ATitle: string; const AMessage: String; const AOutputs: TMsgOutputs);
+procedure TGlobalAbstract._ApplicationMessage(const AType: string; const ATitle: string;
+  const AMessage: String; const AOutputs: TMsgOutputs);
 begin
   if moDebugView in AOutputs then
     PrintDebug('<%s> [%s] %s - %s', [AType, FAppCode, ATitle, AMessage]);
@@ -630,8 +616,7 @@ begin
     PrintLog(FLogName, Format('<%s> %s - %s', [AType, ATitle, AMessage]));
 
   if moCloudMessage in AOutputs then
-    CloudMessage(FProjectCode, FAppCode, AType, ATitle, AMessage,
-      FileVersion(FExeName));
+    CloudMessage(FProjectCode, FAppCode, AType, ATitle, AMessage, FileVersion(FExeName));
 end;
 
 { TConnInfo }
@@ -651,6 +636,14 @@ end;
 function TConnInfo.ToString: string;
 begin
   result := Self.StringValue + ':' + Self.IntegerValue.ToString;
+end;
+
+function StrDefault(str: string; Default: string): string;
+begin
+  if str.IsEmpty then
+    result := Default
+  else
+    result := str;
 end;
 
 end.
