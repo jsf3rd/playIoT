@@ -46,6 +46,12 @@ implementation
 
 constructor TJdcConnectionPool.Create(CommaText, DefName, DriverID: String;
   MaximumItems, CleanupTimeout, ExpireTimeout: Integer);
+{$IF CompilerVersion  = 26} // XE5
+const
+  S_FD_ConnParam_Common_Pool_CleanupTimeout = 'POOL_CleanupTimeout';
+  S_FD_ConnParam_Common_Pool_ExpireTimeout = 'POOL_ExpireTimeout';
+  S_FD_ConnParam_Common_Pool_MaximumItems = 'POOL_MaximumItems';
+{$ENDIF}
 var
   List: TStringList;
 begin
