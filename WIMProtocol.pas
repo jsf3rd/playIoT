@@ -5,7 +5,7 @@ interface
 uses SysUtils;
 
 type
-  TWIMHeader  = record
+  TWIMHeader = record
   const
     HEADER_OPERATION = 'OPERATION';
     HEADER_LOOP_IN = 'LOOP_IN';
@@ -46,8 +46,6 @@ type
     Noise_Value: TNoiseValue;
   end;
 
-
-
   TLoopIn = record
     Header: string;
     Site_id: string;
@@ -67,12 +65,14 @@ type
     Loop1_time: string;
     Loop2_date: string;
     Loop2_time: string;
+    function ToString: string;
   end;
 
   TCode = record
     Contravention: string;
     Drive: string;
     Calculation: Double;
+    function ToString: string;
   end;
 
   TTemperature = record
@@ -196,6 +196,21 @@ end;
 function TWIMRaw.Assigned: boolean;
 begin
   Result := not Header.IsEmpty;
+end;
+
+{ TRecordInfo }
+
+function TRecordInfo.ToString: string;
+begin
+  Result := Site_id + '_' + Way + '_' + LANE.ToString + '_' + Loop1_id + '_' + Loop1_date + '_'
+    + Loop1_time;
+end;
+
+{ TCode }
+
+function TCode.ToString: string;
+begin
+  Result := self.Contravention + ',' + self.Drive + ',' + self.Calculation.ToString;
 end;
 
 end.
