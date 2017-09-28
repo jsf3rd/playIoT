@@ -57,8 +57,8 @@ uses JdcGlobal, MyGlobal, MyOption, MyCommon, JdcView, Core, System.UITypes;
 
 procedure TfmMain.actAboutExecute(Sender: TObject);
 begin
-  MessageDlg(APPLICATION_TITLE + ' ' + APPLICATION_VERSION + ' ' +
-    COPY_RIGHT_SIGN + #13#10#13#10 + HOME_PAGE_URL, mtInformation, [mbOK], 0);
+  MessageDlg(APPLICATION_TITLE + ' ' + APPLICATION_VERSION + ' ' + COPY_RIGHT_SIGN +
+    #13#10#13#10 + HOME_PAGE_URL, mtInformation, [mbOK], 0);
 end;
 
 procedure TfmMain.actClearLogExecute(Sender: TObject);
@@ -80,8 +80,8 @@ end;
 
 procedure TfmMain.actShowLogExecute(Sender: TObject);
 begin
-  ShellExecute(handle, 'open', PWideChar('notepad.exe'),
-    PWideChar(TGlobal.Obj.LogName), '', SW_SHOWNORMAL);
+  ShellExecute(handle, 'open', PWideChar('notepad.exe'), PWideChar(TGlobal.Obj.LogName), '',
+    SW_SHOWNORMAL);
 end;
 
 procedure TfmMain.actTestMenuExecute(Sender: TObject);
@@ -98,8 +98,8 @@ end;
 procedure TfmMain.FormCloseQuery(Sender: TObject; var CanClose: Boolean);
 begin
   CanClose := false;
-  if MessageDlg(APPLICATION_TITLE + '을(를) 종료하시겠습니까?',
-    TMsgDlgType.mtConfirmation, mbYesNo, 0) = mrYes then
+  if MessageDlg(APPLICATION_TITLE + '을(를) 종료하시겠습니까?', TMsgDlgType.mtConfirmation, mbYesNo, 0) = mrYes
+  then
     TCore.Obj.Finalize;
 end;
 
@@ -127,8 +127,6 @@ end;
 
 procedure TfmMain.rp_Init(APacket: TValueList);
 begin
-  Caption := APPLICATION_TITLE;
-
   TOption.Obj.AppName := Caption;
   Caption := TOption.Obj.AppName;
 end;

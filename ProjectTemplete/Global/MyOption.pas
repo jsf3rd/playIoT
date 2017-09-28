@@ -55,7 +55,7 @@ end;
 
 function TOption.GetAppName: string;
 begin
-  result := FIniFile.ReadString('Config', 'AppName', 'MyApp');
+  result := FIniFile.ReadString('Config', 'AppName', APPLICATION_TITLE);
 end;
 
 class function TOption.Obj: TOption;
