@@ -17,60 +17,6 @@ uses
   Classes, SysUtils, Windows, ZLib, IdGlobal, IOUtils, StdCtrls, JclFileUtils,
   IdUDPClient, JclSysInfo, psAPI;
 
-// 로그 찍기..
-procedure PrintLog(const AFile: string; AMessage: String = ''); overload;
-procedure PrintLog(AMemo: TMemo; const AMsg: String = ''); overload;
-
-procedure PrintDebug(const Format: string; const Args: array of const); overload;
-procedure PrintDebug(const str: string); overload;
-
-function CurrentProcessMemory: Cardinal;
-function FileVersion(const FileName: String): String;
-procedure CloudMessage(const ProjectCode, AppCode, TypeCode, ATitle, AMessage,
-  AVersion: String);
-
-// 데이터 압축..
-function CompressStream(Stream: TStream; OutStream: TStream; OnProgress: TNotifyEvent)
-  : boolean;
-
-// 데이터 압축 해제..
-function DeCompressStream(Stream: TStream; OutStream: TStream;
-  OnProgress: TNotifyEvent): boolean;
-
-// 응답 검사..
-function Contains(Contents: string; const str: array of const): boolean;
-function IsGoodResponse(Text, Command: string; Response: array of const): boolean;
-
-// Reverse 2Btyes..
-function Rev2Bytes(w: WORD): WORD;
-
-// Reverse 4Btyes..
-function Rev4Bytes(Value: LongInt): LongInt;
-
-// Reverse 4Btyes..
-function Rev4BytesF(Value: LongInt): Single;
-
-// Big endian
-function WordToBytes(AValue: WORD): TIdBytes;
-
-// Big endian
-function DWordToBytes(AValue: DWORD): TIdBytes;
-
-// little endian
-function HexStrToWord(const ASource: string; const AIndex: integer = 1): WORD;
-
-function HexStrToByte(const ASource: String; const AIndex: integer = 1): Byte;
-function HexStrToBytes(const ASource: string; const AIndex: integer = 1): TIdBytes;
-
-function IdBytesToHex(const AValue: TIdBytes; const ASpliter: String = ' '): String;
-function BytesToHex(const AValue: TBytes; const ASpliter: String = ' '): String;
-
-function IdBytesPos(const SubIdBytes, IdBytes: TIdBytes; const AIndex: integer = 0): integer;
-
-function DefaultFormatSettings: TFormatSettings;
-
-function StrDefault(str: string; Default: string): string;
-
 type
   IExecuteFunc<T> = Interface
     ['{48E4B912-AE21-4201-88E0-4835432FEE69}']
@@ -113,6 +59,7 @@ type
 
     FStartTime: TDateTime;
 
+    FLogServer: TConnInfo;
     procedure SetExeName(const Value: String); virtual; abstract;
 
     procedure _ApplicationMessage(const AType: string; const ATitle: string;
@@ -132,6 +79,8 @@ type
     property ExeName: String read FExeName write SetExeName;
     property LogName: string read FLogName;
 
+    property LogServer: TConnInfo read FLogServer write FLogServer;
+
   const
     MESSAGE_TYPE_INFO = 'INFO';
     MESSAGE_TYPE_ERROR = 'ERROR';
@@ -139,6 +88,60 @@ type
     MESSAGE_TYPE_WARNING = 'WARNING';
     MESSAGE_TYPE_UNKNOWN = 'UNKNOWN';
   end;
+
+  // 로그 찍기..
+procedure PrintLog(const AFile: string; AMessage: String = ''); overload;
+procedure PrintLog(AMemo: TMemo; const AMsg: String = ''); overload;
+
+procedure PrintDebug(const Format: string; const Args: array of const); overload;
+procedure PrintDebug(const str: string); overload;
+
+function CurrentProcessMemory: Cardinal;
+function FileVersion(const FileName: String): String;
+procedure CloudMessage(const ProjectCode, AppCode, TypeCode, ATitle, AMessage,
+  AVersion: String; const AServer: TConnInfo);
+
+// 데이터 압축..
+function CompressStream(Stream: TStream; OutStream: TStream; OnProgress: TNotifyEvent)
+  : boolean;
+
+// 데이터 압축 해제..
+function DeCompressStream(Stream: TStream; OutStream: TStream;
+  OnProgress: TNotifyEvent): boolean;
+
+// 응답 검사..
+function Contains(Contents: string; const str: array of const): boolean;
+function IsGoodResponse(Text, Command: string; Response: array of const): boolean;
+
+// Reverse 2Btyes..
+function Rev2Bytes(w: WORD): WORD;
+
+// Reverse 4Btyes..
+function Rev4Bytes(Value: LongInt): LongInt;
+
+// Reverse 4Btyes..
+function Rev4BytesF(Value: LongInt): Single;
+
+// Big endian
+function WordToBytes(AValue: WORD): TIdBytes;
+
+// Big endian
+function DWordToBytes(AValue: DWORD): TIdBytes;
+
+// little endian
+function HexStrToWord(const ASource: string; const AIndex: integer = 1): WORD;
+
+function HexStrToByte(const ASource: String; const AIndex: integer = 1): Byte;
+function HexStrToBytes(const ASource: string; const AIndex: integer = 1): TIdBytes;
+
+function IdBytesToHex(const AValue: TIdBytes; const ASpliter: String = ' '): String;
+function BytesToHex(const AValue: TBytes; const ASpliter: String = ' '): String;
+
+function IdBytesPos(const SubIdBytes, IdBytes: TIdBytes; const AIndex: integer = 0): integer;
+
+function DefaultFormatSettings: TFormatSettings;
+
+function StrDefault(str: string; Default: string): string;
 
 implementation
 
@@ -299,7 +302,7 @@ begin
 end;
 
 procedure CloudMessage(const ProjectCode, AppCode, TypeCode, ATitle, AMessage,
-  AVersion: String);
+  AVersion: String; const AServer: TConnInfo);
 var
   UDPClient: TIdUDPClient;
   SysInfo, Msg, DiskInfo: String;
@@ -586,6 +589,8 @@ constructor TGlobalAbstract.Create;
 begin
   FExeName := '';
   FLogName := '';
+  FLogServer.StringValue := 'log.iccs.co.kr';
+  FLogServer.IntegerValue := 8092;
   FIsInitialized := False;
   FIsFinalized := False;
 end;
@@ -616,7 +621,8 @@ begin
     PrintLog(FLogName, Format('<%s> %s - %s', [AType, ATitle, AMessage]));
 
   if moCloudMessage in AOutputs then
-    CloudMessage(FProjectCode, FAppCode, AType, ATitle, AMessage, FileVersion(FExeName));
+    CloudMessage(FProjectCode, FAppCode, AType, ATitle, AMessage, FileVersion(FExeName),
+      FLogServer);
 end;
 
 { TConnInfo }
