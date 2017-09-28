@@ -104,7 +104,7 @@ begin
 {$IF CompilerVersion  > 26} // upper XE5
   while AValue.Count > 0 do
 {$ELSE}
-  while AObject.Size > 0 do
+  while AValue.Size > 0 do
 {$ENDIF}
   begin
     AValue.Remove(0).Free;
@@ -133,9 +133,9 @@ begin
   begin
     Name := AValue.Pairs[0].JsonString.Value;
 {$ELSE}
-  while AObject.Size > 0 do
+  while AValue.Size > 0 do
   begin
-    Name := AObject.Get(0).JsonString.Value;
+    Name := AValue.Get(0).JsonString.Value;
 {$ENDIF}
     AValue.RemovePair(Name).Free;
   end;
@@ -203,6 +203,7 @@ begin
     ftUnknown:
       raise Exception.Create(Format('DataSet=%s,ParamName=%s,Unknown DataType',
         [Self.Name, AParam.Name]));
+
     ftString, ftWideString:
       if Self.Params.ArraySize = 0 then
         AParam.AsString := (AValue as TJSONString).Value
@@ -215,23 +216,12 @@ begin
       else
         AParam.AsIntegers[Self.Tag] := (AValue as TJSONNumber).AsInt;
 
+{$IF CompilerVersion  > 26} // upper XE5
     ftBoolean:
       if Self.Params.ArraySize = 0 then
         AParam.AsBoolean := (AValue as TJSONBool).AsBoolean
       else
         AParam.AsBooleans[Self.Tag] := (AValue as TJSONBool).AsBoolean;
-
-    ftFloat:
-      if Self.Params.ArraySize = 0 then
-        AParam.AsFloat := (AValue as TJSONNumber).AsDouble
-      else
-        AParam.AsFloats[Self.Tag] := (AValue as TJSONNumber).AsDouble;
-
-    ftCurrency:
-      if Self.Params.ArraySize = 0 then
-        AParam.AsCurrency := (AValue as TJSONNumber).AsDouble
-      else
-        AParam.AsCurrencys[Self.Tag] := (AValue as TJSONNumber).AsDouble;
 
     ftDate:
       if Self.Params.ArraySize = 0 then
@@ -258,6 +248,30 @@ begin
       else
         AParam.AsSQLTimeStamps[Self.Tag] :=
           DateTimeToSQLTimeStamp(ISO8601ToDate((AValue as TJSONString).Value));
+{$ELSE}
+    ftBoolean:
+      if Self.Params.ArraySize = 0 then
+        AParam.AsBoolean := AValue is TJSONTrue
+      else
+        AParam.AsBooleans[Self.Tag] := AValue is TJSONTrue;
+
+    ftDate, ftTime, ftDateTime, ftTimeStamp:
+      if Self.Params.ArraySize = 0 then
+        AParam.Value := AValue.Value
+      else
+        AParam.Values[Self.Tag] := AValue.Value;
+{$ENDIF}
+    ftFloat:
+      if Self.Params.ArraySize = 0 then
+        AParam.AsFloat := (AValue as TJSONNumber).AsDouble
+      else
+        AParam.AsFloats[Self.Tag] := (AValue as TJSONNumber).AsDouble;
+
+    ftCurrency:
+      if Self.Params.ArraySize = 0 then
+        AParam.AsCurrency := (AValue as TJSONNumber).AsDouble
+      else
+        AParam.AsCurrencys[Self.Tag] := (AValue as TJSONNumber).AsDouble;
 
     ftGuid:
       if Self.Params.ArraySize = 0 then
@@ -289,8 +303,13 @@ begin
       else
         AParam.AsSingles[Self.Tag] := (AValue as TJSONNumber).AsDouble;
   else
+{$IF CompilerVersion  > 26} // upper XE5
     raise Exception.Create(Format('DataSet=%s,ParamName=%s,UnsurportDataType=%s',
       [Self.Name, AParam.Name, AParam.DataTypeName]));
+{$ELSE}
+    raise Exception.Create(Format('DataSet=%s,ParamName=%s,UnsurportDataType=%d',
+      [Self.Name, AParam.Name, Integer(AParam.DataType)]));
+{$ENDIF}
   end;
 
 end;
@@ -407,16 +426,31 @@ begin
       result := TJSONString.Create(AField.AsString);
     ftSmallint, ftInteger, ftWord, ftShortint:
       result := TJSONNumber.Create(AField.AsInteger);
+
+{$IF CompilerVersion  > 26} // upper XE5
     ftBoolean:
       result := TJSONBool.Create(AField.AsBoolean);
-    ftFloat:
-      result := TJSONNumber.Create(AField.AsFloat);
-    ftCurrency:
-      result := TJSONNumber.Create(AField.AsCurrency);
     ftDate, ftTime, ftDateTime:
       result := TJSONString.Create(AField.AsDateTime.ToISO8601);
     ftTimeStamp:
       result := TJSONString.Create(SQLTimeStampToDateTime(AField.AsSQLTimeStamp).ToISO8601);
+{$ELSE}
+    ftBoolean:
+      begin
+        if AField.AsBoolean then
+          result := TJSONTrue.Create
+        else
+          result := TJSONFalse.Create;
+      end;
+    ftDate, ftTime, ftDateTime:
+      result := TJSONString.Create(AField.AsDateTime.ToString);
+    ftTimeStamp:
+      result := TJSONString.Create(SQLTimeStampToDateTime(AField.AsSQLTimeStamp).ToString);
+{$ENDIF}
+    ftFloat:
+      result := TJSONNumber.Create(AField.AsFloat);
+    ftCurrency:
+      result := TJSONNumber.Create(AField.AsCurrency);
     ftLargeint:
       result := TJSONNumber.Create(AField.AsLargeInt);
     ftGuid:
@@ -450,10 +484,10 @@ begin
     result.AddElement(GetNameValue(AValue.Items[I], Key));
   end;
 {$ELSE}
-  for I := 0 to AObject.Size - 1 do
+  for I := 0 to AValue.Size - 1 do
   begin
     Key := AName + '_' + (I + 1).ToString;
-    result.AddElement(GetNameValue(AObject.Get(I), Key));
+    result.AddElement(GetNameValue(AValue.Get(I), Key));
   end;
 {$ENDIF}
 end;
