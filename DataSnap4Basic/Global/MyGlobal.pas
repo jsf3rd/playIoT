@@ -80,7 +80,7 @@ begin
   inherited;
 
   // Todo :
-
+  // FLogServer.StringValue := 'log.iccs.co.kr';
 end;
 
 class function TGlobal.Obj: TGlobal;
@@ -94,8 +94,7 @@ procedure TGlobal.SetExeName(const Value: String);
 begin
   FExeName := Value;
   FLogName := ChangeFileExt(FExeName, '.log');
-  FLogName := GetEnvironmentVariable('LOCALAPPDATA') + '\playIoT\' +
-    ExtractFileName(FLogName);
+  FLogName := GetEnvironmentVariable('LOCALAPPDATA') + '\playIoT\' + ExtractFileName(FLogName);
 
   if not TDirectory.Exists(ExtractFilePath(FLogName)) then
     TDirectory.CreateDirectory(ExtractFilePath(FLogName));

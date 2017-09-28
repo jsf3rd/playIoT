@@ -23,8 +23,8 @@ type
 
     class function Obj: TGlobal;
 
-    procedure ApplicationMessage(const AType: TMessageType;
-      const ATitle: String; const AMessage: String = ''); override;
+    procedure ApplicationMessage(const AType: TMessageType; const ATitle: String;
+      const AMessage: String = ''); override;
 
     procedure Initialize; override;
     procedure Finalize; override;
@@ -39,15 +39,14 @@ var
 
   { TGlobal }
 
-procedure TGlobal.ApplicationMessage(const AType: TMessageType;
-  const ATitle: String; const AMessage: String);
+procedure TGlobal.ApplicationMessage(const AType: TMessageType; const ATitle: String;
+  const AMessage: String);
 begin
   inherited;
 
   case AType of
     mtDebug:
-      _ApplicationMessage(MESSAGE_TYPE_DEBUG, ATitle, AMessage,
-        [moCloudMessage]);
+      _ApplicationMessage(MESSAGE_TYPE_DEBUG, ATitle, AMessage, [moCloudMessage]);
     mtError:
       TView.Obj.sp_ErrorMessage(ATitle, AMessage);
     mtInfo:
@@ -93,6 +92,7 @@ begin
   FIsInitialized := true;
 
   FStartTime := now;
+  // FLogServer.StringValue := 'log.iccs.co.kr';
 
 {$IFDEF WIN32}
   ApplicationMessage(mtDebug, 'Start', '(x86)' + FExeName);
@@ -114,8 +114,7 @@ procedure TGlobal.SetExeName(const Value: String);
 begin
   FExeName := Value;
   FLogName := ChangeFileExt(FExeName, '.log');
-  FLogName := GetEnvironmentVariable('LOCALAPPDATA') + '\playIoT\' +
-    ExtractFileName(FLogName);
+  FLogName := GetEnvironmentVariable('LOCALAPPDATA') + '\playIoT\' + ExtractFileName(FLogName);
 
   if not TDirectory.Exists(ExtractFilePath(FLogName)) then
     TDirectory.CreateDirectory(ExtractFilePath(FLogName));

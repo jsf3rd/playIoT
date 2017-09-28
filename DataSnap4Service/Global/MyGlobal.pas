@@ -73,7 +73,7 @@ begin
   inherited;
 
   // Todo :
-
+  // FLogServer.StringValue := 'log.iccs.co.kr';
 end;
 
 class function TGlobal.Obj: TGlobal;
