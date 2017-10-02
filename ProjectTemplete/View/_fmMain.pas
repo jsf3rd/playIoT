@@ -127,7 +127,6 @@ end;
 
 procedure TfmMain.rp_Init(APacket: TValueList);
 begin
-  TOption.Obj.AppName := Caption;
   Caption := TOption.Obj.AppName;
 end;
 
