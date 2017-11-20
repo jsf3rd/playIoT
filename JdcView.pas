@@ -133,7 +133,7 @@ end;
 
 procedure TView.sp_Terminate(const Msg: string);
 begin
-  sp_AsyncMessage('Terminate', Msg);
+  sp_SyncMessage('Terminate', Msg);
 end;
 
 class function TView.Obj: TView;
