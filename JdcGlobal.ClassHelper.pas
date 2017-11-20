@@ -44,10 +44,8 @@ type
     function GetJSONArray(const Name: string): TJSONArray;
     function GetJSONObject(const Name: string): TJSONObject;
 
-    function AddPair(const Str: string; const Val: integer)
-      : TJSONObject; overload;
-    function AddPair(const Str: string; const Val: double)
-      : TJSONObject; overload;
+    function AddPair(const Str: string; const Val: integer): TJSONObject; overload;
+    function AddPair(const Str: string; const Val: double): TJSONObject; overload;
 
     function ToRecord<T: record >: T;
     function ToObject<T: class>: T;
@@ -61,17 +59,16 @@ type
   public
     class function ObjectToJsonObjectEx(AObject: TObject): TJSONObject;
     class function ObjectToJsonStringEx(AObject: TObject): String;
-    class function JsonToObjectEx<T: class>(AJsonObject: TJSONObject)
-      : T; overload;
+    class function JsonToObjectEx<T: class>(AJsonObject: TJSONObject): T; overload;
     class function JsonToObjectEx<T: class>(AJson: String): T; overload;
     class function FileToObject<T: class>(FileName: String): T;
 
     class function RecordToJsonObject<T: record >(ARecord: T): TJSONObject;
     class function RecordToJsonString<T: record >(ARecord: T): String;
-    class function JsonToRecord<T: record >(AJsonObject: TJSONObject)
-      : T; overload;
+    class function JsonToRecord<T: record >(AJsonObject: TJSONObject): T; overload;
     class function JsonToRecord<T: record >(AJson: String): T; overload;
     class function FileToRecord<T: record >(FileName: String): T;
+    class function ConvertRecord<T1, T2: record >(ARecord: T1): T2;
   end;
 
   TDateTimeHelper = record helper for TDateTime
@@ -81,6 +78,8 @@ type
     function FormatWithMSec: String;
     function FormatWithoutMSec: String;
     function RecodeTenMinute: TDateTime;
+    function Date: string;
+    function Time: string;
   end;
 
 implementation
@@ -99,8 +98,7 @@ end;
 {$ENDIF}
 
 { TJSONObjectHelper }
-function TJSONObjectHelper.AddPair(const Str: string; const Val: integer)
-  : TJSONObject;
+function TJSONObjectHelper.AddPair(const Str: string; const Val: integer): TJSONObject;
 begin
   if not Str.IsEmpty then
     AddPair(TJSONPair.Create(Str, TJSONNumber.Create(Val)));
@@ -117,8 +115,7 @@ begin
     Result := JSONValue as TJSONArray;
   except
     on E: Exception do
-      raise Exception.Create
-        (Format('JSON name [%s] can not cast to TJSONArray. \n %s',
+      raise Exception.Create(Format('JSON name [%s] can not cast to TJSONArray. \n %s',
         [Name, JSONValue.ToString]));
   end;
 end;
@@ -133,14 +130,12 @@ begin
     Result := JSONValue as TJSONObject;
   except
     on E: Exception do
-      raise Exception.Create
-        (Format('JSON name [%s] can not cast to TJSONObject. \n %s',
+      raise Exception.Create(Format('JSON name [%s] can not cast to TJSONObject. \n %s',
         [Name, JSONValue.ToString]));
   end;
 end;
 
-function TJSONObjectHelper.AddPair(const Str: string; const Val: double)
-  : TJSONObject;
+function TJSONObjectHelper.AddPair(const Str: string; const Val: double): TJSONObject;
 begin
   if not Str.IsEmpty then
     AddPair(TJSONPair.Create(Str, TJSONNumber.Create(Val)));
@@ -162,8 +157,7 @@ begin
     Result := (JSONValue as TJSONNumber).AsDouble;
   except
     on E: Exception do
-      raise Exception.Create
-        (Format('JSON name [%s] can not cast to TJSONNumber. \n %s',
+      raise Exception.Create(Format('JSON name [%s] can not cast to TJSONNumber. \n %s',
         [Name, JSONValue.ToString]));
   end;
 end;
@@ -178,8 +172,7 @@ begin
     Result := (JSONValue as TJSONNumber).AsInt;
   except
     on E: Exception do
-      raise Exception.Create
-        (Format('JSON name [%s] can not cast to TJSONNumber. \n %s',
+      raise Exception.Create(Format('JSON name [%s] can not cast to TJSONNumber. \n %s',
         [Name, JSONValue.ToString]));
   end;
 end;
@@ -203,8 +196,7 @@ begin
   for MyElem in Self do
     Names := Names + MyElem.JsonString.Value + ', ';
 
-  raise Exception.Create
-    (Format('JSON name [%s] is not exist. Other name list [%s]',
+  raise Exception.Create(Format('JSON name [%s] is not exist. Other name list [%s]',
     [Name, Names]));
 end;
 
@@ -231,6 +223,15 @@ end;
 class function TJSONHelper.JsonToObjectEx<T>(AJsonObject: TJSONObject): T;
 begin
   Result := JsonToObjectEx<T>(AJsonObject.ToString);
+end;
+
+class function TJSONHelper.ConvertRecord<T1, T2>(ARecord: T1): T2;
+var
+  JSONObject: TJSONObject;
+begin
+  JSONObject := RecordToJsonObject<T1>(ARecord);
+  Result := JsonToRecord<T2>(JSONObject);
+  JSONObject.Free;
 end;
 
 class function TJSONHelper.FileToObject<T>(FileName: String): T;
@@ -298,6 +299,11 @@ end;
 
 { TDateTimeHelper }
 
+function TDateTimeHelper.Date: string;
+begin
+  Result := FormatDateTime('YYYY-MM-DD', Self);
+end;
+
 function TDateTimeHelper.FormatWithMSec: String;
 begin
   Result := FormatDateTime('YYYY-MM-DD HH:NN:SS.zzz', Self);
@@ -318,6 +324,11 @@ begin
   Result := RecodeMilliSecond(Self, 0);
   Result := RecodeSecond(Result, 0);
   Result := RecodeMinute(Result, Min);
+end;
+
+function TDateTimeHelper.Time: string;
+begin
+  Result := FormatDateTime('HH:NN:SS', Self);
 end;
 
 function TDateTimeHelper.ToISO8601: String;
