@@ -28,7 +28,7 @@ type
     procedure Execute(AValue: T);
   End;
 
-  TMessageType = (mtDebug, mtInfo, mtError, mtWarning, mtUnknown);
+  TMessageType = (msDebug, msInfo, msError, msWarning, msUnknown);
 
   TLogProc = procedure(const AType: TMessageType; const ATitle: String;
     const AMessage: String = '') of object;
@@ -48,7 +48,10 @@ type
   end;
 
   TGlobalAbstract = class abstract
-  strict protected
+  strict private
+    function GetErrorLogName: string;
+    function GetLogName: string;
+  protected
     FProjectCode: string;
     FAppCode: string;
 
@@ -77,7 +80,8 @@ type
       const AFormat: String; const Args: array of const); overload;
 
     property ExeName: String read FExeName write SetExeName;
-    property LogName: string read FLogName;
+    property LogName: string read GetLogName;
+    property ErrorLogName: string read GetErrorLogName;
 
     property LogServer: TConnInfo read FLogServer write FLogServer;
 
@@ -199,7 +203,7 @@ begin
   end;
 end;
 
-procedure PrintLog(AMemo: TMemo; const AMsg: String);
+procedure _PrintLog(AMemo: TMemo; const AMsg: String);
 begin
   if AMemo.Lines.Count > 5000 then
     AMemo.Lines.Clear;
@@ -207,7 +211,19 @@ begin
   if AMsg.IsEmpty then
     AMemo.Lines.Add('')
   else
-    AMemo.Lines.Add(FormatDateTime('YYYY-MM-DD, HH:NN:SS.zzz, ', now) + AMsg);
+    AMemo.Lines.Add(FormatDateTime('YYYY-MM-DD HH:NN:SS.zzz, ', now) + AMsg);
+end;
+
+procedure PrintLog(AMemo: TMemo; const AMsg: String);
+begin
+  if TThread.CurrentThread.ThreadID = MainThreadID then
+    _PrintLog(AMemo, AMsg)
+  else
+    TThread.Queue(nil,
+      procedure
+      begin
+        _PrintLog(AMemo, AMsg);
+      end);
 end;
 
 procedure PrintLog(const AFile: string; AMessage: String);
@@ -243,7 +259,15 @@ begin
     end;
   except
     on E: Exception do
-      PrintDebug(E.Message + ', ' + AMessage);
+    begin
+      if ExtractFileExt(FileName) = '.tmp' then
+      begin
+        PrintDebug(E.Message + ', ' + AMessage);
+        Exit;
+      end
+      else
+        PrintLog(FileName + '.tmp', AMessage);
+    end;
   end;
 
 end;
@@ -292,9 +316,9 @@ begin
       if VerQueryValue(PVerInfo, '\', Pointer(PVerValue), VerValueSize) then
         with PVerValue^ do
           result := Format('v%d.%d.%d', [HiWord(dwFileVersionMS),
-            // Major
-            LoWord(dwFileVersionMS), // Minor
-            HiWord(dwFileVersionLS) // Release
+          // Major
+          LoWord(dwFileVersionMS), // Minor
+          HiWord(dwFileVersionLS) // Release
             ]);
   finally
     FreeMem(PVerInfo, VerInfoSize);
@@ -391,7 +415,7 @@ begin
 end;
 
 function DeCompressStream(Stream: TStream; OutStream: TStream;
-  OnProgress: TNotifyEvent): boolean;
+OnProgress: TNotifyEvent): boolean;
 const
   BuffSize = 65535; // 버퍼 사이즈
 var
@@ -560,16 +584,16 @@ end;
 { TGlobalAbstract }
 
 procedure TGlobalAbstract.ApplicationMessage(const AType: TMessageType; const ATitle: string;
-  const AMessage: String);
+const AMessage: String);
 begin
   case AType of
-    mtDebug:
+    msDebug:
       _ApplicationMessage(MESSAGE_TYPE_DEBUG, ATitle, AMessage, [moDebugView, moLogFile]);
-    mtInfo:
+    msInfo:
       _ApplicationMessage(MESSAGE_TYPE_INFO, ATitle, AMessage);
-    mtError:
+    msError:
       _ApplicationMessage(MESSAGE_TYPE_ERROR, ATitle, AMessage);
-    mtWarning:
+    msWarning:
       _ApplicationMessage(MESSAGE_TYPE_WARNING, ATitle, AMessage);
   else
     _ApplicationMessage(MESSAGE_TYPE_UNKNOWN, ATitle, AMessage);
@@ -577,7 +601,7 @@ begin
 end;
 
 procedure TGlobalAbstract.ApplicationMessage(const AType: TMessageType; const ATitle: string;
-  const AFormat: String; const Args: array of const);
+const AFormat: String; const Args: array of const);
 var
   str: string;
 begin
@@ -597,22 +621,32 @@ end;
 
 procedure TGlobalAbstract.Finalize;
 begin
-  ApplicationMessage(mtInfo, 'Stop', 'StartTime=' + FStartTime.ToString);
+  ApplicationMessage(msInfo, 'Stop', 'StartTime=' + FStartTime.ToString);
+end;
+
+function TGlobalAbstract.GetErrorLogName: string;
+begin
+  result := ChangeFileExt(FLogName, FormatDateTime('_YYYYMMDD', now) + '.err');
+end;
+
+function TGlobalAbstract.GetLogName: string;
+begin
+  result := ChangeFileExt(FLogName, FormatDateTime('_YYYYMMDD', now) + '.log');
 end;
 
 procedure TGlobalAbstract.Initialize;
 begin
   FStartTime := now;
 {$IFDEF WIN32}
-  ApplicationMessage(mtInfo, 'Start', '(x86)' + FExeName);
+  ApplicationMessage(msInfo, 'Start', '(x86)' + FExeName);
 {$ENDIF}
 {$IFDEF WIN64}
-  ApplicationMessage(mtInfo, 'Start', '(x64)' + FExeName);
+  ApplicationMessage(msInfo, 'Start', '(x64)' + FExeName);
 {$ENDIF}
 end;
 
 procedure TGlobalAbstract._ApplicationMessage(const AType: string; const ATitle: string;
-  const AMessage: String; const AOutputs: TMsgOutputs);
+const AMessage: String; const AOutputs: TMsgOutputs);
 begin
   if moDebugView in AOutputs then
     PrintDebug('<%s> [%s] %s - %s', [AType, FAppCode, ATitle, AMessage]);
