@@ -2,7 +2,8 @@ unit WIMProtocol;
 
 interface
 
-uses SysUtils;
+uses SysUtils, System.JSON, JdcGlobal.ClassHelper, REST.JSON, System.MaskUtils, JdcGlobal,
+  System.Classes, System.Generics.Collections, JdcGlobal.DSCommon;
 
 type
   TWIMHeader = record
@@ -16,6 +17,7 @@ type
   TPoistion = record
     Left: Double;
     Right: Double;
+    function ToString: string;
   end;
 
   TNoise = array [0 .. 3] of Integer;
@@ -39,6 +41,7 @@ type
     Way: string;
     Error: TError;
     function Equals(AValue: TOperation): boolean;
+    function ToString: string;
   end;
 
   TErrorOffset = record
@@ -54,6 +57,8 @@ type
     Loop1_id: string;
     Loop1_date: string;
     Loop1_time: string;
+    function ToString: string;
+    function GetPacket: string;
   end;
 
   TRecordInfo = record
@@ -66,6 +71,8 @@ type
     Loop2_date: string;
     Loop2_time: string;
     function ToString: string;
+    function Loop1: TDateTime;
+    function Loop2: TDateTime;
   end;
 
   TCode = record
@@ -133,6 +140,7 @@ type
     Wheel_base: TWheelBase;
     Wheel_track: TWheelTrack;
     Error_Offset: TErrorOffset;
+    function ToJSONParams(AGUID: string; ANum: Integer): TJSONObject;
   end;
 
   TWIMRaw = record
@@ -161,6 +169,16 @@ type
     WIM_2: TWIMData;
     AVI: TAVIPack;
     VMS: TVMSPack;
+    function ToJSONParams(AGUID: string; SiteID: Integer): TJSONObject;
+  end;
+
+  TWIMBackup = record
+    WIMResult: TWIMResult;
+    FrontImage: string;
+    SideImage: string;
+    function GetWIMRaw: TWIMRaw;
+    constructor Create(AResult: TWIMResult); overload;
+    constructor Create(ARaw: TWIMRaw); overload;
   end;
 
 implementation
@@ -191,6 +209,11 @@ begin
   end;
 end;
 
+function TOperation.ToString: string;
+begin
+  Result := Header + '_' + Site_id + '_' + Way;
+end;
+
 { TWIMRaw }
 
 function TWIMRaw.Assigned: boolean;
@@ -199,6 +222,18 @@ begin
 end;
 
 { TRecordInfo }
+
+function TRecordInfo.Loop1: TDateTime;
+begin
+  Result := StrToDateTimeDef(FormatMaskText('0000-00-00 00:00:00#000;0',
+    Loop1_date + Loop1_time), 0, DefaultFormatSettings);
+end;
+
+function TRecordInfo.Loop2: TDateTime;
+begin
+  Result := StrToDateTimeDef(FormatMaskText('0000-00-00 00:00:00#000;0',
+    Loop2_date + Loop2_time), 0, DefaultFormatSettings);
+end;
 
 function TRecordInfo.ToString: string;
 begin
@@ -211,6 +246,152 @@ end;
 function TCode.ToString: string;
 begin
   Result := self.Contravention + ',' + self.Drive + ',' + self.Calculation.ToString;
+end;
+
+{ TWIMResult }
+
+function TWIMResult.ToJSONParams(AGUID: String; SiteID: Integer): TJSONObject;
+var
+  tmp: TJSONObject;
+  MyPair: TJSONPair;
+  I: Integer;
+
+  WeightAxle: TJSONPair;
+begin
+  Result := TJSONObject.Create;
+
+  Result.AddPair('data_id', AGUID);
+  Result.AddPair('_site_id', SiteID);
+
+  Result.AddPair('loop_in', self.Common.Record_info.Loop1.ToISO8601);
+  Result.AddPair('loop_out', self.Common.Record_info.Loop2.ToISO8601);
+
+  TDSCommon.AddJSONValue<TRecordInfo>(Result, self.Common.Record_info);
+  TDSCommon.AddJSONValue<TCode>(Result, self.Common.Code);
+  TDSCommon.AddJSONValue<TTemperature>(Result, self.Common.Temperature);
+  TDSCommon.AddJSONValue<TSpecification>(Result, self.WIM_Final.Specification);
+  TDSCommon.AddJSONArray<TWIMFinal>(Result, self.WIM_Final);
+
+  WeightAxle := Result.RemovePair('Weight_axle');
+  Result.AddPair(WeightAxle.JsonString.Value, WeightAxle.JsonValue.Value + ',' +
+    self.WIM_Final.Weight_gross.ToString);
+  WeightAxle.Free;
+
+  for I := Low(self.WIM_Final.Weight_wheel) to High(self.WIM_Final.Weight_wheel) do
+  begin
+    Result.AddPair('weight_wheel_axle' + (I + 1).ToString,
+      self.WIM_Final.Weight_wheel[I].ToString);
+  end;
+
+  tmp := TJson.RecordToJsonObject<TPoistion>(self.WIM_Final.Tire_position);
+  for MyPair in tmp do
+  begin
+    Result.AddPair(MyPair.JsonString.Value + '_tire_position',
+      MyPair.JsonValue.Clone as TJSONValue);
+  end;
+  tmp.Free;
+
+  Result.AddPair('vehicle_number', self.AVI.vehicle_number);
+  Result.AddPair('avi_result', self.AVI.condition);
+  Result.AddPair('vms_result', self.VMS.condition);
+end;
+
+{ TPoistion }
+
+function TPoistion.ToString: string;
+begin
+  Result := FloatToStr(Left) + ',' + FloatToStr(Right);
+end;
+
+{ TWIMData }
+
+function TWIMData.ToJSONParams(AGUID: string; ANum: Integer): TJSONObject;
+var
+  I: Integer;
+  WeightAxle: TJSONPair;
+begin
+  Result := TJSONObject.Create;
+
+  Result.AddPair('data_id', AGUID);
+  Result.AddPair('wim_num', ANum);
+
+  TDSCommon.AddJSONValue<TFactor>(Result, self.Factor, 'correction_');
+  TDSCommon.AddJSONValue<TSpecification>(Result, self.Specification);
+  TDSCommon.AddJSONArray<TErrorOffset>(Result, self.Error_Offset);
+  TDSCommon.AddJSONArray<TWIMData>(Result, self);
+
+  WeightAxle := Result.RemovePair('Weight_axle');
+  Result.AddPair(WeightAxle.JsonString.Value, WeightAxle.JsonValue.Value + ',' +
+    self.Weight_gross.ToString);
+  WeightAxle.Free;
+
+  for I := Low(self.Weight_wheel) to High(self.Weight_wheel) do
+  begin
+    Result.AddPair('weight_wheel_axle' + (I + 1).ToString, self.Weight_wheel[I].ToString);
+  end;
+end;
+
+{ TLoopIn }
+
+function TLoopIn.GetPacket: string;
+var
+  StringList: TStringList;
+begin
+  StringList := TStringList.Create;
+  try
+    StringList.Add(self.Header);
+    StringList.Add(self.Site_id);
+    StringList.Add(self.Way);
+    StringList.Add(self.LANE.ToString);
+    StringList.Add(self.Loop1_id);
+    StringList.Add(self.Loop1_date);
+    StringList.Add(self.Loop1_time);
+    StringList.Add('2'); // SideImage 컷번호
+    Result := StringList.CommaText;
+  finally
+    StringList.Free;
+  end;
+end;
+
+function TLoopIn.ToString: string;
+begin
+  Result := self.Site_id + '_' + self.Way + '_' + self.LANE.ToString + '_' + self.Loop1_id +
+    '_' + self.Loop1_date + '_' + self.Loop1_time;
+end;
+
+{ TWIMBackup }
+
+constructor TWIMBackup.Create(AResult: TWIMResult);
+var
+  JSONObject: TJSONObject;
+begin
+  JSONObject := TJson.RecordToJsonObject(AResult);
+  self.WIMResult := TJson.JsonToRecord<TWIMResult>(JSONObject);
+  JSONObject.Free;
+end;
+
+constructor TWIMBackup.Create(ARaw: TWIMRaw);
+var
+  JSONObject: TJSONObject;
+begin
+  JSONObject := TJson.RecordToJsonObject(ARaw);
+  self.WIMResult := TJson.JsonToRecord<TWIMResult>(JSONObject);
+  JSONObject.Free;
+
+  self.WIMResult.AVI.vehicle_number := '미수신';
+  self.WIMResult.AVI.condition := 'AR04';
+  self.WIMResult.VMS.condition := 'VR04';
+  self.FrontImage := 'no_image';
+  self.SideImage := 'no_image';
+end;
+
+function TWIMBackup.GetWIMRaw: TWIMRaw;
+var
+  JSONObject: TJSONObject;
+begin
+  JSONObject := TJson.RecordToJsonObject(self.WIMResult);
+  Result := TJson.JsonToRecord<TWIMRaw>(JSONObject);
+  JSONObject.Free;
 end;
 
 end.
