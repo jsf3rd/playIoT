@@ -40,8 +40,8 @@ type
   TPeeks = TArray<Integer>;
   TMSeedContainer = TDictionary<String, TStream>;
 
-  TEncodingFormat = (efAscii = 0, efInt16 = 1, efInt24 = 2, efInt32 = 3,
-    efFloat = 4, efDouble = 5, efSteim1 = 10, efSteim2 = 11);
+  TEncodingFormat = (efAscii = 0, efInt16 = 1, efInt24 = 2, efInt32 = 3, efFloat = 4,
+    efDouble = 5, efSteim1 = 10, efSteim2 = 11);
 
   TSteimType = (stLevel1 = 10, stLevel2 = 11);
   TByteOrder = (boLittle, boBig);
@@ -195,12 +195,9 @@ type
   private
     class function CalcSteim2SubCode(dnib: Byte; accum: Integer): Byte;
   public
-    class function GetRecordCount(ARecord: TDataRecord;
-      AType: TSteimType): Integer;
-    class function GetSubCode(steim: TSteimType; dnib: Byte;
-      accum: Integer): Byte;
-    class function MSeedToRawData(FixedHeader: TFixedHeader;
-      AStream: TStream): TPeeks;
+    class function GetRecordCount(ARecord: TDataRecord; AType: TSteimType): Integer;
+    class function GetSubCode(steim: TSteimType; dnib: Byte; accum: Integer): Byte;
+    class function MSeedToRawData(FixedHeader: TFixedHeader; AStream: TStream): TPeeks;
 
   const
     B1X32 = 0;
@@ -320,8 +317,26 @@ begin
 end;
 
 function TMSeedHeader.Interval: Integer;
+var
+  SampleRate: Double;
+  Factor, Multiplier: Int16;
 begin
-  result := Trunc(1000 / Rev2Bytes(samprate_fact));
+  SampleRate := 0;
+
+  Factor := Rev2Bytes(samprate_fact);
+  Multiplier := Rev2Bytes(samprate_mult);
+
+  if (Factor > 0) then
+    SampleRate := Factor
+  else if (Factor < 0) then
+    SampleRate := -1.0 / Factor;
+
+  if (Multiplier > 0) then
+    SampleRate := SampleRate * Multiplier
+  else if (Multiplier < 0) then
+    SampleRate := -1.0 * (SampleRate / Multiplier);
+
+  result := Trunc(1000 / SampleRate);
 end;
 
 function TMSeedHeader.LastTime: TDateTime;
@@ -379,8 +394,7 @@ begin
   result := result + ',NumberOfBlockettes=' + Self.numblockettes.ToString;
   result := result + ',TimeCorrection=' + Rev4Bytes(Self.time_correct).ToString;
   result := result + ',DataOffset=' + IntToStr(Rev2Bytes(Self.data_offset));
-  result := result + ',BlocketteOffset=' +
-    IntToStr(Rev2Bytes(Self.blockette_offset));
+  result := result + ',BlocketteOffset=' + IntToStr(Rev2Bytes(Self.blockette_offset));
 
 end;
 
@@ -441,8 +455,7 @@ end;
 function TBlockette1000.ToString: String;
 begin
   result := 'BlocketteCode=' + IntToStr(Rev2Bytes(Self.blockette_code));
-  result := result + ',NextBlocketteOffset=' +
-    IntToStr(Rev2Bytes(Self.next_blockette_offset));
+  result := result + ',NextBlocketteOffset=' + IntToStr(Rev2Bytes(Self.next_blockette_offset));
   result := result + ',Encoding=' + Self.encoding.ToString;
   result := result + ',ByteOrder=' + Self.byteorder.ToString;
   result := result + ',RecordLength=' + Self.RecordLength.ToString;
@@ -473,8 +486,7 @@ end;
 function TBlockette1001.ToString: String;
 begin
   result := 'BlocketteCode=' + IntToStr(Rev2Bytes(Self.blockette_code));
-  result := result + ',NextBlocketteOffset=' +
-    IntToStr(Rev2Bytes(Self.next_blockette_offset));
+  result := result + ',NextBlocketteOffset=' + IntToStr(Rev2Bytes(Self.next_blockette_offset));
   result := result + ',TimeQuality=' + Self.timing_qual.ToString;
   result := result + ',Microsec=' + Self.usec.ToString;
   result := result + ',FrameCount=' + Self.framecnt.ToString;
@@ -490,8 +502,7 @@ end;
 
 function TPeriod.InRange(ADateTime: TDateTime): boolean;
 begin
-  result := (ADateTime >= Self.StartDateTime) and
-    (ADateTime < Self.EndDateTime);
+  result := (ADateTime >= Self.StartDateTime) and (ADateTime < Self.EndDateTime);
 end;
 
 { TMSeedCommon }
@@ -510,8 +521,7 @@ begin
     result := dnib;
 end;
 
-class function TMSeedCommon.GetSubCode(steim: TSteimType; dnib: Byte;
-  accum: Integer): Byte;
+class function TMSeedCommon.GetSubCode(steim: TSteimType; dnib: Byte; accum: Integer): Byte;
 begin
   case steim of
     stLevel1:
@@ -554,8 +564,7 @@ begin
   end;
 end;
 
-class function TMSeedCommon.GetRecordCount(ARecord: TDataRecord;
-  AType: TSteimType): Integer;
+class function TMSeedCommon.GetRecordCount(ARecord: TDataRecord; AType: TSteimType): Integer;
 var
   Flag: DWORD;
   SubCode, dnib: Byte;
@@ -603,8 +612,8 @@ constructor TFixedHeader.Create(AStream: TStream);
 begin
   Self.Header := TMSeedHeader.Create(AStream);
 
-  if Self.Header.data_offset <> FIXED_DATA_OFFSET then
-    raise Exception.Create('DataOffset 64 Expected but ' +
+  if Self.Header.data_offset < FIXED_DATA_OFFSET then
+    raise Exception.Create('DataOffset 64 or more Expected but ' +
       Rev2Bytes(Self.Header.data_offset).ToString + ' found');
 
   Self.Blkt1000 := TBlockette1000.Create(AStream);
@@ -620,7 +629,7 @@ end;
 
 function TFixedHeader.DataLength: Integer;
 begin
-  result := Self.Blkt1000.RecordLength - SizeOf(Self);
+  result := Self.Blkt1000.RecordLength - Rev2Bytes(Self.Header.data_offset);
 end;
 
 function TFixedHeader.FrameCount: Integer;
@@ -636,16 +645,13 @@ var
   Format: TEncodingFormat;
 begin
   Format := TEncodingFormat(Blkt1000.encoding);
-  result := (Format = TEncodingFormat.efSteim1) or
-    (Format = TEncodingFormat.efSteim2);
+  result := (Format = TEncodingFormat.efSteim1) or (Format = TEncodingFormat.efSteim2);
 end;
 
 procedure TFixedHeader.Validate;
 begin
-  if not((Self.Header.numblockettes = 1) or (Self.Header.numblockettes = 2))
-  then
-    raise Exception.Create('Blockettes number error ' +
-      Self.Header.numblockettes.ToString);
+  if Self.Header.numblockettes = 0 then
+    raise Exception.Create('Blockettes number error ' + Self.Header.numblockettes.ToString);
 
   if not Self.Blkt1000.IsValid then
     raise Exception.Create('Can not find Blockette 1000');
