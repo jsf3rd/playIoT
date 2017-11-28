@@ -211,7 +211,7 @@ end;
 
 function TOperation.ToString: string;
 begin
-  Result := Header + '_' + Site_id + '_' + Way;
+  Result := Header + '_' + Site_id + '_' + Way + '_' + self.Error.Init.ToString;
 end;
 
 { TWIMRaw }
