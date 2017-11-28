@@ -6,7 +6,7 @@ uses
   Classes, SysUtils, JdcOption, Global, IniFiles;
 
 type
-  TOption = class(TOptionAbstract)
+  TOption = class(TOptionIniFiles)
   private
     function GetID(ASec: string): string;
     function GetPassword(ASec: string): string;
@@ -17,8 +17,7 @@ type
     class function Obj: TOption;
 
     property ReadID[Sec: string]: string read GetID write SetID;
-    property ReadPassword[Sec: string]: string read GetPassword
-      write SetPassword;
+    property ReadPassword[Sec: string]: string read GetPassword write SetPassword;
   end;
 
 implementation
@@ -43,7 +42,7 @@ begin
   if MyObj = nil then
   begin
     MyObj := TOption.Create(nil);
-    MyObj.FExeName := TGlobal.Obj.ExeName;
+    MyObj.Path := ChangeFileExt(TGlobal.Obj.ExeName, '.ini');
   end;
   result := MyObj;
 end;

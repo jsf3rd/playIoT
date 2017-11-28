@@ -4,7 +4,7 @@ interface
 
 uses
   Classes, SysUtils, JdcView2, Vcl.Imaging.jpeg, Data.DBXJSON, JdcOption,
-  System.Types, ValueList;
+  System.Types, ValueList, System.IOUtils;
 
 const
   COPY_RIGHT_QUEENANT = 'playIoTApp v1.0 - ⓒ 2012 playIoT';
@@ -19,6 +19,7 @@ type
   private
     FExeName: String;
     FDebugMessage: Boolean;
+    procedure SetExeName(const Value: String);
 
   public
     constructor Create(AOwner: TComponent); override;
@@ -31,7 +32,7 @@ type
 
   published
     property Initialized: Boolean read FInitialized;
-    property ExeName: String read FExeName write FExeName;
+    property ExeName: String read FExeName write SetExeName;
     property DebugMessage: Boolean read FDebugMessage write FDebugMessage;
 
   end;
@@ -82,6 +83,16 @@ begin
   if MyObj = nil then
     MyObj := TGlobal.Create(nil);
   Result := MyObj;
+end;
+
+procedure TGlobal.SetExeName(const Value: String);
+var
+  LogPath:string;
+begin
+  FExeName := Value;
+  LogPath := ExtractFilePath(FExeName) + 'logs';
+  if not TDirectory.Exists(LogPath) then
+    TDirectory.CreateDirectory(LogPath);
 end;
 
 end.
