@@ -147,9 +147,29 @@ function DefaultFormatSettings: TFormatSettings;
 
 function StrDefault(str: string; Default: string): string;
 
+// Thread Safe
+procedure ThreadSafe(AMethod: TThreadMethod); overload;
+procedure ThreadSafe(AThreadProc: TThreadProcedure); overload;
+
 implementation
 
 uses JdcGlobal.ClassHelper;
+
+procedure ThreadSafe(AMethod: TThreadMethod); overload;
+begin
+  if TThread.CurrentThread.ThreadID = MainThreadID then
+    AMethod
+  else
+    TThread.Queue(nil, AMethod);
+end;
+
+procedure ThreadSafe(AThreadProc: TThreadProcedure); overload;
+begin
+  if TThread.CurrentThread.ThreadID = MainThreadID then
+    AThreadProc
+  else
+    TThread.Queue(nil, AThreadProc);
+end;
 
 function DefaultFormatSettings: TFormatSettings;
 begin
@@ -203,27 +223,19 @@ begin
   end;
 end;
 
-procedure _PrintLog(AMemo: TMemo; const AMsg: String);
-begin
-  if AMemo.Lines.Count > 5000 then
-    AMemo.Lines.Clear;
-
-  if AMsg.IsEmpty then
-    AMemo.Lines.Add('')
-  else
-    AMemo.Lines.Add(FormatDateTime('YYYY-MM-DD HH:NN:SS.zzz, ', now) + AMsg);
-end;
-
 procedure PrintLog(AMemo: TMemo; const AMsg: String);
 begin
-  if TThread.CurrentThread.ThreadID = MainThreadID then
-    _PrintLog(AMemo, AMsg)
-  else
-    TThread.Queue(nil,
-      procedure
-      begin
-        _PrintLog(AMemo, AMsg);
-      end);
+  ThreadSafe(
+    procedure
+    begin
+      if AMemo.Lines.Count > 5000 then
+        AMemo.Lines.Clear;
+
+      if AMsg.IsEmpty then
+        AMemo.Lines.Add('')
+      else
+        AMemo.Lines.Add(FormatDateTime('YYYY-MM-DD HH:NN:SS.zzz, ', now) + AMsg);
+    end);
 end;
 
 procedure PrintLog(const AFile: string; AMessage: String);
@@ -356,7 +368,7 @@ begin
   UDPClient := TIdUDPClient.Create(nil);
   try
     try
-      UDPClient.Send('log.iccs.co.kr', 8092, Msg, IndyTextEncoding_UTF8);
+      UDPClient.Send(AServer.StringValue, AServer.IntegerValue, Msg, IndyTextEncoding_UTF8);
     except
       on E: Exception do
     end;
