@@ -33,10 +33,8 @@ type
     procedure SaveToASCiiFile(APath: String; RawData: TRawData);
     procedure SaveToBinaryFile(APath, ACode: String);
 
-    procedure _ExtractToMSeed(APath, ACode: String; AType: TSteimType;
-      APeriod: TPeriod);
-    procedure SaveToMSeed(APath: String; ARawData: TRawData;
-      AFixedHeader: TFixedHeader);
+    procedure _ExtractToMSeed(APath, ACode: String; AType: TSteimType; APeriod: TPeriod);
+    procedure SaveToMSeed(APath: String; ARawData: TRawData; AFixedHeader: TFixedHeader);
 
     function _GetStartTime(AStream: TStream): TDateTime;
   public
@@ -51,12 +49,10 @@ type
 
     function GetChannelList: TArray<String>;
 
-    procedure AsciiToMSeed(ASource: String; AHeader: TMSeedHeader;
-      AType: TSteimType);
+    procedure AsciiToMSeed(ASource: String; AHeader: TMSeedHeader; AType: TSteimType);
 
     procedure ExtractToASCii(APath, ACode: String); overload;
-    procedure ExtractToASCii(APath, ACode: String;
-      ABegin, AEnd: TDateTime); overload;
+    procedure ExtractToASCii(APath, ACode: String; ABegin, AEnd: TDateTime); overload;
 
     procedure ExtractToMSeed(APath, ACode: String; AType: TSteimType); overload;
     procedure ExtractToMSeed(APath, ACode: String; AType: TSteimType;
@@ -106,6 +102,8 @@ var
   Channel: String;
   Buffer: TStream;
   FixedHeader: TFixedHeader;
+
+  IgnorePart: Integer;
 begin
   FixedHeader := TFixedHeader.Create(AStream);
 
@@ -115,6 +113,9 @@ begin
 
   Buffer := FContainer.Items[Channel];
   FixedHeader.WriteTo(Buffer);
+
+  IgnorePart := Rev2Bytes(FixedHeader.Header.data_offset) - SizeOf(TFixedHeader);
+  AStream.Position := AStream.Position + IgnorePart;
 
   SetLength(tmp, FixedHeader.DataLength);
   AStream.Read(tmp, Length(tmp));
@@ -142,12 +143,10 @@ begin
     raise Exception.Create('This encoding format is not surpported. ' +
       AParam.encoding.ToString);
 
-  result := TSteimDecoder.Create(TSteimType(Format),
-    TByteOrder(AParam.byteorder));
+  result := TSteimDecoder.Create(TSteimType(Format), TByteOrder(AParam.byteorder));
 end;
 
-function TMSeedFile._ExtractRawData(AStream: TStream; APeriod: TPeriod)
-  : TRawData;
+function TMSeedFile._ExtractRawData(AStream: TStream; APeriod: TPeriod): TRawData;
 var
   Peeks: TPeeks;
   MyElem: Integer;
@@ -214,8 +213,8 @@ begin
   Stream := TFile.AppendText(APath);
   try
     for I := 0 to RawData.Count - 1 do
-      Stream.WriteLine(FormatDateTime('YYYY-MM-DD HH:NN:SS.zzz',
-        RawData.Items[I].DateTime) + ',' + RawData.Items[I].Peek.ToString);
+      Stream.WriteLine(FormatDateTime('YYYY-MM-DD HH:NN:SS.zzz', RawData.Items[I].DateTime) +
+        ',' + RawData.Items[I].Peek.ToString);
   finally
     FreeAndNil(Stream);
   end;
@@ -257,8 +256,7 @@ begin
       Peeks := ARawData.Peeks;
       while Index < ARawData.Count do
       begin
-        AFixedHeader.Header.start_time.DateTime :=
-          ARawData.Items[Index].DateTime;
+        AFixedHeader.Header.start_time.DateTime := ARawData.Items[Index].DateTime;
 
         DataRecord := SteimEncoder.EncodeData(Peeks, Index);
         SampleNum := TMSeedCommon.GetRecordCount(DataRecord, SteimType);
@@ -291,8 +289,7 @@ begin
   end;
 end;
 
-procedure TMSeedFile.AsciiToMSeed(ASource: String; AHeader: TMSeedHeader;
-  AType: TSteimType);
+procedure TMSeedFile.AsciiToMSeed(ASource: String; AHeader: TMSeedHeader; AType: TSteimType);
 
   function ReadFile(AFile: String): TRawData;
   var
@@ -399,15 +396,13 @@ begin
   end;
 end;
 
-procedure TMSeedFile.ExtractToASCii(APath, ACode: String;
-  ABegin, AEnd: TDateTime);
+procedure TMSeedFile.ExtractToASCii(APath, ACode: String; ABegin, AEnd: TDateTime);
 begin
   try
     _ExtractToASCii(APath, ACode, TPeriod.Create(ABegin, AEnd));
   except
     on E: Exception do
-      raise Exception.Create('Extract to ascii error. ' + ACode + ', ' +
-        E.Message);
+      raise Exception.Create('Extract to ascii error. ' + ACode + ', ' + E.Message);
   end;
 end;
 
@@ -428,8 +423,7 @@ begin
     _ExtractToMSeed(APath, ACode, AType, TPeriod.Create(ABegin, AEnd));
   except
     on E: Exception do
-      raise Exception.Create('Extract to mseed error. ' + ACode + ', ' +
-        E.Message);
+      raise Exception.Create('Extract to mseed error. ' + ACode + ', ' + E.Message);
   end;
 end;
 
