@@ -60,6 +60,8 @@ procedure TfmMain.FormCreate(Sender: TObject);
 begin
   edtBegin.Text := FormatDateTime('YYYY-MM-DD HH:NN:SS', MinDateTime);
   edtEnd.Text := FormatDateTime('YYYY-MM-DD HH:NN:SS', MaxDateTime);
+
+  caption := 'miniSEED Parser ' + FileVersion(Application.ExeName);
 end;
 
 procedure TfmMain.btnMSeed2MSeed_ST1Click(Sender: TObject);

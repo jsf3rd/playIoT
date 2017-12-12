@@ -27,7 +27,7 @@ object fmMain: TfmMain
       ''
       'jsf3rd@playiot.biz'
       ''
-      '(c)playIoT 2016.'
+      '(c)playIoT 2017.'
       ''
       '----------------------------------------------------')
     ReadOnly = True
