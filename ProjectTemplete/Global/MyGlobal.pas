@@ -45,11 +45,11 @@ begin
   inherited;
 
   case AType of
-    mtDebug:
+    msDebug:
       _ApplicationMessage(MESSAGE_TYPE_DEBUG, ATitle, AMessage, [moCloudMessage]);
-    mtError:
+    msError:
       TView.Obj.sp_ErrorMessage(ATitle, AMessage);
-    mtInfo:
+    msInfo:
       TView.Obj.sp_LogMessage(ATitle, AMessage);
   end;
 end;
@@ -80,7 +80,7 @@ begin
 
   // Todo :
 
-  ApplicationMessage(mtDebug, 'Stop', 'StartTime=' + FStartTime.ToString);
+  ApplicationMessage(msDebug, 'Stop', 'StartTime=' + FStartTime.ToString);
 end;
 
 procedure TGlobal.Initialize;
@@ -95,7 +95,7 @@ begin
   // FLogServer.StringValue := 'log.iccs.co.kr';
 
 {$IFDEF WIN32}
-  ApplicationMessage(mtDebug, 'Start', '(x86)' + FExeName);
+  ApplicationMessage(msDebug, 'Start', '(x86)' + FExeName);
 {$ENDIF}
 {$IFDEF WIN64}
   ApplicationMessage(mtDebug, 'Start', '(x64)' + FxeName);
