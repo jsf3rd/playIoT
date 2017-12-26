@@ -40,8 +40,10 @@ begin
 
   FProjectCode := PROJECT_CODE;
   FAppCode := SERVICE_CODE;
+  // FUseCloudLog := TOption.Obj.UseCloudLog; // 선택 사항 기본값은 True
 
   // TODO : after Create
+
 end;
 
 destructor TGlobal.Destroy;

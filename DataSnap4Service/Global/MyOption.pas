@@ -3,8 +3,7 @@ unit MyOption;
 interface
 
 uses
-  Classes, SysUtils, MyGlobal, System.IniFiles, Registry,
-  Winapi.Windows;
+  Classes, SysUtils, MyGlobal, System.IniFiles, Registry, Winapi.Windows;
 
 type
   TOption = class
@@ -18,6 +17,8 @@ type
     procedure SetTcpPort(const Value: Integer);
     procedure SetHttpPort(const Value: Integer);
     function GetHttpPort: Integer;
+    function GetUseCloudLog: boolean;
+    procedure SetUseCloudLog(const Value: boolean);
   public
     class function Obj: TOption;
 
@@ -26,6 +27,7 @@ type
     property TcpPort: Integer read GetTcpPort write SetTcpPort;
     property HttpPort: Integer read GetHttpPort write SetHttpPort;
     property DBInfo: String read GetDBInfo write SetDBInfo;
+    property UseCloudLog: boolean read GetUseCloudLog write SetUseCloudLog;
   end;
 
 implementation
@@ -70,6 +72,11 @@ begin
   result := FIniFile.ReadInteger('DSServer', 'TCPPort', 211);
 end;
 
+function TOption.GetUseCloudLog: boolean;
+begin
+  result := FIniFile.ReadBool('Config', 'UseCloudLog', True);
+end;
+
 function TOption.GetHttpPort: Integer;
 begin
   result := FIniFile.ReadInteger('DSServer', 'HTTPPort', 80);
@@ -83,6 +90,11 @@ end;
 procedure TOption.SetTcpPort(const Value: Integer);
 begin
   FIniFile.WriteInteger('DSServer', 'TCPPort', Value);
+end;
+
+procedure TOption.SetUseCloudLog(const Value: boolean);
+begin
+  FIniFile.WriteBool('Config', 'UseCloudLog', Value);
 end;
 
 procedure TOption.SetHttpPort(const Value: Integer);

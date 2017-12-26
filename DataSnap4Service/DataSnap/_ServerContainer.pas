@@ -128,13 +128,13 @@ begin
 
       ExecTime := Now;
       AQuery.Execute(AParams.Count);
-      TGlobal.Obj.ApplicationMessage(mtInfo, StrDefault(AProcName, 'ExecQuery'),
+      TGlobal.Obj.ApplicationMessage(msInfo, StrDefault(AProcName, 'ExecQuery'),
         'Query=%s,RowsAffected=%d,ExecTime=%s', [AQuery.Name, AQuery.RowsAffected,
         FormatDateTime('NN:SS.zzz', Now - ExecTime)]);
       result := AQuery.RowsAffected = AParams.Count;
     except
       on E: Exception do
-        TGlobal.Obj.ApplicationMessage(mtError, AProcName, E.Message);
+        TGlobal.Obj.ApplicationMessage(msError, AProcName, E.Message);
     end;
   finally
     Conn.Free;
@@ -157,13 +157,13 @@ begin
 
       ExecTime := Now;
       AQuery.ExecSQL;
-      TGlobal.Obj.ApplicationMessage(mtInfo, StrDefault(AProcName, 'ExecQuery'),
+      TGlobal.Obj.ApplicationMessage(msInfo, StrDefault(AProcName, 'ExecQuery'),
         'Query=%s,RowsAffected=%d,ExecTime=%s', [AQuery.Name, AQuery.RowsAffected,
         FormatDateTime('NN:SS.zzz', Now - ExecTime)]);
       result := true;
     except
       on E: Exception do
-        TGlobal.Obj.ApplicationMessage(mtError, AProcName, E.Message);
+        TGlobal.Obj.ApplicationMessage(msError, AProcName, E.Message);
     end;
   finally
     Conn.Free;
@@ -224,7 +224,7 @@ procedure TServerContainer.InitCode;
       AQuery.Close;
 
       AMemTab.Open;
-      TGlobal.Obj.ApplicationMessage(mtInfo, AMemTab.Name + ' Record Count',
+      TGlobal.Obj.ApplicationMessage(msInfo, AMemTab.Name + ' Record Count',
         AMemTab.RecordCount.ToString);
     finally
       Conn.Free;
@@ -250,7 +250,7 @@ begin
 
       ExecTime := Now;
       Errors := AQuery.ApplyUpdates;
-      TGlobal.Obj.ApplicationMessage(mtInfo, StrDefault(AProcName, 'ApplyUpdates'),
+      TGlobal.Obj.ApplicationMessage(msInfo, StrDefault(AProcName, 'ApplyUpdates'),
         'Query=%s,ChangeCount=%d,Errors=%d,ExecTime=%s', [AQuery.Name, AQuery.ChangeCount,
         Errors, FormatDateTime('NN:SS.zzz', Now - ExecTime)]);
 
@@ -258,7 +258,7 @@ begin
     except
       on E: Exception do
       begin
-        TGlobal.Obj.ApplicationMessage(mtError, AQuery.Name, E.Message);
+        TGlobal.Obj.ApplicationMessage(msError, AQuery.Name, E.Message);
         result := false;
       end;
     end;
@@ -296,7 +296,7 @@ begin
     try
       ExecTime := Now;
       result := AQuery.ToStream;
-      TGlobal.Obj.ApplicationMessage(mtDebug, StrDefault(AProcName, 'OpenQuery'),
+      TGlobal.Obj.ApplicationMessage(msDebug, StrDefault(AProcName, 'OpenQuery'),
         'Query=%s,RecordCount=%d,ExecTime=%s', [AQuery.Name, AQuery.RecordCount,
         FormatDateTime('NN:SS.zzz', Now - ExecTime)]);
     except
@@ -323,7 +323,7 @@ begin
   DriverName := 'PG';
   try
     FConnectionPool := TJdcConnectionPool.Create(TOption.Obj.DBInfo, DefName, DriverName);
-    TGlobal.Obj.ApplicationMessage(mtDebug, 'CreateDBPool', TOption.Obj.DBInfo);
+    TGlobal.Obj.ApplicationMessage(msDebug, 'CreateDBPool', TOption.Obj.DBInfo);
   except
     on E: Exception do
       raise Exception.Create('CreateDBPool-' + E.Message);
@@ -378,12 +378,12 @@ begin
   finally
     Reg.Free;
   end;
-  TGlobal.Obj.ApplicationMessage(mtWarning, 'Installed', SERVICE_NAME);
+  TGlobal.Obj.ApplicationMessage(msWarning, 'Installed', SERVICE_NAME);
 end;
 
 procedure TServerContainer.ServiceAfterUninstall(Sender: TService);
 begin
-  TGlobal.Obj.ApplicationMessage(mtWarning, 'Uninstalled', SERVICE_NAME);
+  TGlobal.Obj.ApplicationMessage(msWarning, 'Uninstalled', SERVICE_NAME);
 end;
 
 procedure TServerContainer.ServiceCreate(Sender: TObject);
@@ -432,7 +432,7 @@ begin
         DSHTTPService.HttpPort, E.Message]), E);
   end;
 
-  TGlobal.Obj.ApplicationMessage(mtInfo, 'DSServer', 'TCP=%d,HTTP=%d',
+  TGlobal.Obj.ApplicationMessage(msInfo, 'DSServer', 'TCP=%d,HTTP=%d',
     [DSTCPServerTransport.Port, DSHTTPService.HttpPort]);
 
   if Assigned(FConnectionPool) then
@@ -452,7 +452,7 @@ end;
 
 procedure TServerContainer._RaiseException(Msg: String; E: Exception);
 begin
-  TGlobal.Obj.ApplicationMessage(mtError, Msg, E.Message);
+  TGlobal.Obj.ApplicationMessage(msError, Msg, E.Message);
   raise Exception.Create(Msg + #13#10 + E.Message);
 end;
 
