@@ -91,7 +91,7 @@ end;
 
 procedure TfmMain.ApplicationEventsException(Sender: TObject; E: Exception);
 begin
-  TGlobal.Obj.ApplicationMessage(mtError, 'System Error', '[%s] %s',
+  TGlobal.Obj.ApplicationMessage(msError, 'System Error', '[%s] %s',
     [Sender.ClassName, E.Message]);
 end;
 
