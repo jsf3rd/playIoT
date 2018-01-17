@@ -80,7 +80,6 @@ begin
   inherited;
 
   // Todo :
-  // FLogServer.StringValue := 'log.iccs.co.kr';
 end;
 
 class function TGlobal.Obj: TGlobal;
@@ -98,6 +97,9 @@ begin
 
   if not TDirectory.Exists(ExtractFilePath(FLogName)) then
     TDirectory.CreateDirectory(ExtractFilePath(FLogName));
+
+  FUseCloudLog := TOption.Obj.UseCloudLog;
+  // FLogServer.StringValue := LOG_SERVER;
 end;
 
 end.

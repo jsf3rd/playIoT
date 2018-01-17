@@ -40,10 +40,8 @@ begin
 
   FProjectCode := PROJECT_CODE;
   FAppCode := SERVICE_CODE;
-  // FUseCloudLog := TOption.Obj.UseCloudLog; // 선택 사항 기본값은 True
 
   // TODO : after Create
-
 end;
 
 destructor TGlobal.Destroy;
@@ -74,8 +72,7 @@ begin
 
   inherited;
 
-  // Todo :
-  // FLogServer.StringValue := 'log.iccs.co.kr';
+  // TODO
 end;
 
 class function TGlobal.Obj: TGlobal;
@@ -88,12 +85,16 @@ end;
 procedure TGlobal.SetExeName(const Value: String);
 begin
   FExeName := Value;
-  FLogName := ChangeFileExt(FExeName, '.log');
-  // FLogName := GetEnvironmentVariable('LOCALAPPDATA') + '\playIoT\' +
+  FLogName := ExtractFilePath(FExeName) + 'logs\' +
+    ChangeFileExt(ExtractFileName(FExeName), '.log');
+  // FLogName := GetEnvironmentVariable('LOCALAPPDATA') + '\playIoT\' + SERVICE_CODE + '\' +
   // ExtractFileName(FLogName);
 
   if not TDirectory.Exists(ExtractFilePath(FLogName)) then
     TDirectory.CreateDirectory(ExtractFilePath(FLogName));
+
+  FUseCloudLog := TOption.Obj.UseCloudLog;
+  // FLogServer.StringValue := LOG_SERVER;
 end;
 
 initialization

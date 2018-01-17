@@ -57,7 +57,7 @@ uses JdcGlobal, MyGlobal, MyOption, MyCommon, JdcView, Core, System.UITypes;
 
 procedure TfmMain.actAboutExecute(Sender: TObject);
 begin
-  MessageDlg(APPLICATION_TITLE + ' ' + APPLICATION_VERSION + ' ' + COPY_RIGHT_SIGN +
+  MessageDlg(APPLICATION_TITLE + ' ' + FileVersion(Application.ExeName) + ' ' + COPY_RIGHT_SIGN +
     #13#10#13#10 + HOME_PAGE_URL, mtInformation, [mbOK], 0);
 end;
 
@@ -127,7 +127,7 @@ end;
 
 procedure TfmMain.rp_Init(APacket: TValueList);
 begin
-  Caption := TOption.Obj.AppName;
+  Caption := TOption.Obj.AppName + FileVersion(Application.ExeName);
 end;
 
 procedure TfmMain.rp_LogMessage(APacket: TValueList);

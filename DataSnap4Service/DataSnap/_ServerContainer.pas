@@ -19,7 +19,6 @@ type
     DSTCPServerTransport: TDSTCPServerTransport;
     DSHTTPService: TDSHTTPService;
     dscDataProvider: TDSServerClass;
-    DSAuthenticationManager: TDSAuthenticationManager;
     procedure dscDataProviderGetClass(DSServerClass: TDSServerClass;
       var PersistentClass: TPersistentClass);
     procedure ServiceStart(Sender: TService; var Started: Boolean);
@@ -29,9 +28,6 @@ type
     procedure ServiceStop(Sender: TService; var Stopped: Boolean);
     procedure ServiceAfterInstall(Sender: TService);
     procedure ServiceAfterUninstall(Sender: TService);
-    procedure DSAuthenticationManagerUserAuthenticate(Sender: TObject;
-      const Protocol, Context, User, Password: string; var valid: Boolean;
-      UserRoles: TStrings);
   private
     FConnectionPool: TJdcConnectionPool;
 
@@ -353,16 +349,6 @@ begin
   result := inherited;
 end;
 
-procedure TServerContainer.DSAuthenticationManagerUserAuthenticate(Sender: TObject;
-  const Protocol, Context, User, Password: string; var valid: Boolean; UserRoles: TStrings);
-
-const
-  ID = 'palyIoT';
-  PW = 'play345';
-begin
-  valid := (User = ID) and (Password = PW);
-end;
-
 procedure TServerContainer.ServiceAfterInstall(Sender: TService);
 var
   Reg: TRegistry;
@@ -378,11 +364,14 @@ begin
   finally
     Reg.Free;
   end;
+
+  TGlobal.Obj.ExeName := GetExeName;
   TGlobal.Obj.ApplicationMessage(msWarning, 'Installed', SERVICE_NAME);
 end;
 
 procedure TServerContainer.ServiceAfterUninstall(Sender: TService);
 begin
+  TGlobal.Obj.ExeName := GetExeName;
   TGlobal.Obj.ApplicationMessage(msWarning, 'Uninstalled', SERVICE_NAME);
 end;
 

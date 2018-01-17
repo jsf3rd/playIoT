@@ -15,12 +15,15 @@ type
   private
     function GetInterval: Integer;
     procedure SetInterval(const Value: Integer);
+    function GetUseCloudLog: boolean;
+    procedure SetUseCloudLog(const Value: boolean);
 
   public
     class function Obj: TOption;
     destructor Destroy; override;
 
     property Interval: Integer read GetInterval write SetInterval;
+    property UseCloudLog: boolean read GetUseCloudLog write SetUseCloudLog;
   end;
 
 implementation
@@ -35,7 +38,7 @@ var
   FileName: string;
 begin
   // IniFile...
-  FileName := ChangeFileExt(TGlobal.Obj.LogName, '.ini');
+  FileName := ChangeFileExt(TGlobal.Obj.ExeName, '.ini');
   FIniFile := TIniFile.Create(FileName);
 
   // FIniFile := TMemIniFile.Create(FileName);
@@ -60,6 +63,11 @@ begin
   result := FIniFile.ReadInteger('Config', 'Inverval', 1000);
 end;
 
+function TOption.GetUseCloudLog: boolean;
+begin
+  result := FIniFile.ReadBool('Config', 'UseCloudLog', False);
+end;
+
 class function TOption.Obj: TOption;
 begin
   if MyObj = nil then
@@ -72,6 +80,11 @@ end;
 procedure TOption.SetInterval(const Value: Integer);
 begin
   FIniFile.WriteInteger('Config', 'Inverval', Value);
+end;
+
+procedure TOption.SetUseCloudLog(const Value: boolean);
+begin
+  FIniFile.WriteBool('Config', 'UseCloudLog', Value);
 end;
 
 end.

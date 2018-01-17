@@ -42,7 +42,7 @@ var
   FileName: string;
 begin
   // IniFile...
-  FileName := ChangeFileExt(TGlobal.Obj.LogName, '.ini');
+  FileName := ChangeFileExt(TGlobal.Obj.ExeName, '.ini');
   FIniFile := TIniFile.Create(FileName);
 
   // FIniFile := TMemIniFile.Create(FileName);
@@ -74,7 +74,7 @@ end;
 
 function TOption.GetUseCloudLog: boolean;
 begin
-  result := FIniFile.ReadBool('Config', 'UseCloudLog', True);
+  result := FIniFile.ReadBool('Config', 'UseCloudLog', False);
 end;
 
 function TOption.GetHttpPort: Integer;

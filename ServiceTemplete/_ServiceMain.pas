@@ -66,8 +66,7 @@ begin
   Reg := TRegistry.Create(KEY_READ or KEY_WRITE);
   try
     Reg.RootKey := HKEY_LOCAL_MACHINE;
-    if Reg.OpenKey('\SYSTEM\CurrentControlSet\Services\' + Self.Name, false)
-    then
+    if Reg.OpenKey('\SYSTEM\CurrentControlSet\Services\' + Self.Name, false) then
     begin
       Reg.WriteString('Description', SERVICE_DESCRIPTION);
       Reg.CloseKey;
@@ -76,12 +75,14 @@ begin
     Reg.Free;
   end;
 
-  TGlobal.Obj.ApplicationMessage(mtWarning, 'Installed', SERVICE_NAME);
+  TGlobal.Obj.ExeName := GetExeName;
+  TGlobal.Obj.ApplicationMessage(msWarning, 'Installed', SERVICE_NAME);
 end;
 
 procedure TServiceMain.ServiceAfterUninstall(Sender: TService);
 begin
-  TGlobal.Obj.ApplicationMessage(mtWarning, 'Uninstalled', SERVICE_NAME);
+  TGlobal.Obj.ExeName := GetExeName;
+  TGlobal.Obj.ApplicationMessage(msWarning, 'Uninstalled', SERVICE_NAME);
 end;
 
 procedure TServiceMain.ServiceCreate(Sender: TObject);
@@ -108,7 +109,7 @@ end;
 
 procedure TServiceMain.ServiceShutdown(Sender: TService);
 begin
-  TGlobal.Obj.ApplicationMessage(mtInfo, 'ServiceShutdown');
+  TGlobal.Obj.ApplicationMessage(msInfo, 'ServiceShutdown');
   ServiceEnd;
 end;
 

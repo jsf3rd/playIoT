@@ -13,6 +13,8 @@ type
     constructor Create;
     function GetAppName: string;
     procedure SetAppName(const Value: string);
+    function GetUseCloudLog: boolean;
+    procedure SetUseCloudLog(const Value: boolean);
   public
     class function Obj: TOption;
 
@@ -20,6 +22,7 @@ type
 
     property IniFile: TCustomIniFile read FIniFile;
     property AppName: string read GetAppName write SetAppName;
+    property UseCloudLog: boolean read GetUseCloudLog write SetUseCloudLog;
   end;
 
 implementation
@@ -34,7 +37,7 @@ var
   FileName: string;
 begin
   // IniFile...
-  FileName := ChangeFileExt(TGlobal.Obj.LogName, '.ini');
+  FileName := ChangeFileExt(TGlobal.Obj.ExeName, '.ini');
   FIniFile := TIniFile.Create(FileName);
 
   // FIniFile := TMemIniFile.Create(FileName);
@@ -58,6 +61,11 @@ begin
   result := FIniFile.ReadString('Config', 'AppName', APPLICATION_TITLE);
 end;
 
+function TOption.GetUseCloudLog: boolean;
+begin
+  result := FIniFile.ReadBool('Config', 'UseCloudLog', False);
+end;
+
 class function TOption.Obj: TOption;
 begin
   if MyObj = nil then
@@ -70,6 +78,11 @@ end;
 procedure TOption.SetAppName(const Value: string);
 begin
   FIniFile.WriteString('Config', 'AppName', Value);
+end;
+
+procedure TOption.SetUseCloudLog(const Value: boolean);
+begin
+  FIniFile.WriteBool('Config', 'UseCloudLog', Value);
 end;
 
 end.

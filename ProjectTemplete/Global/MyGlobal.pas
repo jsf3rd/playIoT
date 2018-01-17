@@ -9,8 +9,7 @@ const
   PROJECT_CODE = 'MyProject';
   APPLICATION_CODE = 'playIoT Application';
   APPLICATION_TITLE = 'playIoT Form Application Templete';
-  APPLICATION_VERSION = 'v1.0';
-  COPY_RIGHT_SIGN = '¨Ï 2016 playIoT';
+  COPY_RIGHT_SIGN = '¨Ï 2018 playIoT';
   HOME_PAGE_URL = 'http://www.playIoT.biz';
 
 type
@@ -92,7 +91,6 @@ begin
   FIsInitialized := true;
 
   FStartTime := now;
-  // FLogServer.StringValue := 'log.iccs.co.kr';
 
 {$IFDEF WIN32}
   ApplicationMessage(msDebug, 'Start', '(x86)' + FExeName);
@@ -114,10 +112,14 @@ procedure TGlobal.SetExeName(const Value: String);
 begin
   FExeName := Value;
   FLogName := ChangeFileExt(FExeName, '.log');
-  FLogName := GetEnvironmentVariable('LOCALAPPDATA') + '\playIoT\' + ExtractFileName(FLogName);
+  FLogName := GetEnvironmentVariable('LOCALAPPDATA') + '\playIoT\' + APPLICATION_CODE + '\' +
+    ExtractFileName(FLogName);
 
   if not TDirectory.Exists(ExtractFilePath(FLogName)) then
     TDirectory.CreateDirectory(ExtractFilePath(FLogName));
+
+  FUseCloudLog := TOption.Obj.UseCloudLog;
+  // FLogServer.StringValue := LOG_SERVER;
 end;
 
 initialization

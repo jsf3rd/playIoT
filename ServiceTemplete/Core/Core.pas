@@ -69,8 +69,7 @@ begin
     begin
       while not TThread.CurrentThread.CheckTerminated do
       begin
-        TGlobal.Obj.ApplicationMessage(mtDebug, 'TimeStamp',
-          Now.FormatWithoutMSec);
+        TGlobal.Obj.ApplicationMessage(msDebug, 'TimeStamp', Now.FormatWithoutMSec);
         Sleep(TOption.Obj.Interval);
 
         if SecondOf(Now) = 0 then

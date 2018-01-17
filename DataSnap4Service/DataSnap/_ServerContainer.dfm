@@ -19,7 +19,6 @@ object ServerContainer: TServerContainer
   object DSTCPServerTransport: TDSTCPServerTransport
     Server = DSServer
     Filters = <>
-    AuthenticationManager = DSAuthenticationManager
     Left = 96
     Top = 73
   end
@@ -27,7 +26,6 @@ object ServerContainer: TServerContainer
     HttpPort = 8080
     Server = DSServer
     Filters = <>
-    AuthenticationManager = DSAuthenticationManager
     Left = 96
     Top = 135
   end
@@ -37,11 +35,5 @@ object ServerContainer: TServerContainer
     LifeCycle = 'Server'
     Left = 200
     Top = 11
-  end
-  object DSAuthenticationManager: TDSAuthenticationManager
-    OnUserAuthenticate = DSAuthenticationManagerUserAuthenticate
-    Roles = <>
-    Left = 96
-    Top = 192
   end
 end
