@@ -14,8 +14,9 @@ unit JdcGlobal;
 interface
 
 uses
-  Classes, SysUtils, Windows, ZLib, IdGlobal, IOUtils, StdCtrls, JclFileUtils,
-  IdUDPClient, JclSysInfo, psAPI;
+  Classes, SysUtils, Windows, ZLib, IdGlobal, IOUtils, JclFileUtils, Vcl.ExtCtrls,
+  IdUDPClient, JclSysInfo, psAPI, IdContext, Vcl.StdCtrls, JclSvcCtrl, Vcl.ActnList,
+  Vcl.Dialogs, WinApi.Shellapi, UITypes;
 
 type
   IExecuteFunc<T> = Interface
@@ -48,10 +49,7 @@ type
   end;
 
   TGlobalAbstract = class abstract
-  strict private
-    function GetErrorLogName: string;
-    function GetLogName: string;
-  protected
+  strict protected
     FProjectCode: string;
     FAppCode: string;
 
@@ -59,6 +57,7 @@ type
     FIsFinalized: boolean;
     FExeName: String;
     FLogName: string;
+    FUseCloudLog: boolean;
 
     FStartTime: TDateTime;
 
@@ -68,6 +67,9 @@ type
     procedure _ApplicationMessage(const AType: string; const ATitle: string;
       const AMessage: String; const AOutputs: TMsgOutputs = [moDebugView, moLogFile,
       moCloudMessage]); virtual;
+
+    function GetErrorLogName: string; virtual;
+    function GetLogName: string; virtual;
   public
     constructor Create; virtual;
 
@@ -151,9 +153,96 @@ function StrDefault(str: string; Default: string): string;
 procedure ThreadSafe(AMethod: TThreadMethod); overload;
 procedure ThreadSafe(AThreadProc: TThreadProcedure); overload;
 
+function GetPeerInfo(AContext: TIdContext): string;
+
+// 서비스 관리
+procedure StartService(const ServiceName: String; var OldStatus: TJclServiceState;
+  StartAction: TAction);
+procedure StopService(const ServiceName: String; var OldStatus: TJclServiceState;
+  StopAction: TAction; hnd: HWND);
+procedure UpdateServiceStatus(const ServiceName: String; var OldStatus: TJclServiceState;
+  StartAction, StopAction: TAction; StatusEdit: TLabeledEdit);
+
+const
+  LOCAL_SERVER = '\\localhost';
+  LOG_SERVER = 'log.iccs.co.kr';
+
 implementation
 
 uses JdcGlobal.ClassHelper;
+
+procedure StartService(const ServiceName: String; var OldStatus: TJclServiceState;
+  StartAction: TAction);
+begin
+  OldStatus := ssUnknown;
+
+  StartAction.Enabled := False;
+  if StartServiceByName(LOCAL_SERVER, ServiceName) then
+    Exit;
+
+  MessageDlg('서비스를 시작하지 못했습니다.', TMsgDlgType.mtWarning, [mbOK], 0);
+  StartAction.Enabled := true;
+end;
+
+procedure StopService(const ServiceName: String; var OldStatus: TJclServiceState;
+  StopAction: TAction; hnd: HWND);
+begin
+  OldStatus := ssUnknown;
+  StopAction.Enabled := False;
+  if StopServiceByName(LOCAL_SERVER, ServiceName) then
+    Exit;
+
+  if MessageDlg('알림 : 서비스를 중지하지 못했습니다.' + #13#10 + '강제로 중지하시겠습니까?', TMsgDlgType.mtConfirmation,
+    [mbYes, mbNo], 0) = mrYes then
+    ShellExecute(hnd, 'open', 'taskkill', PWideChar(' -f -im ' + ServiceName + '.exe'),
+      nil, SW_HIDE);
+end;
+
+procedure UpdateServiceStatus(const ServiceName: String; var OldStatus: TJclServiceState;
+  StartAction, StopAction: TAction; StatusEdit: TLabeledEdit);
+var
+  Status: TJclServiceState;
+begin
+  Status := GetServiceStatusByName(LOCAL_SERVER, ServiceName);
+
+  if OldStatus = Status then
+    Exit;
+
+  OldStatus := Status;
+  StartAction.Enabled := False;
+  StopAction.Enabled := False;
+  case Status of
+    ssUnknown:
+      StatusEdit.Text := '알수없음(등록된 서비스가 없습니다).';
+    ssStopped:
+      begin
+        StatusEdit.Text := '중지됨.';
+        StartAction.Enabled := true;
+      end;
+    ssStartPending:
+      StatusEdit.Text := '시작 중...';
+    ssStopPending:
+      StatusEdit.Text := '멈추는 중...';
+    ssRunning:
+      begin
+        StatusEdit.Text := '시작됨.';
+        StopAction.Enabled := true;
+      end;
+    ssContinuePending:
+      StatusEdit.Text := '계속 중...';
+    ssPausePending:
+      StatusEdit.Text := '일시정지 중...';
+    ssPaused:
+      StatusEdit.Text := '일시정지됨.';
+  end;
+
+end;
+
+function GetPeerInfo(AContext: TIdContext): string;
+begin
+  result := AContext.Connection.Socket.Binding.PeerIP + ':' +
+    AContext.Connection.Socket.Binding.PeerPort.ToString;
+end;
 
 procedure ThreadSafe(AMethod: TThreadMethod); overload;
 begin
@@ -625,10 +714,11 @@ constructor TGlobalAbstract.Create;
 begin
   FExeName := '';
   FLogName := '';
-  FLogServer.StringValue := 'log.iccs.co.kr';
+  FLogServer.StringValue := LOG_SERVER;
   FLogServer.IntegerValue := 8092;
   FIsInitialized := False;
   FIsFinalized := False;
+  FUseCloudLog := False;
 end;
 
 procedure TGlobalAbstract.Finalize;
@@ -659,14 +749,21 @@ end;
 
 procedure TGlobalAbstract._ApplicationMessage(const AType: string; const ATitle: string;
 const AMessage: String; const AOutputs: TMsgOutputs);
+var
+  splitter: string;
 begin
+  if AMessage.IsEmpty then
+    splitter := ''
+  else
+    splitter := ' - ';
+
   if moDebugView in AOutputs then
-    PrintDebug('<%s> [%s] %s - %s', [AType, FAppCode, ATitle, AMessage]);
+    PrintDebug('<%s> [%s] %s%s%s', [AType, FAppCode, ATitle, splitter, AMessage]);
 
   if moLogFile in AOutputs then
-    PrintLog(FLogName, Format('<%s> %s - %s', [AType, ATitle, AMessage]));
+    PrintLog(FLogName, Format('<%s> %s%s%s', [AType, ATitle, splitter, AMessage]));
 
-  if moCloudMessage in AOutputs then
+  if (moCloudMessage in AOutputs) and FUseCloudLog then
     CloudMessage(FProjectCode, FAppCode, AType, ATitle, AMessage, FileVersion(FExeName),
       FLogServer);
 end;
