@@ -335,15 +335,17 @@ begin
 
     ftDate:
       if Self.Params.ArraySize = 1 then
-        AParam.AsDate := ISO8601ToDate((AValue as TJSONString).Value)
+        AParam.AsDate := StrToDate((AValue as TJSONString).Value, DefaultFormatSettings)
       else
-        AParam.AsDates[Self.Tag] := ISO8601ToDate((AValue as TJSONString).Value);
+        AParam.AsDates[Self.Tag] := StrToDate((AValue as TJSONString).Value,
+          DefaultFormatSettings);
 
     ftTime:
       if Self.Params.ArraySize = 1 then
-        AParam.AsTime := ISO8601ToDate((AValue as TJSONString).Value)
+        AParam.AsTime := StrToTime((AValue as TJSONString).Value, DefaultFormatSettings)
       else
-        AParam.AsTimes[Self.Tag] := ISO8601ToDate((AValue as TJSONString).Value);
+        AParam.AsTimes[Self.Tag] := StrToTime((AValue as TJSONString).Value,
+          DefaultFormatSettings);
 
     ftDateTime:
       if Self.Params.ArraySize = 1 then
