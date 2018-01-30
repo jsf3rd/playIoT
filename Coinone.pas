@@ -50,6 +50,7 @@ type
     class function RequestName(AType: TRequestType): string; overload;
     class function RequestName(AType: Integer): string; overload;
     class function MinOrderCount(ACurrency: string): double;
+    class function GetErrorMessage(AResult: TJSONObject): string;
   end;
 
   TOrder = record
@@ -94,6 +95,62 @@ const
 
   MinCount: array [0 .. 9] of double = (0.0001, 0.001, 0.01, 0.01, 1, 0.01, 0.1, 0.1, 0.01, 0);
 
+  ErrorCode: array [0 .. 52, 0 .. 1] of string = ( //
+    ('4', 'Blocked user access'), //
+    ('11', 'Access token is missing'), //
+    ('12', 'Invalid access token'), //
+    ('40', 'Invalid API permission'), //
+    ('50', 'Authenticate error'), //
+    ('51', 'Invalid API'), //
+    ('52', 'Deprecated API'), //
+    ('53', 'Two Factor Auth Fail'), //
+    ('100', 'Session expired'), //
+    ('101', 'Invalid format'), //
+    ('102', 'ID is not exist'), //
+    ('103', 'Lack of Balance'), //
+    ('104', 'Order id is not exist'), //
+    ('105', 'Price is not correct'), //
+    ('106', 'Locking error'), //
+    ('107', 'Parameter error'), //
+    ('111', 'Order id is not exist'), //
+    ('112', 'Cancel failed'), //
+    ('113', 'Quantity is too low(ETH, ETC > 0.01)'), //
+    ('120', 'V2 API payload is missing'), //
+    ('121', 'V2 API signature is missing'), //
+    ('122', 'V2 API nonce is missing'), //
+    ('123', 'V2 API signature is not correct'), //
+    ('130', 'V2 API Nonce value must be a positive integer'), //
+    ('131', 'V2 API Nonce is must be bigger then last nonce'), //
+    ('132', 'V2 API body is corrupted'), //
+    ('141', 'Too many limit orders'), //
+    ('150', 'It is V1 API.V2 Access token is not acceptable '), //
+    ('151', 'It is V2 API.V1 Access token is not acceptable '), //
+    ('200', 'Wallet Error'), //
+    ('202', 'Limitation error'), //
+    ('210', 'Limitation error'), //
+    ('220', 'Limitation error'), //
+    ('221', 'Limitation error'), //
+    ('310', 'Mobile auth error'), //
+    ('311', 'Need mobile auth'), //
+    ('312', 'Name is not correct'), //
+    ('330', 'Phone number error'), //
+    ('404', 'Page not found error'), //
+    ('405', 'Server error'), //
+    ('444', 'Locking error'), //
+    ('500', 'Email error'), //
+    ('501', 'Email error'), //
+    ('777', 'Mobile auth error'), //
+    ('778', 'Phone number error'), //
+    ('1202', 'App not found'), //
+    ('1203', 'Already registered'), //
+    ('1204', 'Invalid access'), //
+    ('1205', 'API Key error'), //
+    ('1206', 'User not found'), //
+    ('1207', 'User not found'), //
+    ('1208', 'User not found'), //
+    ('1209', 'User not found') //
+    );
+
   RES_SUCCESS = 'success';
 
 implementation
@@ -105,6 +162,22 @@ const
     'RecentCompleteOrders', 'Ticker');
 
   { TCoinone }
+
+class function TCoinone.GetErrorMessage(AResult: TJSONObject): string;
+var
+  Code: string;
+  I: Integer;
+begin
+  Code := AResult.GetString('errorCode');
+
+  for I := Low(ErrorCode) to High(ErrorCode) do
+  begin
+    if ErrorCode[I, 0].Equals(Code) then
+      Exit(ErrorCode[I, 1]);
+  end;
+
+  result := AResult.ToString;
+end;
 
 function TCoinone.AccountInfo(AType: TRequestType): TJSONObject;
 var
@@ -124,7 +197,7 @@ begin
     end;
 
     if result.GetString('result') <> RES_SUCCESS then
-      raise Exception.Create(msg + 'res=' + result.ToString);
+      raise Exception.Create(msg + 'msg=' + GetErrorMessage(result));
   finally
     AParams.Free;
   end;
@@ -248,7 +321,7 @@ begin
   end;
 
   if result.GetString('result') <> RES_SUCCESS then
-    raise Exception.Create(msg + 'res=' + result.ToString);
+    raise Exception.Create(msg + 'msg=' + GetErrorMessage(result));
 end;
 
 function TCoinone.Post(AType: TRequestType; AParams: TJSONObject): TJSONObject;
@@ -340,7 +413,7 @@ begin
   end;
 
   if result.GetString('result') <> RES_SUCCESS then
-    raise Exception.Create(msg + 'res=' + result.ToString);
+    raise Exception.Create(msg + 'msg=' + GetErrorMessage(result));
 end;
 
 class function TCoinone.RequestName(AType: Integer): string;

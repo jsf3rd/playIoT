@@ -48,6 +48,11 @@ type
     function Equals(const ConnInfo: TConnInfo): boolean;
   end;
 
+  TClientInfo = record
+    Version: string;
+    Url: string;
+  end;
+
   TGlobalAbstract = class abstract
   strict protected
     FProjectCode: string;
