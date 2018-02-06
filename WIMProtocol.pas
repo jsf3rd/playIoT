@@ -53,7 +53,7 @@ type
     Header: string;
     Site_id: string;
     Way: string;
-    LANE: Integer;
+    Lane: Integer;
     Loop1_id: string;
     Loop1_date: string;
     Loop1_time: string;
@@ -64,7 +64,7 @@ type
   TRecordInfo = record
     Site_id: string;
     Way: string;
-    LANE: Integer;
+    Lane: Integer;
     Loop1_id: string;
     Loop1_date: string;
     Loop1_time: string;
@@ -73,6 +73,7 @@ type
     function ToString: string;
     function Loop1: TDateTime;
     function Loop2: TDateTime;
+    function WayLane: string;
   end;
 
   TCode = record
@@ -237,8 +238,13 @@ end;
 
 function TRecordInfo.ToString: string;
 begin
-  Result := Site_id + '_' + Way + '_' + LANE.ToString + '_' + Loop1_id + '_' + Loop1_date + '_'
+  Result := Site_id + '_' + Way + '_' + Lane.ToString + '_' + Loop1_id + '_' + Loop1_date + '_'
     + Loop1_time;
+end;
+
+function TRecordInfo.WayLane: string;
+begin
+  Result := Way + Lane.ToString;
 end;
 
 { TCode }
@@ -342,7 +348,7 @@ begin
     StringList.Add(self.Header);
     StringList.Add(self.Site_id);
     StringList.Add(self.Way);
-    StringList.Add(self.LANE.ToString);
+    StringList.Add(self.Lane.ToString);
     StringList.Add(self.Loop1_id);
     StringList.Add(self.Loop1_date);
     StringList.Add(self.Loop1_time);
@@ -355,7 +361,7 @@ end;
 
 function TLoopIn.ToString: string;
 begin
-  Result := self.Site_id + '_' + self.Way + '_' + self.LANE.ToString + '_' + self.Loop1_id +
+  Result := self.Site_id + '_' + self.Way + '_' + self.Lane.ToString + '_' + self.Loop1_id +
     '_' + self.Loop1_date + '_' + self.Loop1_time;
 end;
 
