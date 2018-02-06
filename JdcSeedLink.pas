@@ -135,7 +135,7 @@ begin
   LastTime := FLastTime.Items[ACode];
   if StartTime <> IncMilliSecond(LastTime, Interval) then
   begin
-    OnLog(mtWarning, 'DataLoss', Format('Code=%s,StartTime=%s,EndTime=%s',
+    OnLog(msWarning, 'DataLoss', Format('Code=%s,StartTime=%s,EndTime=%s',
       [AHeader.ChannelCode, LastTime.ToString, StartTime.ToString]));
   end;
 
@@ -190,7 +190,7 @@ begin
   except
     on E: Exception do
     begin
-      OnLog(mtError, 'ProcessNewData', 'E=' + E.Message);
+      OnLog(msError, 'ProcessNewData', 'E=' + E.Message);
       raise;
     end;
   end;
@@ -219,7 +219,7 @@ begin
 
     RemoveBytes(buffer, Index);
     FIdTcpClient.IOHandler.ReadBytes(buffer, Index);
-    OnLog(mtDebug, 'SEEDLink', BytesToString(buffer, 0, 8) + ',' +
+    OnLog(msDebug, 'SEEDLink', BytesToString(buffer, 0, 8) + ',' +
       Length(buffer).ToString);
   end;
 
@@ -247,18 +247,18 @@ begin
         Break
       else if Msg.Contains('OK') then
       begin
-        OnLog(mtDebug, 'RECV', Format('OK(%d)', [Msg.Length]));
+        OnLog(msDebug, 'RECV', Format('OK(%d)', [Msg.Length]));
         Break;
       end
       else
-        OnLog(mtDebug, 'RECV', Format('NotOK(%d)', [Msg.Length]));
+        OnLog(msDebug, 'RECV', Format('NotOK(%d)', [Msg.Length]));
     except
       on E: EIdReadTimeout do
         Break;
 
       on E: Exception do
       begin
-        OnLog(mtError, 'RecvOK', 'E=' + E.Message);
+        OnLog(msError, 'RecvOK', 'E=' + E.Message);
         Break;
       end;
     end;
@@ -279,14 +279,14 @@ begin
       if Msg.IsEmpty then
         Break
       else
-        OnLog(mtDebug, 'RECV', Msg);
+        OnLog(msDebug, 'RECV', Msg);
     except
       on E: EIdReadTimeout do
         Break;
 
       on E: Exception do
       begin
-        OnLog(mtError, 'RecvString', 'E=' + E.Message);
+        OnLog(msError, 'RecvString', 'E=' + E.Message);
         Break;
       end;
     end;
@@ -301,7 +301,7 @@ end;
 
 procedure TJdcSeedLink.SendCommand(Value: string);
 begin
-  OnLog(mtDebug, 'SEND', Value);
+  OnLog(msDebug, 'SEND', Value);
   FIdTcpClient.IOHandler.WriteLn(Value);
 end;
 
@@ -320,11 +320,11 @@ begin
         except
           on E: EIdReadTimeout do
           begin
-            OnLog(mtDebug, 'ReadTimeOut', 'E=' + E.Message);
+            OnLog(msDebug, 'ReadTimeOut', 'E=' + E.Message);
           end;
           on E: Exception do
           begin
-            OnLog(mtError, 'RecvData', 'E=' + E.Message);
+            OnLog(msError, 'RecvData', 'E=' + E.Message);
             Sleep(1000);
           end;
         end;
