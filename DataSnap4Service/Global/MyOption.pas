@@ -48,7 +48,7 @@ begin
   // FIniFile := TMemIniFile.Create(FileName);
 
   // Registry...
-  // FileName:= ''SOFTWARE\PlayIoT\' + PROJECT_CODE;
+  // FileName:= 'SOFTWARE\PlayIoT\' + PROJECT_CODE;
   // FIniFile := TRegistryIniFile.Create(FileName);
   // TRegistryIniFile(FIniFile).RegIniFile.RootKey := HKEY_CURRENT_USER;
 end;
