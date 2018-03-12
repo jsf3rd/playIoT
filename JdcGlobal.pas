@@ -170,7 +170,7 @@ procedure UpdateServiceStatus(const ServiceName: String; var OldStatus: TJclServ
 
 const
   LOCAL_SERVER = '\\localhost';
-  LOG_SERVER = 'log.iccs.co.kr';
+  LOG_SERVER = 'cloudlog.iccs.co.kr';
 
 implementation
 
@@ -440,7 +440,7 @@ var
   _Title: string;
 begin
 {$IFDEF DEBUG}
-  Exit;
+//  Exit;
 {$ENDIF}
   MBFactor := 1024 * 1024;
   GBFactor := MBFactor * 1024;
@@ -463,6 +463,8 @@ begin
   try
     try
       UDPClient.Send(AServer.StringValue, AServer.IntegerValue, Msg, IndyTextEncoding_UTF8);
+      PrintDebug('<%s> [%s] %s=%s,Host=%s', [TypeCode, AppCode, _Title, Msg,
+        AServer.StringValue]);
     except
       on E: Exception do
     end;
