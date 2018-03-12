@@ -24,8 +24,7 @@ type
     FDataList: Pointer;
     function GetSequence: Cardinal;
   public
-    constructor Create(ACodeName: String; ADataSize: Cardinal;
-      AMaxCount: TDataCount = dc256);
+    constructor Create(ACodeName: String; ADataSize: Cardinal; AMaxCount: TDataCount = dc256);
     destructor Destroy; override;
 
     function GetDataInfo: TDataInfo;
