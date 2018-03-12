@@ -38,7 +38,7 @@ begin
     FDConnection.Connected := true;
   except
     on E: Exception do
-      TGlobal.Obj.ApplicationMessage(mtError, 'Connect DB', E.Message);
+      TGlobal.Obj.ApplicationMessage(msError, 'Connect DB', E.Message);
   end;
 end;
 

@@ -60,9 +60,8 @@ begin
     FreeAndNil(FConnectionPool);
 
   try
-    FConnectionPool := TJdcConnectionPool.Create(TOption.Obj.DBInfo, DefName,
-      DriverName);
-    TGlobal.Obj.ApplicationMessage(mtDebug, 'CreateDBPool', TOption.Obj.DBInfo);
+    FConnectionPool := TJdcConnectionPool.Create(TOption.Obj.DBInfo, DefName, DriverName);
+    TGlobal.Obj.ApplicationMessage(msDebug, 'CreateDBPool', TOption.Obj.DBInfo);
   except
     on E: Exception do
       _RaiseException('DB Connection Failed.' + TOption.Obj.DBInfo, E);
@@ -71,7 +70,7 @@ end;
 
 procedure TServerContainer._RaiseException(Msg: String; E: Exception);
 begin
-  TGlobal.Obj.ApplicationMessage(mtError, Msg, E.Message);
+  TGlobal.Obj.ApplicationMessage(msError, Msg, E.Message);
   raise Exception.Create(Msg + #13#10 + E.Message);
 end;
 
@@ -86,7 +85,7 @@ begin
   DSHTTPService.HttpPort := TOption.Obj.HttpPort;
   DSServer.Start;
 
-  TGlobal.Obj.ApplicationMessage(mtInfo, 'DSServer', 'Start,TCP:%d, HTTP:%d',
+  TGlobal.Obj.ApplicationMessage(msInfo, 'DSServer', 'Start,TCP:%d, HTTP:%d',
     [DSTCPServerTransport.Port, DSHTTPService.HttpPort]);
 
   CreateDBPool;
@@ -115,8 +114,7 @@ begin
   PersistentClass := TsmDataProvider;
 end;
 
-procedure TServerContainer.DSServerConnect(DSConnectEventObject
-  : TDSConnectEventObject);
+procedure TServerContainer.DSServerConnect(DSConnectEventObject: TDSConnectEventObject);
 var
   UserIP, SessionID: string;
 begin
@@ -128,7 +126,7 @@ begin
   SessionID := IntToStr(TDSSessionManager.Instance.GetThreadSession.Id);
   TDSSessionManager.Instance.GetThreadSession.PutData('IP', UserIP);
 
-  TGlobal.Obj.ApplicationMessage(mtInfo, 'UserConnect', 'IP:%s,SessionID:%s',
+  TGlobal.Obj.ApplicationMessage(msInfo, 'UserConnect', 'IP:%s,SessionID:%s',
     [UserIP, SessionID]);
 end;
 
@@ -151,15 +149,14 @@ end;
 procedure TServerContainer.OnChannelStateChanged(Sender: TObject;
   const EventItem: TDSCallbackTunnelEventItem);
 begin
-  TGlobal.Obj.ApplicationMessage(mtInfo, 'ChannelStateChanged', 'UserCount:%d',
+  TGlobal.Obj.ApplicationMessage(msInfo, 'ChannelStateChanged', 'UserCount:%d',
     [DSServer.GetAllChannelClientId(CHANNEL_DEFAULT).Count]);
 end;
 
 initialization
 
 SessionEvent :=
-    procedure(Sender: TObject; const EventType: TDSSessionEventType;
-    const Session: TDSSession)
+    procedure(Sender: TObject; const EventType: TDSSessionEventType; const Session: TDSSession)
   var
     UserIP, SessionID: string;
   begin
@@ -175,8 +172,8 @@ SessionEvent :=
         ;
       SessionClose:
         begin
-          TGlobal.Obj.ApplicationMessage(mtInfo, 'UserDisconnect',
-            'IP:%s,SessionID:%s', [UserIP, SessionID]);
+          TGlobal.Obj.ApplicationMessage(msInfo, 'UserDisconnect', 'IP:%s,SessionID:%s',
+            [UserIP, SessionID]);
         end;
     end;
 
