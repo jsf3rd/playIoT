@@ -119,7 +119,7 @@ begin
     TDirectory.CreateDirectory(ExtractFilePath(FLogName));
 
   FUseCloudLog := TOption.Obj.UseCloudLog;
-  // FLogServer.StringValue := LOG_SERVER;
+  // FLogServer.StringValue := 'mydomain.iccs.co.kr';
 end;
 
 initialization

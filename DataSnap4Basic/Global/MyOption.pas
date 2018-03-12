@@ -54,6 +54,7 @@ begin
   // FileName:= ''SOFTWARE\PlayIoT\' + PROJECT_CODE;
   // FIniFile := TRegistryIniFile.Create(FileName);
   // TRegistryIniFile(FIniFile).RegIniFile.RootKey := HKEY_CURRENT_USER;
+  // TRegistryIniFile(FIniFile).RegIniFile.OpenKey(FIniFile.FileName, True);
 end;
 
 destructor TOption.Destroy;
