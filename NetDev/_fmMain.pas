@@ -9,16 +9,18 @@ uses
 
 type
   TForm1 = class(TForm)
-    Button2: TButton;
-    Button3: TButton;
     Panel1: TPanel;
-    Button4: TButton;
+    Panel2: TPanel;
+    edtPwd: TLabeledEdit;
+    edtID: TLabeledEdit;
+    edtPort: TLabeledEdit;
+    edtHost: TLabeledEdit;
+    Panel3: TPanel;
     Button1: TButton;
     Button5: TButton;
-    edtHost: TLabeledEdit;
-    edtPort: TLabeledEdit;
-    edtID: TLabeledEdit;
-    edtPwd: TLabeledEdit;
+    Button4: TButton;
+    Button3: TButton;
+    Button2: TButton;
     procedure Button2Click(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure Button3Click(Sender: TObject);

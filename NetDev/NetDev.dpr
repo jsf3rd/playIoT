@@ -2,8 +2,7 @@ program NetDev;
 
 uses
   Vcl.Forms,
-  _fmMain in '_fmMain.pas' {Form1},
-  NetDEVSDK in 'NetDEVSDK.PAS';
+  _fmMain in '_fmMain.pas' {Form1};
 
 {$R *.res}
 
