@@ -216,9 +216,9 @@ type
     dwFluency: Int32;
     byRes: array [0 .. 259] of BYTE;
 
-    constructor Create(AHandle: HWND; AChannel: Int32 = DEFAULT_CHANNEL;
+    constructor Create(AHandle: HWND;
       AType: TNetDEVLiveStreamIndex = NETDEV_LIVE_STREAM_INDEX_MAIN;
-      AMode: TNetDEVProtocol = NETDEV_TRANSPROTOCOL_RTPUDP;
+      AChannel: Int32 = DEFAULT_CHANNEL; AMode: TNetDEVProtocol = NETDEV_TRANSPROTOCOL_RTPUDP;
       AFluncy: TNetDEVPictureFluency = NETDEV_PICTURE_REAL);
   end;
 
@@ -308,7 +308,8 @@ type
       dwOutBufferSize: Int32; var pdwBytesReturned: Int32): Boolean;
     function RealPlay(pstPreviewInfo: TPreviewInfo): Boolean;
     function StopRealPlay: Boolean;
-    function CapturePicture(szFileName: String; dwCaptureMode: TNetDEVPictureFormat): Boolean;
+    function CapturePicture(szFileName: String;
+      dwCaptureMode: TNetDEVPictureFormat = NETDEV_PICTURE_JPG): Boolean;
 
     property OnException: TOnException write SetOnException;
   end;
@@ -503,7 +504,7 @@ end;
 
 { TPreviewInfo }
 
-constructor TPreviewInfo.Create(AHandle: HWND; AChannel: Int32; AType: TNetDEVLiveStreamIndex;
+constructor TPreviewInfo.Create(AHandle: HWND; AType: TNetDEVLiveStreamIndex; AChannel: Int32;
   AMode: TNetDEVProtocol; AFluncy: TNetDEVPictureFluency);
 begin
   Self.dwChannelID := AChannel;
