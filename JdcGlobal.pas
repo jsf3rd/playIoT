@@ -158,6 +158,8 @@ function StrDefault(str: string; Default: string): string;
 procedure ThreadSafe(AMethod: TThreadMethod); overload;
 procedure ThreadSafe(AThreadProc: TThreadProcedure); overload;
 
+procedure FreeAndNilEx(const AGlobal: TGlobalAbstract; var Obj);
+
 function GetPeerInfo(AContext: TIdContext): string;
 
 // 서비스 관리
@@ -170,11 +172,25 @@ procedure UpdateServiceStatus(const ServiceName: String; var OldStatus: TJclServ
 
 const
   LOCAL_SERVER = '\\localhost';
-  LOG_SERVER = 'cloudlog.iccs.co.kr';
+  LOG_SERVER = 'log.iccs.co.kr';
 
 implementation
 
 uses JdcGlobal.ClassHelper;
+
+procedure FreeAndNilEx(const AGlobal: TGlobalAbstract; var Obj);
+begin
+  try
+    if Assigned(TObject(Obj)) then
+      FreeAndNil(Obj);
+  except
+    on E: Exception do
+    begin
+      AGlobal.ApplicationMessage(msError, 'SafeFreeAndNil - ' + TObject(Obj).ClassName,
+        E.Message);
+    end;
+  end;
+end;
 
 procedure StartService(const ServiceName: String; var OldStatus: TJclServiceState;
   StartAction: TAction);
@@ -440,7 +456,7 @@ var
   _Title: string;
 begin
 {$IFDEF DEBUG}
-//  Exit;
+  Exit;
 {$ENDIF}
   MBFactor := 1024 * 1024;
   GBFactor := MBFactor * 1024;
