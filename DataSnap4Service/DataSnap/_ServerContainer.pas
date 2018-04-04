@@ -285,11 +285,10 @@ begin
   Conn := GetIdleConnection;
   try
     AQuery.Connection := Conn;
-
-    if Assigned(AParams) then
-      AQuery.ParamByJSONObject(AParams, TGlobal.Obj.ApplicationMessage);
-
     try
+      if Assigned(AParams) then
+        AQuery.ParamByJSONObject(AParams);
+
       ExecTime := Now;
       result := AQuery.ToStream;
       TGlobal.Obj.ApplicationMessage(msDebug, StrDefault(AProcName, 'OpenQuery'),
