@@ -40,7 +40,6 @@ type
     Site_id: string;
     Way: string;
     Error: TError;
-    function Equals(AValue: TOperation): boolean;
     function ToString: string;
   end;
 
@@ -74,6 +73,7 @@ type
     function Loop1: TDateTime;
     function Loop2: TDateTime;
     function WayLane: string;
+    function GetPacket: string;
   end;
 
   TCode = record
@@ -162,6 +162,11 @@ type
     condition: string;
   end;
 
+  TImages = record
+    FrontImageName: string;
+    SideImageName: string;
+  end;
+
   TWIMResult = record
     Header: string;
     Common: TWIMCommon;
@@ -170,6 +175,7 @@ type
     WIM_2: TWIMData;
     AVI: TAVIPack;
     VMS: TVMSPack;
+    Images: TImages;
     function ToJSONParams(AGUID: string; SiteID: Integer): TJSONObject;
   end;
 
@@ -186,30 +192,6 @@ implementation
 
 { TOperation }
 
-function TOperation.Equals(AValue: TOperation): boolean;
-var
-  I: Integer;
-begin
-  Result := True;
-  if self.Header <> AValue.Header then
-    exit(false);
-
-  if self.Site_id <> AValue.Site_id then
-    exit(false);
-
-  if self.Way <> AValue.Way then
-    exit(false);
-
-  if self.Error.Init <> AValue.Error.Init then
-    exit(false);
-
-  for I := Low(TNoiseValue) to High(TNoiseValue) do
-  begin
-    if self.Error.Noise[I] <> AValue.Error.Noise[I] then
-      exit(false);
-  end;
-end;
-
 function TOperation.ToString: string;
 begin
   Result := Header + '_' + Site_id + '_' + Way + '_' + self.Error.Init.ToString;
@@ -223,6 +205,26 @@ begin
 end;
 
 { TRecordInfo }
+
+function TRecordInfo.GetPacket: string;
+var
+  StringList: TStringList;
+begin
+  StringList := TStringList.Create;
+  try
+    StringList.Add('WIM_RAW');
+    StringList.Add(self.Site_id);
+    StringList.Add(self.Way);
+    StringList.Add(self.Lane.ToString);
+    StringList.Add(self.Loop1_id);
+    StringList.Add(self.Loop1_date);
+    StringList.Add(self.Loop1_time);
+    StringList.Add('3'); // VMSImage ÄÆ¹øÈ£
+    Result := StringList.CommaText;
+  finally
+    StringList.Free;
+  end;
+end;
 
 function TRecordInfo.Loop1: TDateTime;
 begin
