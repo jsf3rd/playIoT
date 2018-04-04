@@ -218,7 +218,7 @@ type
 
     constructor Create(AHandle: HWND;
       AType: TNetDEVLiveStreamIndex = NETDEV_LIVE_STREAM_INDEX_MAIN;
-      AChannel: Int32 = DEFAULT_CHANNEL; AMode: TNetDEVProtocol = NETDEV_TRANSPROTOCOL_RTPUDP;
+      AChannel: Int32 = DEFAULT_CHANNEL; AMode: TNetDEVProtocol = NETDEV_TRANSPROTOCOL_RTPTCP;
       AFluncy: TNetDEVPictureFluency = NETDEV_PICTURE_REAL);
   end;
 
@@ -277,6 +277,7 @@ type
 
     FUserID: IntPtr;
     FRealHandle: IntPtr;
+    FPreviewInfo: TPreviewInfo;
 
     FNETDEV_StopRealPlay: TNETDEV_StopRealPlay;
     FNETDEV_Init: TNETDEV_Init;
@@ -294,10 +295,12 @@ type
     procedure LoadDLL(APath: string);
     procedure SetOnException(const Value: TOnException);
   public
-    constructor Create(ALibPath: string);
+    constructor Create(ALibPath: string; APreviewInfo: TPreviewInfo);
     destructor Destroy; override;
 
     function GetLastError: string;
+
+    function Played: Boolean;
 
     function Init: Boolean;
     function Cleanup: Boolean;
@@ -306,7 +309,7 @@ type
     function Logout: Boolean;
     function GetStreamInfo(dwChannelID: Int32; var lpOutBuffer: TNETDEVVideoStreamInfo;
       dwOutBufferSize: Int32; var pdwBytesReturned: Int32): Boolean;
-    function RealPlay(pstPreviewInfo: TPreviewInfo): Boolean;
+    function RealPlay: Boolean;
     function StopRealPlay: Boolean;
     function CapturePicture(szFileName: String;
       dwCaptureMode: TNetDEVPictureFormat = NETDEV_PICTURE_JPG): Boolean;
@@ -349,11 +352,12 @@ begin
   FInited := not result;
 end;
 
-constructor TNetDEV.Create(ALibPath: string);
+constructor TNetDEV.Create(ALibPath: string; APreviewInfo: TPreviewInfo);
 begin
   if not TDirectory.Exists(ALibPath) then
     raise Exception.Create('path not exist. [' + ALibPath + ']');
 
+  FPreviewInfo := APreviewInfo;
   MyOnException := nil;
   FInited := False;
   FDLLHandle := 0;
@@ -361,6 +365,8 @@ begin
   FRealHandle := 0;
 
   LoadDLL(ALibPath);
+
+  Init;
 end;
 
 destructor TNetDEV.Destroy;
@@ -382,7 +388,8 @@ begin
   if FDLLHandle <> 0 then
   begin
     try
-      FreeLibrary(FDLLHandle);
+      // FreeLibrary(FDLLHandle);
+      FDLLHandle := 0;
     except
       on E: Exception do
     end;
@@ -452,6 +459,9 @@ var
   pstDevInfo: TNetDEVDeviceInfo;
   IP, ID, Pwd: AnsiString;
 begin
+  if FUserID > 0 then
+    Exit(True);
+
   IP := AnsiString(pszDevIP);
   ID := AnsiString(pszUserName);
   Pwd := AnsiString(pszPassword);
@@ -469,7 +479,12 @@ begin
     FUserID := 0;
 end;
 
-function TNetDEV.RealPlay(pstPreviewInfo: TPreviewInfo): Boolean;
+function TNetDEV.Played: Boolean;
+begin
+  result := FRealHandle > 0;
+end;
+
+function TNetDEV.RealPlay: Boolean;
 begin
   if FUserID = 0 then
     raise Exception.Create('Logout');
@@ -477,7 +492,7 @@ begin
   if FRealHandle > 0 then
     StopRealPlay;
 
-  FRealHandle := FNETDEV_RealPlay(FUserID, pstPreviewInfo, nil, 0);
+  FRealHandle := FNETDEV_RealPlay(FUserID, FPreviewInfo, nil, 0);
   result := FRealHandle > 0;
 
   if result then
