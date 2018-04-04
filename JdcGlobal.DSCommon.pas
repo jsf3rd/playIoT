@@ -305,9 +305,8 @@ begin
     [Self.Name, AParam.Name, GetFieldTypeName(AParam.DataType), AValue.Value]);
 
   if Assigned(AProc) then
-    AProc(msDebug, 'SQLParameter', Msg)
-  else
-    PrintDebug(Msg);
+    AProc(msDebug, 'SQLParameter', Msg);
+  PrintDebug(Msg);
 
   case AParam.DataType of
     ftUnknown:
@@ -542,9 +541,8 @@ begin
     [Self.Name, AField.Name, GetFieldTypeName(AField.DataType), AValue.Value]);
 
   if Assigned(AProc) then
-    AProc(msDebug, 'SQLParameter', Msg)
-  else
-    PrintDebug(Msg);
+    AProc(msDebug, 'SQLParameter', Msg);
+  PrintDebug(Msg);
 
   case AField.DataType of
     ftUnknown:
