@@ -172,7 +172,6 @@ procedure UpdateServiceStatus(const ServiceName: String; var OldStatus: TJclServ
 
 const
   LOCAL_SERVER = '\\localhost';
-  LOG_SERVER = 'log.iccs.co.kr';
 
 implementation
 
@@ -186,7 +185,7 @@ begin
   except
     on E: Exception do
     begin
-      AGlobal.ApplicationMessage(msError, 'SafeFreeAndNil - ' + TObject(Obj).ClassName,
+      AGlobal.ApplicationMessage(msError, 'FreeAndNilEx - ' + TObject(Obj).ClassName,
         E.Message);
     end;
   end;
@@ -475,6 +474,9 @@ begin
     [ProjectCode, AppCode, TypeCode, GetLocalComputerName, _Title, AVersion, AMessage, SysInfo,
     DiskInfo]);
 
+  if AServer.StringValue.IsEmpty then
+    Exit;
+
   UDPClient := TIdUDPClient.Create(nil);
   try
     try
@@ -710,6 +712,9 @@ end;
 procedure TGlobalAbstract.ApplicationMessage(const AType: TMessageType; const ATitle: string;
 const AMessage: String);
 begin
+  if FIsFinalized then
+    Exit;
+
   case AType of
     msDebug:
       _ApplicationMessage(MESSAGE_TYPE_DEBUG, ATitle, AMessage, [moDebugView, moLogFile]);
@@ -737,7 +742,7 @@ constructor TGlobalAbstract.Create;
 begin
   FExeName := '';
   FLogName := '';
-  FLogServer.StringValue := LOG_SERVER;
+  FLogServer.StringValue := '';
   FLogServer.IntegerValue := 8092;
   FIsInitialized := False;
   FIsFinalized := False;
