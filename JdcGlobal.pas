@@ -158,7 +158,7 @@ function StrDefault(str: string; Default: string): string;
 procedure ThreadSafe(AMethod: TThreadMethod); overload;
 procedure ThreadSafe(AThreadProc: TThreadProcedure); overload;
 
-procedure FreeAndNilEx(const AGlobal: TGlobalAbstract; var Obj);
+procedure FreeAndNilEx(var Obj; const AGlobal: TGlobalAbstract = nil);
 
 function GetPeerInfo(AContext: TIdContext): string;
 
@@ -177,7 +177,7 @@ implementation
 
 uses JdcGlobal.ClassHelper;
 
-procedure FreeAndNilEx(const AGlobal: TGlobalAbstract; var Obj);
+procedure FreeAndNilEx(var Obj; const AGlobal: TGlobalAbstract);
 begin
   try
     if Assigned(TObject(Obj)) then
@@ -185,8 +185,9 @@ begin
   except
     on E: Exception do
     begin
-      AGlobal.ApplicationMessage(msError, 'FreeAndNilEx - ' + TObject(Obj).ClassName,
-        E.Message);
+      if Assigned(AGlobal) then
+        AGlobal.ApplicationMessage(msError, 'FreeAndNilEx - ' + TObject(Obj).ClassName,
+          E.Message);
     end;
   end;
 end;
@@ -740,6 +741,8 @@ end;
 
 constructor TGlobalAbstract.Create;
 begin
+  FProjectCode := 'MyProject';
+  FAppCode := 'MyApp';
   FExeName := '';
   FLogName := '';
   FLogServer.StringValue := '';
