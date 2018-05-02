@@ -15,7 +15,7 @@ interface
 
 uses
   Classes, SysUtils, REST.JSON,
-  XSuperObject, System.IOUtils, System.Generics.Collections, System.DateUtils
+  XSuperObject, System.IOUtils, System.Generics.Collections, System.DateUtils, Data.SqlTimSt
 
 {$IF CompilerVersion  > 26} // upper XE5
     , System.JSON
@@ -78,6 +78,7 @@ type
     function FormatWithMSec: String;
     function FormatWithoutMSec: String;
     function RecodeTenMinute: TDateTime;
+    function SQLTimeStamp: TSQLTimeStamp;
     function Date: string;
     function Time: string;
   end;
@@ -324,6 +325,11 @@ begin
   Result := RecodeMilliSecond(Self, 0);
   Result := RecodeSecond(Result, 0);
   Result := RecodeMinute(Result, Min);
+end;
+
+function TDateTimeHelper.SQLTimeStamp: TSQLTimeStamp;
+begin
+  Result := DateTimeToSQLTimeStamp(Self);
 end;
 
 function TDateTimeHelper.Time: string;
