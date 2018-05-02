@@ -35,8 +35,12 @@ type
     class procedure ClearJSONObject(AValue: TJSONObject); overload;
     class procedure ClearJSONObject(AValue: TJSONArray); overload;
 
-    // TStream to TBytesStream
+    // TDBXStream to TBytesStream
     class function DSStreamToBytesStream(AStream: TStream): TBytesStream;
+      deprecated 'DBXStreamToMemoryStream';
+
+    // TDBXStream to TMemoryStream
+    class function DBXStreamToMemoryStream(AStream: TStream): TMemoryStream;
 
     // FDQuery to TSream
     class function DataSetToStream(AQuery: TFDQuery): TStream; overload;
@@ -243,7 +247,7 @@ end;
 
 class function TDSCommon.DSStreamToBytesStream(AStream: TStream): TBytesStream;
 const
-  BufferSize = 1024 * 16;
+  BufferSize = 1024 * 32;
 var
   Buffer: TBytes;
   BytesReadCount: Integer;
@@ -257,6 +261,27 @@ begin
   until BytesReadCount < BufferSize;
 
   result.Position := 0;
+end;
+
+class function TDSCommon.DBXStreamToMemoryStream(AStream: TStream): TMemoryStream;
+const
+  BufferSize = 1024 * 32;
+var
+  Buffer: TBytes;
+  ReadCount: Integer;
+begin
+  result := TMemoryStream.Create;
+  try
+    SetLength(Buffer, BufferSize);
+    repeat
+      ReadCount := AStream.Read(Buffer[0], BufferSize);
+      result.Write(Buffer[0], ReadCount);
+    until ReadCount < BufferSize;
+    result.Position := 0;
+  except
+    result.Free;
+    raise;
+  end;
 end;
 
 class procedure TDSCommon.DSStreamToFDDataSet(AStream: TStream; ADataSet: TFDDataSet);
@@ -455,7 +480,7 @@ end;
 
 function TFDQueryHelper.ToStream: TStream;
 begin
-  result := TBytesStream.Create;
+  result := TMemoryStream.Create;
   Self.Close;
   Self.Open;
   Self.Refresh;
@@ -522,7 +547,7 @@ end;
 
 function TFDMemTableHelper.ToStream: TStream;
 begin
-  result := TBytesStream.Create;
+  result := TMemoryStream.Create;
   Self.SaveToStream(result, sfBinary);
   result.Position := 0;
 end;
@@ -754,16 +779,16 @@ end;
 
 procedure TFDDataSetHelper.LoadFromDSStream(AStream: TStream);
 var
-  BytesStream: TBytesStream;
+  LStream: TMemoryStream;
 begin
-  BytesStream := TDSCommon.DSStreamToBytesStream(AStream);
+  LStream := TDSCommon.DBXStreamToMemoryStream(AStream);
   try
-    if BytesStream.Size = 0 then
+    if LStream.Size = 0 then
       raise Exception.Create('Reveiced Null Stream, ' + Self.Name);
 
-    Self.LoadFromStream(BytesStream, sfBinary);
+    Self.LoadFromStream(LStream, sfBinary);
   finally
-    FreeAndNil(BytesStream);
+    FreeAndNil(LStream);
   end;
 end;
 
