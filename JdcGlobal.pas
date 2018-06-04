@@ -53,6 +53,13 @@ type
     Url: string;
   end;
 
+  TMemoLog = record
+    Memo: TMemo;
+    Msg: string;
+    Time: TDateTime;
+    constructor Create(AMemo: TMemo; AMsg: string);
+  end;
+
   TGlobalAbstract = class abstract
   strict protected
     FProjectCode: string;
@@ -335,17 +342,31 @@ end;
 
 procedure PrintLog(AMemo: TMemo; const AMsg: String);
 begin
-  ThreadSafe(
+  if AMemo.Lines.Count > 5000 then
+    AMemo.Lines.Clear;
+
+  if AMsg.IsEmpty then
+    AMemo.Lines.Add('')
+  else
+  begin
+    AMemo.Lines.Add(FormatDateTime('YYYY-MM-DD HH:NN:SS.zzz, ', Now) + AMsg);
+  end;
+  {
+
+    ThreadSafe(
     procedure
     begin
-      if AMemo.Lines.Count > 5000 then
-        AMemo.Lines.Clear;
+    if AMemo.Lines.Count > 5000 then
+    AMemo.Lines.Clear;
 
-      if AMsg.IsEmpty then
-        AMemo.Lines.Add('')
-      else
-        AMemo.Lines.Add(FormatDateTime('YYYY-MM-DD HH:NN:SS.zzz, ', now) + AMsg);
+    if AMsg.IsEmpty then
+    AMemo.Lines.Add('')
+    else
+    begin
+    AMemo.Lines.Add(FormatDateTime('YYYY-MM-DD HH:NN:SS.zzz, ', Now) + AMsg);
+    end;
     end);
+  }
 end;
 
 procedure PrintLog(const AFile: string; AMessage: String);
@@ -360,11 +381,11 @@ begin
     if JclFileUtils.FileGetSize(FileName) > 1024 * 1024 * 5 then
     begin
       try
-        FileMove(AFile, ChangeFileExt(FileName, FormatDateTime('_YYYYMMDD_HHNNSS', now) +
+        FileMove(AFile, ChangeFileExt(FileName, FormatDateTime('_YYYYMMDD_HHNNSS', Now) +
           '.bak'), true);
       except
         on E: Exception do
-          FileName := ChangeFileExt(FileName, FormatDateTime('_YYYYMMDD', now) + '.tmp');
+          FileName := ChangeFileExt(FileName, FormatDateTime('_YYYYMMDD', Now) + '.tmp');
       end;
     end;
   end;
@@ -375,7 +396,7 @@ begin
       if AMessage.IsEmpty then
         Stream.WriteLine
       else
-        Stream.WriteLine(FormatDateTime('YYYY-MM-DD, HH:NN:SS.zzz, ', now) + AMessage);
+        Stream.WriteLine(FormatDateTime('YYYY-MM-DD, HH:NN:SS.zzz, ', Now) + AMessage);
     finally
       FreeAndNil(Stream);
     end;
@@ -438,9 +459,9 @@ begin
       if VerQueryValue(PVerInfo, '\', Pointer(PVerValue), VerValueSize) then
         with PVerValue^ do
           result := Format('v%d.%d.%d', [HiWord(dwFileVersionMS),
-          // Major
-          LoWord(dwFileVersionMS), // Minor
-          HiWord(dwFileVersionLS) // Release
+            // Major
+            LoWord(dwFileVersionMS), // Minor
+            HiWord(dwFileVersionLS) // Release
             ]);
   finally
     FreeMem(PVerInfo, VerInfoSize);
@@ -470,10 +491,17 @@ begin
     DiskSize(4) / GBFactor]);
 
   _Title := ATitle.Replace(' ', '_', [rfReplaceAll]);
+
+  Msg := AMessage.Replace('"', '''');
   Msg := Format
     ('CloudLog,ProjectCode=%s,AppCode=%s,TypeCode=%s,ComputerName=%s,Title=%s Version="%s",LogMessage="%s",SysInfo="%s",DiskInfo="%s"',
-    [ProjectCode, AppCode, TypeCode, GetLocalComputerName, _Title, AVersion, AMessage, SysInfo,
+    [ProjectCode, AppCode, TypeCode, GetLocalComputerName, _Title, AVersion, Msg, SysInfo,
     DiskInfo]);
+
+  Msg := Msg.Replace('\', '\\');
+  Msg := Msg.Replace(#13, ', ');
+  Msg := Msg.Replace(#10, '');
+  Msg := Msg.Replace(#9, ' '); // TAB
 
   if AServer.StringValue.IsEmpty then
     Exit;
@@ -542,7 +570,7 @@ begin
 end;
 
 function DeCompressStream(Stream: TStream; OutStream: TStream;
-OnProgress: TNotifyEvent): boolean;
+  OnProgress: TNotifyEvent): boolean;
 const
   BuffSize = 65535; // 버퍼 사이즈
 var
@@ -711,7 +739,7 @@ end;
 { TGlobalAbstract }
 
 procedure TGlobalAbstract.ApplicationMessage(const AType: TMessageType; const ATitle: string;
-const AMessage: String);
+  const AMessage: String);
 begin
   if FIsFinalized then
     Exit;
@@ -731,7 +759,7 @@ begin
 end;
 
 procedure TGlobalAbstract.ApplicationMessage(const AType: TMessageType; const ATitle: string;
-const AFormat: String; const Args: array of const);
+  const AFormat: String; const Args: array of const);
 var
   str: string;
 begin
@@ -746,7 +774,7 @@ begin
   FExeName := '';
   FLogName := '';
   FLogServer.StringValue := '';
-  FLogServer.IntegerValue := 8092;
+  FLogServer.IntegerValue := 8094;
   FIsInitialized := False;
   FIsFinalized := False;
   FUseCloudLog := False;
@@ -759,17 +787,17 @@ end;
 
 function TGlobalAbstract.GetErrorLogName: string;
 begin
-  result := ChangeFileExt(FLogName, FormatDateTime('_YYYYMMDD', now) + '.err');
+  result := ChangeFileExt(FLogName, FormatDateTime('_YYYYMMDD', Now) + '.err');
 end;
 
 function TGlobalAbstract.GetLogName: string;
 begin
-  result := ChangeFileExt(FLogName, FormatDateTime('_YYYYMMDD', now) + '.log');
+  result := ChangeFileExt(FLogName, FormatDateTime('_YYYYMMDD', Now) + '.log');
 end;
 
 procedure TGlobalAbstract.Initialize;
 begin
-  FStartTime := now;
+  FStartTime := Now;
 {$IFDEF WIN32}
   ApplicationMessage(msInfo, 'Start', '(x86)' + FExeName);
 {$ENDIF}
@@ -779,7 +807,7 @@ begin
 end;
 
 procedure TGlobalAbstract._ApplicationMessage(const AType: string; const ATitle: string;
-const AMessage: String; const AOutputs: TMsgOutputs);
+  const AMessage: String; const AOutputs: TMsgOutputs);
 var
   splitter: string;
 begin
@@ -824,6 +852,15 @@ begin
     result := Default
   else
     result := str;
+end;
+
+{ TMemoLog }
+
+constructor TMemoLog.Create(AMemo: TMemo; AMsg: string);
+begin
+  Self.Memo := AMemo;
+  Self.Msg := AMsg;
+  Self.Time := Now;
 end;
 
 end.

@@ -264,10 +264,19 @@ type
   TNETDEV_GetLastError = function(): Int32 stdcall;
   TNETDEV_SetExceptionCallBack = function(cbExceptionCallBack: TNETDEV_ExceptionCallBack_PF;
     lpUserData: IntPtr): Boolean stdcall;
-  TNETDEV_Cleanup = function(): Boolean;
+  TNETDEV_Cleanup = function(): Boolean stdcall;
+  NETDEV_SetLogPath = function(pszLogPath: PAnsiChar): Boolean stdcall;
 
   TNETDEV_SetPlayDataCallBack = function(lpRealHandle: IntPtr; cbPlayDataCallBack: IntPtr;
     bContinue: Int32; lpUserData: IntPtr): Boolean stdcall;
+
+  TCCTVInfo = record
+    Enable: Boolean;
+    IP: String;
+    Port: Integer;
+    ID: String;
+    Password: String;
+  end;
 
   TNetDEV = class
   private
@@ -277,7 +286,6 @@ type
 
     FUserID: IntPtr;
     FRealHandle: IntPtr;
-    FPreviewInfo: TPreviewInfo;
 
     FNETDEV_StopRealPlay: TNETDEV_StopRealPlay;
     FNETDEV_Init: TNETDEV_Init;
@@ -289,13 +297,15 @@ type
     FNETDEV_GetDevConfig: TNETDEV_GetDevConfig;
     FNETDEV_Login: TNETDEV_Login;
     FNETDEV_Cleanup: TNETDEV_Cleanup;
+    FNETDEV_SetLogPath: NETDEV_SetLogPath;
     FNETDEV_GetLastError: TNETDEV_GetLastError;
+    FCCTVInfo: TCCTVInfo;
 
     procedure FreeDLL;
     procedure LoadDLL(APath: string);
     procedure SetOnException(const Value: TOnException);
   public
-    constructor Create(ALibPath: string; APreviewInfo: TPreviewInfo);
+    constructor Create(ALibPath: string; ALogPath: string);
     destructor Destroy; override;
 
     function GetLastError: string;
@@ -304,17 +314,20 @@ type
 
     function Init: Boolean;
     function Cleanup: Boolean;
-    function Login(pszDevIP: String; wDevPort: Int16; pszUserName: String;
-      pszPassword: String): Boolean;
+    function Login: Boolean; overload;
+    function Login(pszDevIP: String; wDevPort: Int16; pszUserName: String; pszPassword: String)
+      : Boolean; overload;
     function Logout: Boolean;
     function GetStreamInfo(dwChannelID: Int32; var lpOutBuffer: TNETDEVVideoStreamInfo;
       dwOutBufferSize: Int32; var pdwBytesReturned: Int32): Boolean;
-    function RealPlay: Boolean;
+    function RealPlay(APreviewInfo: TPreviewInfo): Boolean;
     function StopRealPlay: Boolean;
     function CapturePicture(szFileName: String;
       dwCaptureMode: TNetDEVPictureFormat = NETDEV_PICTURE_JPG): Boolean;
+    function SetLogPath(szPath: string): Boolean;
 
     property OnException: TOnException write SetOnException;
+    property CCTVInfo: TCCTVInfo read FCCTVInfo write FCCTVInfo;
   end;
 
 implementation
@@ -352,12 +365,11 @@ begin
   FInited := not result;
 end;
 
-constructor TNetDEV.Create(ALibPath: string; APreviewInfo: TPreviewInfo);
+constructor TNetDEV.Create(ALibPath: string; ALogPath: string);
 begin
   if not TDirectory.Exists(ALibPath) then
     raise Exception.Create('path not exist. [' + ALibPath + ']');
 
-  FPreviewInfo := APreviewInfo;
   MyOnException := nil;
   FInited := False;
   FDLLHandle := 0;
@@ -366,6 +378,7 @@ begin
 
   LoadDLL(ALibPath);
 
+  SetLogPath(ALogPath);
   Init;
 end;
 
@@ -380,6 +393,7 @@ begin
   end;
 
   FreeDLL;
+
   inherited;
 end;
 
@@ -450,6 +464,7 @@ begin
   @FNETDEV_SetExceptionCallBack := GetProcAddress(FDLLHandle, 'NETDEV_SetExceptionCallBack');
   @FNETDEV_SetPlayDataCallBack := GetProcAddress(FDLLHandle, 'NETDEV_SetPlayDataCallBack');
   @FNETDEV_Cleanup := GetProcAddress(FDLLHandle, 'NETDEV_Cleanup');
+  @FNETDEV_SetLogPath := GetProcAddress(FDLLHandle, 'NETDEV_SetLogPath');
   SetCurrentDir(TPath.GetDocumentsPath);
 end;
 
@@ -469,6 +484,11 @@ begin
   result := FUserID > 0;
 end;
 
+function TNetDEV.Login: Boolean;
+begin
+  result := Login(FCCTVInfo.IP, FCCTVInfo.Port, FCCTVInfo.ID, FCCTVInfo.Password);
+end;
+
 function TNetDEV.Logout: Boolean;
 begin
   if FUserID = 0 then
@@ -484,7 +504,7 @@ begin
   result := FRealHandle > 0;
 end;
 
-function TNetDEV.RealPlay: Boolean;
+function TNetDEV.RealPlay(APreviewInfo: TPreviewInfo): Boolean;
 begin
   if FUserID = 0 then
     raise Exception.Create('Logout');
@@ -492,11 +512,19 @@ begin
   if FRealHandle > 0 then
     StopRealPlay;
 
-  FRealHandle := FNETDEV_RealPlay(FUserID, FPreviewInfo, nil, 0);
+  FRealHandle := FNETDEV_RealPlay(FUserID, APreviewInfo, nil, 0);
   result := FRealHandle > 0;
 
   if result then
     FNETDEV_SetExceptionCallBack(ExceptionCallBack, 0);
+end;
+
+function TNetDEV.SetLogPath(szPath: string): Boolean;
+var
+  Path: AnsiString;
+begin
+  Path := AnsiString(szPath);
+  result := FNETDEV_SetLogPath(PAnsiChar(Path));
 end;
 
 procedure TNetDEV.SetOnException(const Value: TOnException);

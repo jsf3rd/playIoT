@@ -298,7 +298,7 @@ begin
   result.OnExecuteError := Self.OnExecuteError;
   result.OnReconcileError := Self.OnReconcileError;
   result.SQL.Text := Self.SQL.Text;
-  result.Name := Self.Name + '_' + TThread.CurrentThread.ThreadID.ToString;
+  result.Name := Self.Name + '_' + Format('%0.5d', [Random(100000)]);
   for I := 0 to Self.ParamCount - 1 do
     result.Params.Items[I].DataType := Self.Params.Items[I].DataType;
 end;

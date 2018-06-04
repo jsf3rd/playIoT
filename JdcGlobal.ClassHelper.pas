@@ -268,10 +268,10 @@ end;
 
 class function TJSONHelper.ObjectToJsonObjectEx(AObject: TObject): TJSONObject;
 var
-  JSONObject: String;
+  JSONStr: String;
 begin
-  JSONObject := AObject.AsJSON;
-  Result := TJSONObject.ParseJSONValue(JSONObject) as TJSONObject;
+  JSONStr := AObject.AsJSON;
+  Result := TJSONObject.ParseJSONValue(JSONStr) as TJSONObject;
 end;
 
 class function TJSONHelper.ObjectToJsonStringEx(AObject: TObject): String;
@@ -283,19 +283,20 @@ class function TJSONHelper.RecordToJsonObject<T>(ARecord: T): TJSONObject;
 var
   JsonString: string;
 begin
-  JsonString := RecordToJsonString(ARecord);
-  JsonString := JsonString.Replace('NAN', '0', [rfReplaceAll, rfIgnoreCase]);
-  JsonString := JsonString.Replace('-NAN', '0', [rfReplaceAll, rfIgnoreCase]);
-  Result := TJSONObject.ParseJSONValue(JsonString) as TJSONObject;
+  try
+    JsonString := RecordToJsonString<T>(ARecord);
+    // JsonString := JsonString.Replace('NAN', '0', [rfReplaceAll, rfIgnoreCase]);
+    // JsonString := JsonString.Replace('-NAN', '0', [rfReplaceAll, rfIgnoreCase]);
+    Result := TJSONObject.ParseJSONValue(JsonString) as TJSONObject;
+  except
+    on E: Exception do
+      raise Exception.Create('RecordToJsonObject,' + E.Message);
+  end;
 end;
 
 class function TJSONHelper.RecordToJsonString<T>(ARecord: T): String;
-var
-  SO: ISuperObject;
 begin
-  SO := TSuperRecord<T>.AsJSONObject(ARecord);
-  Result := SO.AsJSON;
-  SO := nil;
+  Result := TSuperRecord<T>.AsJSON(ARecord);
 end;
 
 { TDateTimeHelper }

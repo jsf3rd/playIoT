@@ -57,9 +57,6 @@ constructor TGlobal.Create;
 begin
   inherited;
 
-  FProjectCode := PROJECT_CODE;
-  FAppCode := APPLICATION_CODE;
-
   // TOTO : after create
 end;
 
@@ -118,8 +115,10 @@ begin
   if not TDirectory.Exists(ExtractFilePath(FLogName)) then
     TDirectory.CreateDirectory(ExtractFilePath(FLogName));
 
+  FAppCode := TOption.Obj.AppCode;
+  FProjectCode := TOption.Obj.ProjectCode;
   FUseCloudLog := TOption.Obj.UseCloudLog;
-  // FLogServer.StringValue := 'mydomain.iccs.co.kr';
+  FLogServer := TOption.Obj.LogServer;
 end;
 
 initialization

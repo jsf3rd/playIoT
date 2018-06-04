@@ -6,6 +6,8 @@ uses
   Classes, SysUtils, IOUtils, JdcGlobal;
 
 const
+  PROJECT_CODE = 'MyProject';
+  APPLICATION_CODE = 'playIoT Application';
   APPLICATION_TITLE = 'DataSnap for Basic';
   APPLICATION_VERSION = 'v1.0';
   COPY_RIGHT_SIGN = 'ⓒ 2016 playIoT';
@@ -98,8 +100,10 @@ begin
   if not TDirectory.Exists(ExtractFilePath(FLogName)) then
     TDirectory.CreateDirectory(ExtractFilePath(FLogName));
 
+  FAppCode := TOption.Obj.AppCode;
+  FProjectCode := TOption.Obj.ProjectCode;
   FUseCloudLog := TOption.Obj.UseCloudLog;
-  // FLogServer.StringValue := 'mydomain.iccs.co.kr';
+  FLogServer := TOption.Obj.LogServer;
 end;
 
 end.
