@@ -13,6 +13,7 @@ type
   public
     procedure Enqueue(AItem: T);
     function Dequeue: T;
+    function Count: Integer;
 
     constructor Create;
     destructor Destroy; override;
@@ -25,6 +26,11 @@ implementation
 
 { TCircularQueue<T> }
 
+function TCircularQueue<T>.Count: Integer;
+begin
+  Result := FList.Count;
+end;
+
 constructor TCircularQueue<T>.Create;
 begin
   FList := TList<T>.Create;
@@ -33,9 +39,12 @@ end;
 
 function TCircularQueue<T>.Dequeue: T;
 begin
+  if FList.Count = 0 then
+    Exit(nil);
+
   EnterCriticalSection(CritSect);
   try
-    result := FList.Items[FPos];
+    Result := FList.Items[FPos];
     Inc(FPos);
     if FPos >= FList.Count then
       FPos := 0;
