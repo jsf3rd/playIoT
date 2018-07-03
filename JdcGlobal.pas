@@ -351,22 +351,6 @@ begin
   begin
     AMemo.Lines.Add(FormatDateTime('YYYY-MM-DD HH:NN:SS.zzz, ', Now) + AMsg);
   end;
-  {
-
-    ThreadSafe(
-    procedure
-    begin
-    if AMemo.Lines.Count > 5000 then
-    AMemo.Lines.Clear;
-
-    if AMsg.IsEmpty then
-    AMemo.Lines.Add('')
-    else
-    begin
-    AMemo.Lines.Add(FormatDateTime('YYYY-MM-DD HH:NN:SS.zzz, ', Now) + AMsg);
-    end;
-    end);
-  }
 end;
 
 procedure PrintLog(const AFile: string; AMessage: String);
