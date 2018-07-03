@@ -276,6 +276,7 @@ type
     Port: Integer;
     ID: String;
     Password: String;
+    function Equals(AInfo: TCCTVInfo): Boolean;
   end;
 
   TNetDEV = class
@@ -543,6 +544,7 @@ begin
     FRealHandle := 0;
     FNETDEV_SetExceptionCallBack(nil, 0)
   end;
+
 end;
 
 { TPreviewInfo }
@@ -555,6 +557,14 @@ begin
   Self.dwLinkMode := Int32(AMode);
   Self.hPlayWnd := AHandle;
   Self.dwFluency := Int32(AFluncy);
+end;
+
+{ TCCTVInfo }
+
+function TCCTVInfo.Equals(AInfo: TCCTVInfo): Boolean;
+begin
+  result := (Self.IP = AInfo.IP) and (Self.Port = AInfo.Port) and (Self.ID = AInfo.ID) and
+    (Self.Password = AInfo.Password)
 end;
 
 end.
