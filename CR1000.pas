@@ -136,16 +136,15 @@ var
   Opened: Boolean;
 begin
   Result := False;
-  Opened := SPBDLL.OpenIPPort(PAnsiChar(Ip), Port) = 0;
-  Debug('OpenIPPort(Ip=%s, Port=%d) -> %s',
-    [Ip, Port, IfThen(Opened, 'Success', 'Fail')]);
+  Opened := SPBDLL.OpenIPPort(PAnsiChar(AnsiString(Ip)), Port) = 0;
+  Debug('OpenIPPort(Ip=%s, Port=%d) -> %s', [Ip, Port, IfThen(Opened, 'Success', 'Fail')]);
   if Opened then
   begin
     Result := GetAddress(LOGGER_CR1000, Data, Len) = 0;
     Debug('GetAddress() -> %s', [IfThen(Result, 'Success', 'Fail')]);
     if Result then
     begin
-      Address := StrToIntDef(Copy(Data, Pos('=', Data) + 1, Length(Data)), 1);
+      Address := StrToIntDef(Copy(String(Data), Pos('=', String(Data)) + 1, Length(Data)), 1);
       Debug('Address -> %d', [Address]);
       IpPortOpened := True;
     end
@@ -268,13 +267,11 @@ end;
   결과값: Integer
   설  명: 콤마로 분리된 데이터 형식으로 데이터 취득
   ------------------------------------------------------------------------------- }
-function TCR1000.GetCommaData(Table, Recrd: Integer;
-  out pData: PAnsiChar): Integer;
+function TCR1000.GetCommaData(Table, Recrd: Integer; out pData: PAnsiChar): Integer;
 var
   Len: Integer;
 begin
-  Result := SPBDLL.GetCommaData(Address, LOGGER_CR1000, Table, Recrd,
-    pData, Len);
+  Result := SPBDLL.GetCommaData(Address, LOGGER_CR1000, Table, Recrd, pData, Len);
 end;
 
 { -------------------------------------------------------------------------------
@@ -293,7 +290,7 @@ var
 begin
   ReturnCode := SPBDLL.GetStatus(Address, LOGGER_CR1000, Data, Len);
   SetLastError(ReturnCode);
-  Result := Data;
+  Result := String(Data);
 end;
 
 { -------------------------------------------------------------------------------
@@ -323,8 +320,7 @@ end;
   결과값: Integer
   설  명: 펌웨어 업데이트
   ------------------------------------------------------------------------------- }
-function TCR1000.UpdateFirmware(FileName: PAnsiChar;
-  out pData: PAnsiChar): Integer;
+function TCR1000.UpdateFirmware(FileName: PAnsiChar; out pData: PAnsiChar): Integer;
 var
   Len: Integer;
 begin
