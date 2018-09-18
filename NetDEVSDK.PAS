@@ -306,7 +306,7 @@ type
     procedure LoadDLL(APath: string);
     procedure SetOnException(const Value: TOnException);
   public
-    constructor Create(ALibPath: string; ALogPath: string);
+    constructor Create(const ALibPath: string; const ALogPath: string);
     destructor Destroy; override;
 
     function GetLastError: string;
@@ -316,16 +316,16 @@ type
     function Init: Boolean;
     function Cleanup: Boolean;
     function Login: Boolean; overload;
-    function Login(pszDevIP: String; wDevPort: Int16; pszUserName: String; pszPassword: String)
-      : Boolean; overload;
+    function Login(const pszDevIP: String; const wDevPort: Int16; const pszUserName: String;
+      const pszPassword: String): Boolean; overload;
     function Logout: Boolean;
-    function GetStreamInfo(dwChannelID: Int32; var lpOutBuffer: TNETDEVVideoStreamInfo;
-      dwOutBufferSize: Int32; var pdwBytesReturned: Int32): Boolean;
+    function GetStreamInfo(const dwChannelID: Int32; var lpOutBuffer: TNETDEVVideoStreamInfo;
+      const dwOutBufferSize: Int32; var pdwBytesReturned: Int32): Boolean;
     function RealPlay(APreviewInfo: TPreviewInfo): Boolean;
     function StopRealPlay: Boolean;
-    function CapturePicture(szFileName: String;
-      dwCaptureMode: TNetDEVPictureFormat = NETDEV_PICTURE_JPG): Boolean;
-    function SetLogPath(szPath: string): Boolean;
+    function CapturePicture(const szFileName: String;
+      const dwCaptureMode: TNetDEVPictureFormat = NETDEV_PICTURE_JPG): Boolean;
+    function SetLogPath(const szPath: string): Boolean;
 
     property OnException: TOnException write SetOnException;
     property CCTVInfo: TCCTVInfo read FCCTVInfo write FCCTVInfo;
@@ -345,8 +345,8 @@ end;
 
 { TNetDEV }
 
-function TNetDEV.CapturePicture(szFileName: String;
-  dwCaptureMode: TNetDEVPictureFormat): Boolean;
+function TNetDEV.CapturePicture(const szFileName: String;
+  const dwCaptureMode: TNetDEVPictureFormat): Boolean;
 var
   Name: AnsiString;
 begin
@@ -366,7 +366,7 @@ begin
   FInited := not result;
 end;
 
-constructor TNetDEV.Create(ALibPath: string; ALogPath: string);
+constructor TNetDEV.Create(const ALibPath: string; const ALogPath: string);
 begin
   if not TDirectory.Exists(ALibPath) then
     raise Exception.Create('path not exist. [' + ALibPath + ']');
@@ -411,8 +411,8 @@ begin
   end;
 end;
 
-function TNetDEV.GetStreamInfo(dwChannelID: Int32; var lpOutBuffer: TNETDEVVideoStreamInfo;
-  dwOutBufferSize: Int32; var pdwBytesReturned: Int32): Boolean;
+function TNetDEV.GetStreamInfo(const dwChannelID: Int32; var lpOutBuffer: TNETDEVVideoStreamInfo;
+  const dwOutBufferSize: Int32; var pdwBytesReturned: Int32): Boolean;
 const
   NETDEV_GET_STREAMCFG = 120;
 begin
@@ -469,8 +469,8 @@ begin
   SetCurrentDir(TPath.GetDocumentsPath);
 end;
 
-function TNetDEV.Login(pszDevIP: String; wDevPort: Int16;
-  pszUserName, pszPassword: String): Boolean;
+function TNetDEV.Login(const pszDevIP: String; const wDevPort: Int16;
+  const pszUserName, pszPassword: String): Boolean;
 var
   pstDevInfo: TNetDEVDeviceInfo;
   IP, ID, Pwd: AnsiString;
@@ -520,7 +520,7 @@ begin
     FNETDEV_SetExceptionCallBack(ExceptionCallBack, 0);
 end;
 
-function TNetDEV.SetLogPath(szPath: string): Boolean;
+function TNetDEV.SetLogPath(const szPath: string): Boolean;
 var
   Path: AnsiString;
 begin
