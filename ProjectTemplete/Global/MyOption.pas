@@ -83,7 +83,7 @@ end;
 
 function TOption.GetProjectCode: string;
 begin
-  result := FIniFile.ReadString('Config', 'ProjectCode', ProjectCode);
+  result := FIniFile.ReadString('Config', 'ProjectCode', PROJECT_CODE);
 end;
 
 function TOption.GetUseCloudLog: boolean;
