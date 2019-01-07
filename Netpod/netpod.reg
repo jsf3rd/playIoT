@@ -1,0 +1,7 @@
+Windows Registry Editor Version 5.00
+
+[HKEY_CURRENT_USER\Software\NetPod]
+"Access"="UA5098"
+
+[HKEY_CURRENT_USER\Software\NetPod\InitCommands]
+"Command1"="SCANNET D"
