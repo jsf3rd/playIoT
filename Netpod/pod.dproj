@@ -18,6 +18,21 @@
         <CfgParent>Base</CfgParent>
         <Base>true</Base>
     </PropertyGroup>
+    <PropertyGroup Condition="('$(Platform)'=='iOSDevice32' and '$(Base)'=='true') or '$(Base_iOSDevice32)'!=''">
+        <Base_iOSDevice32>true</Base_iOSDevice32>
+        <CfgParent>Base</CfgParent>
+        <Base>true</Base>
+    </PropertyGroup>
+    <PropertyGroup Condition="('$(Platform)'=='iOSDevice64' and '$(Base)'=='true') or '$(Base_iOSDevice64)'!=''">
+        <Base_iOSDevice64>true</Base_iOSDevice64>
+        <CfgParent>Base</CfgParent>
+        <Base>true</Base>
+    </PropertyGroup>
+    <PropertyGroup Condition="('$(Platform)'=='iOSSimulator' and '$(Base)'=='true') or '$(Base_iOSSimulator)'!=''">
+        <Base_iOSSimulator>true</Base_iOSSimulator>
+        <CfgParent>Base</CfgParent>
+        <Base>true</Base>
+    </PropertyGroup>
     <PropertyGroup Condition="('$(Platform)'=='Win32' and '$(Base)'=='true') or '$(Base_Win32)'!=''">
         <Base_Win32>true</Base_Win32>
         <CfgParent>Base</CfgParent>
@@ -69,19 +84,31 @@
         <DCC_MapFile>3</DCC_MapFile>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Base_Android)'!=''">
+        <DCC_UsePackage>DbxCommonDriver;FireDAC;FireDACCommonDriver;FireDACCommon;IndySystem;IndyProtocols;IndyCore;$(DCC_UsePackage)</DCC_UsePackage>
         <VerInfo_Keys>package=com.embarcadero.$(MSBuildProjectName);label=$(MSBuildProjectName);versionCode=1;versionName=1.0.0;persistent=False;restoreAnyVersion=False;installLocation=auto;largeHeap=False;theme=TitleBar;hardwareAccelerated=true;apiKey=</VerInfo_Keys>
         <VerInfo_IncludeVerInfo>false</VerInfo_IncludeVerInfo>
         <BT_BuildType>Debug</BT_BuildType>
         <EnabledSysJars>android-support-v4.dex.jar;apk-expansion.dex.jar;cloud-messaging.dex.jar;fmx.dex.jar;google-analytics-v2.dex.jar;google-play-billing.dex.jar;google-play-licensing.dex.jar;google-play-services.dex.jar</EnabledSysJars>
     </PropertyGroup>
+    <PropertyGroup Condition="'$(Base_iOSDevice32)'!=''">
+        <DCC_UsePackage>DbxCommonDriver;FireDAC;FireDACCommonDriver;FireDACCommon;IndySystem;IndyProtocols;IndyCore;$(DCC_UsePackage)</DCC_UsePackage>
+    </PropertyGroup>
+    <PropertyGroup Condition="'$(Base_iOSDevice64)'!=''">
+        <DCC_UsePackage>DbxCommonDriver;FireDAC;FireDACCommonDriver;FireDACCommon;IndySystem;IndyProtocols;IndyCore;$(DCC_UsePackage)</DCC_UsePackage>
+    </PropertyGroup>
+    <PropertyGroup Condition="'$(Base_iOSSimulator)'!=''">
+        <DCC_UsePackage>DbxCommonDriver;FireDAC;FireDACCommonDriver;FireDACCommon;IndySystem;IndyProtocols;IndyCore;$(DCC_UsePackage)</DCC_UsePackage>
+    </PropertyGroup>
     <PropertyGroup Condition="'$(Base_Win32)'!=''">
-        <DCC_Namespace>Winapi;System.Win;Data.Win;Datasnap.Win;Web.Win;Soap.Win;Xml.Win;Bde;$(DCC_Namespace)</DCC_Namespace>
+        <DCC_UsePackage>DbxCommonDriver;FireDAC;FireDACCommonDriver;FireDACCommon;IndySystem;IndyProtocols;IndyCore;Jcl;$(DCC_UsePackage)</DCC_UsePackage>
+        <DCC_Namespace>Data.Win;Datasnap.Win;Web.Win;Soap.Win;Xml.Win;Bde;$(DCC_Namespace)</DCC_Namespace>
         <VerInfo_IncludeVerInfo>true</VerInfo_IncludeVerInfo>
         <Icon_MainIcon>pod_Icon.ico</Icon_MainIcon>
         <VerInfo_Keys>CompanyName=;FileDescription=;FileVersion=1.0.0.0;InternalName=;LegalCopyright=;LegalTrademarks=;OriginalFilename=;ProductName=;ProductVersion=1.0.0.0;Comments=</VerInfo_Keys>
         <VerInfo_Locale>1033</VerInfo_Locale>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Base_Win64)'!=''">
+        <DCC_UsePackage>DbxCommonDriver;FireDAC;FireDACCommonDriver;FireDACCommon;IndySystem;IndyProtocols;IndyCore;$(DCC_UsePackage)</DCC_UsePackage>
         <Icon_MainIcon>pod_Icon.ico</Icon_MainIcon>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Cfg_1)'!=''">
@@ -106,7 +133,23 @@
         <DCCReference Include="rtl.dcp"/>
         <DCCReference Include="vcl.dcp"/>
         <DCCReference Include="VclSmp.dcp"/>
+        <DCCReference Include="DbxCommonDriver.dcp"/>
+        <DCCReference Include="dbrtl.dcp"/>
+        <DCCReference Include="FireDAC.dcp"/>
+        <DCCReference Include="FireDACCommonDriver.dcp"/>
+        <DCCReference Include="FireDACCommon.dcp"/>
+        <DCCReference Include="IndySystem.dcp"/>
+        <DCCReference Include="IndyProtocols.dcp"/>
+        <DCCReference Include="IndyCore.dcp"/>
+        <DCCReference Include="Jcl.dcp"/>
         <DCCReference Include="NetpodReg.pas"/>
+        <DCCReference Include="dllinc.pas"/>
+        <DCCReference Include="ProcessViewer.pas"/>
+        <DCCReference Include="ScanNetwork.pas">
+            <Form>frmScanNetwork</Form>
+            <FormType>dfm</FormType>
+        </DCCReference>
+        <DCCReference Include="Netpod.pas"/>
         <BuildConfiguration Include="Debug">
             <Key>Cfg_2</Key>
             <CfgParent>Base</CfgParent>
@@ -127,9 +170,6 @@
                 <Source>
                     <Source Name="MainSource">pod.dpk</Source>
                 </Source>
-                <Language>
-                    <Language Name="RootDir">..\..\..\..\Users\1\Documents\Embarcadero\Studio\Component\Netpod\</Language>
-                </Language>
             </Delphi.Personality>
             <Platforms>
                 <Platform value="Android">False</Platform>
@@ -140,7 +180,7 @@
                 <Platform value="Win64">False</Platform>
             </Platforms>
             <Deployment Version="2">
-                <DeployFile LocalName="..\..\..\..\..\..\Public\Documents\Embarcadero\Studio\17.0\Bpl\pod.bpl" Configuration="Debug" Class="ProjectOutput">
+                <DeployFile LocalName="..\..\..\..\..\..\..\Public\Documents\Embarcadero\Studio\17.0\Bpl\pod.bpl" Configuration="Debug" Class="ProjectOutput">
                     <Platform Name="Win32">
                         <RemoteName>pod.bpl</RemoteName>
                         <Overwrite>true</Overwrite>

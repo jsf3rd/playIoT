@@ -8,9 +8,11 @@ unit DLLinc;
 
 interface
 
-uses windows;
+uses Windows, SysUtils;
 
 const
+  NETPOD_DLL = 'NETPOD.DLL';
+
   // Flags
   NP_RAW = 1;
   NP_CAL = 2;
@@ -60,21 +62,21 @@ type
   TAccurateTime = TFileTime;
 
   TFloatArray = packed record
-    data: packed array [0 .. 15] of single;
+    data: packed array [0 .. 15] of Single;
   end;
 
   TShortString = packed array [0 .. 31] of AnsiChar;
-  TPodList = packed array [0 .. 100] of integer;
+  TPodList = packed array [0 .. 100] of Integer;
 
   TPodInfoStruct = packed record
     // Fixed:
-    PodId: integer;
-    Ethernet: array [0 .. 5] of byte;
+    PodId: Integer;
+    Ethernet: array [0 .. 5] of Byte;
     StrEthernet: TShortString;
-    SWVersion: integer;
+    SWVersion: Integer;
     PartNumber: TShortString;
     SerialNumber: TShortString;
-    ManYY, ManMM, ManDD: integer;
+    ManYY, ManMM, ManDD: Integer;
     StrManDate: TShortString;
     // Editable:
     IPAddr: array [0 .. 1] of SmallInt;
@@ -84,28 +86,28 @@ type
     // digital
     DigDDR: word;
     DigDefault: word;
-    PortType: array [0 .. 15] of byte;
+    PortType: array [0 .. 15] of Byte;
   end;
 
   TChannelInfoStruct = packed record
-    PodId: integer;
-    Channel: integer; // 0 to 15
+    PodId: Integer;
+    Channel: Integer; // 0 to 15
     // fixed EEPROM:
-    IsInstalled: integer;
-    ADCType: integer; // 16 or 24 bit
-    ADCResolution: integer;
-    PortType: integer; // thermocouple etc
-    SWVersion: integer;
+    IsInstalled: Integer;
+    ADCType: Integer; // 16 or 24 bit
+    ADCResolution: Integer;
+    PortType: Integer; // thermocouple etc
+    SWVersion: Integer;
     PartNumber: TShortString;
     SerialNumber: TShortString;
-    ManYY, ManMM, ManDD: integer; // date of manufacture
+    ManYY, ManMM, ManDD: Integer; // date of manufacture
     StrManDate: TShortString;
     // changeable EEPROM:
-    Gain: integer;
+    Gain: Integer;
     Name: TShortString; // char[32]
     Units: TShortString; // processed units
-    DefCal: packed array [0 .. 1] of single; // default calibration
-    Cal: packed array [0 .. 3] of single; // calibration coeffients
+    DefCal: packed array [0 .. 1] of Single; // default calibration
+    Cal: packed array [0 .. 3] of Single; // calibration coeffients
   end;
 
   TBufParamStruct = packed record
@@ -115,33 +117,49 @@ type
     LatestTime: TAccurateTime;
     LatestContSample: TSampleL;
     LatestContTime: TAccurateTime;
-    reserved: array [0 .. 64] of integer;
+    reserved: array [0 .. 64] of Integer;
+    function LatestDateTime: TDateTime;
+    function LatestDateTimeStr: String;
+    function SampleCount: Int64;
+    function ToString: string;
   end;
 
-function NP_SimpleRead(pid, flag: integer; var results): integer;
-stdcall external 'netpod.dll' name 'NP_SimpleRead';
-function NP_SetDigital(pid, value: integer): integer;
-stdcall external 'netpod.dll' name 'NP_SetDigital'
-function NP_GetStatus(stat: integer): integer;
-stdcall external 'netpod.dll' name 'NP_GetStatus'
-function NP_SetStatus(stat: integer): integer;
-stdcall external 'netpod.dll' name 'NP_SetStatus'
-function NP_GetPodInfo(pid: integer; var Info: TPodInfoStruct): integer;
-stdcall;
-external 'netpod.dll' name 'NP_GetPodInfo';
-function NP_GetChannelInfo(pid, cid: integer; var Info: TChannelInfoStruct): integer; stdcall;
-  external 'netpod.dll' name 'NP_GetChannelInfo';
-function NP_GetPodList(data: TArray<integer>): integer; stdcall;
-  external 'netpod.dll' name 'NP_GetPodList';
-function NP_PutPodInfo(pid: integer; var Info: TPodInfoStruct): integer; stdcall;
-  external 'netpod.dll' name 'NP_PutPodInfo';
-function NP_PutChannelInfo(pid, cid: integer; var Info: TChannelInfoStruct): integer; stdcall;
-  external 'netpod.dll' name 'NP_PutChannelInfo';
-function NP_ChannelBufRead(pid, cid, flag: integer; StartP: TSampleL; length: integer;
-  results: Pointer): integer; stdcall; stdcall; external 'netpod.dll' name 'NP_ChannelBufRead';
-function NP_GetBufParam(pid: integer; var Param: TBufParamStruct): integer; stdcall;
-  external 'netpod.dll' name 'NP_GetBufParam';
+  TNP_GetStatus = function(stat: Integer): Integer stdcall;
+  TNP_SetStatus = function(stat: Integer): Integer stdcall;
+  TNP_GetPodInfo = function(pid: Integer; var Info: TPodInfoStruct): Integer stdcall;
+  TNP_GetChannelInfo = function(pid, cid: Integer; var Info: TChannelInfoStruct)
+    : Integer stdcall;
+  TNP_GetPodList = function(data: TArray<Integer>): Integer stdcall;
+  TNP_ChannelBufRead = function(pid, cid, flag: Integer; StartP: TSampleL; length: Integer;
+    results: Pointer): Integer stdcall;
+  TNP_GetBufParam = function(pid: Integer; var Param: TBufParamStruct): Integer stdcall;
 
 implementation
+
+{ TBufParamStruct }
+
+function TBufParamStruct.LatestDateTime: TDateTime;
+var
+  stime: SYSTEMTIME;
+begin
+  FileTimeToSystemTime(Self.LatestTime, stime);
+  result := SystemTimeToDateTime(stime) + 9 / 24; // 표준시에 9시간 더함
+end;
+
+function TBufParamStruct.LatestDateTimeStr: String;
+begin
+  result := FormatDateTime('YYYY-MM-DD HH:NN:SS.zzz', Self.LatestDateTime);
+end;
+
+function TBufParamStruct.SampleCount: Int64;
+begin
+  result := Self.LatestSample - Self.StartSample;
+end;
+
+function TBufParamStruct.ToString: string;
+begin
+  result := Format('StartSample=%s,LastestSample=%s, LatestDateTime=%s',
+    [Self.StartSample.ToString, Self.LatestSample.ToString, Self.LatestDateTimeStr])
+end;
 
 end.

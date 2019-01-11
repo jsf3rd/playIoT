@@ -4,7 +4,7 @@ interface
 
 uses
   SysUtils, Windows, Messages, Classes, Graphics, Controls,
-  StdCtrls, ExtCtrls, Forms, Dialogs, ComCtrls, Gauges;
+  StdCtrls, ExtCtrls, Forms, Dialogs, ComCtrls, Gauges, NetPod;
 
 type
   TfrmScanNetwork = class(TForm)
@@ -12,6 +12,11 @@ type
     Gauge1: TGauge;
     procedure FormActivate(Sender: TObject);
     procedure Button1Click(Sender: TObject);
+
+  private
+    FNetpod: TNetpod;
+  public
+    constructor Create(AOwner: TComponent); override;
   end;
 
 var
@@ -23,20 +28,27 @@ implementation
 
 uses dllinc;
 
+constructor TfrmScanNetwork.Create(AOwner: TComponent);
+begin
+  inherited;
+
+  FNetpod := TNetpod(AOwner);
+end;
+
 procedure TfrmScanNetwork.FormActivate(Sender: TObject);
 var
   i: Integer;
 begin
-  NP_SetStatus(NP_SCANNET);
+  FNetpod.SetStatus(NP_SCANNET);
 
   i := 0;
-  while NP_GetStatus(NP_ISINITSCAN) = 0 do
-    begin
-      Sleep(100);
-      inc(i);
-      Gauge1.Progress := i;
-      Application.ProcessMessages;
-    end;
+  while not FNetpod.Scanned do
+  begin
+    Sleep(100);
+    inc(i);
+    Gauge1.Progress := i;
+    Application.ProcessMessages;
+  end;
   Gauge1.Progress := 100;
   PostMessage(Handle, WM_CLOSE, 0, 0)
 end;

@@ -438,6 +438,7 @@ begin
         AParam.AsSingle := (AValue as TJSONNumber).AsDouble
       else
         AParam.AsSingles[Self.Tag] := (AValue as TJSONNumber).AsDouble;
+
   else
     raise Exception.Create(Format('DataSet=%s,ParamName=%s,UnsurportDataType=%s',
       [Self.Name, AParam.Name, GetFieldTypeName(AParam.DataType)]));
@@ -648,7 +649,7 @@ begin
         [Self.Name, AField.FieldName]));
     ftString, ftWideString:
       result := TJSONString.Create(AField.AsString);
-    ftSmallint, ftInteger, ftWord, ftShortint:
+    ftSmallint, ftInteger, ftWord, ftShortint, ftAutoInc:
       result := TJSONNumber.Create(AField.AsInteger);
 
 {$IF CompilerVersion  > 26} // upper XE5

@@ -3,24 +3,24 @@ unit ProcessViewer;
 interface
 
 uses
-	Windows, SysUtils, Classes, ShellAPI, TLHelp32, Forms;
+  Windows, SysUtils, Classes, ShellAPI, TLHelp32, Forms;
 
 const
-	SleepForReCheck = 5000;
+  SleepForReCheck = 5000;
 
-type TProcessInfo = record
-	FileName: string;
-	Caption: string;
-	Visible: boolean;
-	Handle: DWord;
-	PClass: string;
-	ThreadID: DWord;
-	PID: DWord;
-end;
-
+type
+  TProcessInfo = record
+    FileName: string;
+    Caption: string;
+    Visible: boolean;
+    Handle: DWord;
+    PClass: string;
+    ThreadID: DWord;
+    PID: DWord;
+  end;
 
 var
-	ProcessInfo: array of TProcessInfo;
+  ProcessInfo: array of TProcessInfo;
 
 function KillProcessByPID(PID: DWord): boolean;
 function KillProcessByFileName(FileName: string; KillAll: boolean): boolean;
@@ -29,32 +29,33 @@ function IsFileActive(FileName: String): boolean;
 
 implementation
 
-function GetProcessPath(pid: DWord): string;
+function GetProcessPath(PID: DWord): string;
 var
   H: THandle;
   pe: TModuleEntry32;
-  more: Boolean;
+  more: boolean;
   tmp: string;
 begin
-  if pid = 0 then
-    begin
-      result := '';
-      exit;
-    end;
+  if PID = 0 then
+  begin
+    result := '';
+    exit;
+  end;
 
-  H := CreateToolhelp32Snapshot(TH32CS_SNAPMODULE, pid);
-  if H = -1 then Exit;
+  H := CreateToolhelp32Snapshot(TH32CS_SNAPMODULE, PID);
+  if H = 0 then
+    exit;
   try
-    pe.dwSize:= SizeOf(pe);
+    pe.dwSize := SizeOf(pe);
     more := Module32First(H, pe);
 
     while more do
-      begin
-        if StrPas(pe.szModule) = ExtractFileName(StrPas(pe.szExePath)) then
-          tmp := StrPas(pe.szExePath);
-        break;
-        more := Module32First(H, pe);
-      end;
+    begin
+      if StrPas(pe.szModule) = ExtractFileName(StrPas(pe.szExePath)) then
+        tmp := StrPas(pe.szExePath);
+      break;
+      more := Module32First(H, pe);
+    end;
   finally
     result := tmp;
     CloseHandle(H);
@@ -65,9 +66,8 @@ procedure GetProcessList;
 var
   H: THandle;
   pe: TProcessEntry32;
-  B: Boolean;
+  B: boolean;
   i: Integer;
-  szModuleName : array[0..255] of char;
 begin
   H := CreateToolhelp32Snapshot(TH32CS_SNAPALL, 0);
   try
@@ -79,17 +79,17 @@ begin
     i := 1;
     SetLength(ProcessInfo, i);
     while B do
+    begin
+      // ProcessInfo[i - 1].Caption   := GetProcessPath(pe.th32ProcessId);
+      ProcessInfo[i - 1].FileName := StrPas(pe.szExeFile);
+      ProcessInfo[i - 1].PID := pe.th32ProcessId;
+      B := Process32Next(H, pe);
+      if B then
       begin
-//        ProcessInfo[i - 1].Caption   := GetProcessPath(pe.th32ProcessId);
-        ProcessInfo[i - 1].FileName   := StrPas(pe.szExeFile);
-        ProcessInfo[i - 1].PID        := pe.th32ProcessId;
-        B := Process32Next(H, pe);
-        if B then
-          begin
-            inc(i);
-            SetLength(ProcessInfo, i);
-          end;
+        inc(i);
+        SetLength(ProcessInfo, i);
       end;
+    end;
   finally
     CloseHandle(H);
   end;
@@ -97,90 +97,93 @@ end;
 
 function IsFileActive(FileName: String): boolean;
 var
-	i: integer;
+  i: Integer;
 begin
   result := false;
-  if FileName = '' then exit;
+  if FileName = '' then
+    exit;
   GetProcessList;
   FileName := UpperCase(ExtractFileName(FileName));
-  for i:=0 to Length(ProcessInfo)-1 do
-	  if Pos(FileName, UpperCase(ProcessInfo[i].FileName)) > 0 then
-      begin
-        result:=true;
-        break;
-      end;
+  for i := 0 to Length(ProcessInfo) - 1 do
+    if Pos(FileName, UpperCase(ProcessInfo[i].FileName)) > 0 then
+    begin
+      result := true;
+      break;
+    end;
 end;
 
-function KillProcessByPID(PID : DWord): boolean;
+function KillProcessByPID(PID: DWord): boolean;
 var
-	myhandle : THandle;
-	i: integer;
+  myhandle: THandle;
+  i: Integer;
 begin
   result := true;
-  myhandle := OpenProcess(PROCESS_TERMINATE, False, PID);
+  myhandle := OpenProcess(PROCESS_TERMINATE, false, PID);
   TerminateProcess(myhandle, 0);
-  for i:=0 to SleepForReCheck do Application.ProcessMessages; //Genug Zeit geben
+  for i := 0 to SleepForReCheck do
+    Application.ProcessMessages; // Genug Zeit geben
   GetProcessList;
   for i := 0 to Length(ProcessInfo) - 1 do
     if ProcessInfo[i].PID = PID then
-      begin
-        result := false;
-        exit;
-      end;
+    begin
+      result := false;
+      exit;
+    end;
 end;
-
 
 function KillProcessByFileName(FileName: string; KillAll: boolean): boolean;
 var
-	i: integer;
-	FileFound: boolean;
+  i: Integer;
+  FileFound: boolean;
 begin
   result := false;
-  if FileName = '' then exit;
+  if FileName = '' then
+    exit;
   FileName := UpperCase(ExtractFileName(FileName));
   result := true;
   GetProcessList;
   if KillAll then
-    begin
-      //Kill all
+  begin
+    // Kill all
+    repeat
+      GetProcessList;
       FileFound := false;
-      repeat
-        GetProcessList;
-        FileFound := false;
-        for i := 0 to Length(ProcessInfo) - 1 do
-          if UpperCase(ProcessInfo[i].FileName) = Filename then
-            begin
-              FileFound := true;
-              break;
-            end;
-
-        if i < Length(ProcessInfo) then
-          if not KillProcessByPID(ProcessInfo[i].PID) then
-            begin
-              result := false;
-              exit;
-            end;
-      until not FileFound;
-    end
-  else
-    begin
-      //Kill one except me
       for i := 0 to Length(ProcessInfo) - 1 do
-        if (GetCurrentProcessId <> ProcessINfo[i].PID ) and (UpperCase(ProcessInfo[i].FileName) = Filename) then break;
+        if UpperCase(ProcessInfo[i].FileName) = FileName then
+        begin
+          FileFound := true;
+          break;
+        end;
 
       if i < Length(ProcessInfo) then
         if not KillProcessByPID(ProcessInfo[i].PID) then
-          begin
-            result := false;
-            exit;
-          end;
-    end;
-end;
+        begin
+          result := false;
+          exit;
+        end;
+    until not FileFound;
+  end
+  else
+  begin
+    // Kill one except me
+    for i := 0 to Length(ProcessInfo) - 1 do
+      if (GetCurrentProcessId <> ProcessInfo[i].PID) and
+        (UpperCase(ProcessInfo[i].FileName) = FileName) then
+        break;
 
+    if i < Length(ProcessInfo) then
+      if not KillProcessByPID(ProcessInfo[i].PID) then
+      begin
+        result := false;
+        exit;
+      end;
+  end;
+end;
 
 initialization
 
 finalization
-  SetLength(ProcessInfo, 0);
+
+SetLength(ProcessInfo, 0);
 
 end.

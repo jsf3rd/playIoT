@@ -31,9 +31,22 @@ package pod;
 requires
   rtl,
   vcl,
-  VclSmp;
+  VclSmp,
+  DbxCommonDriver,
+  dbrtl,
+  FireDAC,
+  FireDACCommonDriver,
+  FireDACCommon,
+  IndySystem,
+  IndyProtocols,
+  IndyCore,
+  Jcl;
 
 contains
-  NetpodReg in 'NetpodReg.pas';
+  NetpodReg in 'NetpodReg.pas',
+  dllinc in 'dllinc.pas',
+  ProcessViewer in 'ProcessViewer.pas',
+  ScanNetwork in 'ScanNetwork.pas' {frmScanNetwork},
+  Netpod in 'Netpod.pas';
 
 end.

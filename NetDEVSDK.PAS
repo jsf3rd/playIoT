@@ -403,7 +403,6 @@ begin
   if FDLLHandle <> 0 then
   begin
     try
-      // FreeLibrary(FDLLHandle);
       FDLLHandle := 0;
     except
       on E: Exception do
@@ -411,8 +410,9 @@ begin
   end;
 end;
 
-function TNetDEV.GetStreamInfo(const dwChannelID: Int32; var lpOutBuffer: TNETDEVVideoStreamInfo;
-  const dwOutBufferSize: Int32; var pdwBytesReturned: Int32): Boolean;
+function TNetDEV.GetStreamInfo(const dwChannelID: Int32;
+  var lpOutBuffer: TNETDEVVideoStreamInfo; const dwOutBufferSize: Int32;
+  var pdwBytesReturned: Int32): Boolean;
 const
   NETDEV_GET_STREAMCFG = 120;
 begin
