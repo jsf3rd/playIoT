@@ -114,6 +114,10 @@ procedure PrintLog(AMemo: TMemo; const AMsg: String = ''); overload;
 procedure PrintDebug(const Format: string; const Args: array of const); overload;
 procedure PrintDebug(const str: string); overload;
 
+// 특정 자리수 이하 0 만들기
+// Value : 값, Digit : 자리수
+function TruncInt(Value: integer; Digit: integer): integer;
+
 function CurrentProcessMemory: Cardinal;
 function FileVersion(const FileName: String): String;
 procedure CloudMessage(const ProjectCode, AppCode, TypeCode, ATitle, AMessage,
@@ -410,6 +414,12 @@ end;
 procedure PrintDebug(const str: string); overload;
 begin
   OutputDebugString(PChar('[JDC] ' + str));
+end;
+
+function TruncInt(Value: integer; Digit: integer): integer;
+begin
+  result := Trunc(Value / Digit);
+  result := Trunc(result * Digit);
 end;
 
 function CurrentProcessMemory: Cardinal;
