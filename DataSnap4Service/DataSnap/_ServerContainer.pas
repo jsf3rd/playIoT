@@ -45,18 +45,27 @@ type
     function GetIdleConnection: TFDConnection;
     function GetServiceController: TServiceController; override;
 
+    // OpenQuery
     function OpenInstantQuery(AQuery: TFDQuery; AParams: TJSONObject;
       AProcName: String = ''): TStream;
     function OpenQuery(AQuery: TFDQuery; AParams: TJSONObject; AProcName: String = '')
       : TStream;
+
+    // ExecQuery
     function ExecInstantQuery(AQuery: TFDQuery; AParams: TJSONObject; AProcName: String = '')
-      : Boolean; overload;
-    function ExecInstantQuery(AQuery: TFDQuery; AParams: TJSONArray; AProcName: String = '')
       : Boolean; overload;
     function ExecQuery(AQuery: TFDQuery; AParams: TJSONObject; AProcName: String = '')
       : Boolean; overload;
+
+    // Array DML
+    function ExecInstantQuery(AQuery: TFDQuery; AParams: TJSONArray; AProcName: String = '')
+      : Boolean; overload;
     function ExecQuery(AQuery: TFDQuery; AParams: TJSONArray; AProcName: String = '')
       : Boolean; overload;
+
+    // ApplyUpdate
+    function ApplyInstantUpdate(AQuery: TFDQuery; AStream: TStream;
+      AProcName: String = ''): Boolean;
     function ApplyUpdate(AQuery: TFDQuery; AStream: TStream; AProcName: String = ''): Boolean;
   end;
 
@@ -111,6 +120,7 @@ var
 begin
   result := false;
   Conn := GetIdleConnection;
+  Conn.StartTransaction;
   try
     AQuery.Connection := Conn;
     try
@@ -125,17 +135,25 @@ begin
       ExecTime := Now;
       AQuery.Execute(AParams.Count);
       TGlobal.Obj.ApplicationMessage(msInfo, StrDefault(AProcName, 'ExecQuery'),
-        'Query=%s,RowsAffected=%d,ExecTime=%s', [AQuery.Name, AQuery.RowsAffected,
-        FormatDateTime('NN:SS.zzz', Now - ExecTime)]);
+        'Query=%s,Requested=%d,RowsAffected=%d,ExecTime=%s',
+        [AQuery.Name, AParams.Count, AQuery.RowsAffected, FormatDateTime('NN:SS.zzz',
+        Now - ExecTime)]);
       result := AQuery.RowsAffected = AParams.Count;
+
+      if result then
+        Conn.Commit
+      else
+        Conn.Rollback;
     except
       on E: Exception do
+      begin
+        Conn.Rollback;
         TGlobal.Obj.ApplicationMessage(msError, AProcName, E.Message);
+      end;
     end;
   finally
     Conn.Free;
   end;
-
 end;
 
 function TServerContainer.ExecQuery(AQuery: TFDQuery; AParams: TJSONObject;
@@ -149,7 +167,8 @@ begin
   try
     AQuery.Connection := Conn;
     try
-      AQuery.ParamByJSONObject(AParams);
+      if Assigned(AParams) then
+        AQuery.ParamByJSONObject(AParams);
 
       ExecTime := Now;
       AQuery.ExecSQL;
@@ -229,6 +248,19 @@ procedure TServerContainer.InitCode;
 
 begin
   // FDQueryToFDMemTab(qryLogger, mtLogger);
+end;
+
+function TServerContainer.ApplyInstantUpdate(AQuery: TFDQuery; AStream: TStream;
+  AProcName: String): Boolean;
+var
+  MyQuery: TFDQuery;
+begin
+  MyQuery := AQuery.Clone;
+  try
+    result := ServerContainer.ApplyUpdate(MyQuery, AStream, AProcName);
+  finally
+    MyQuery.Free;
+  end;
 end;
 
 function TServerContainer.ApplyUpdate(AQuery: TFDQuery; AStream: TStream;
@@ -389,11 +421,17 @@ end;
 
 procedure TServerContainer.ServiceExecute(Sender: TService);
 begin
+  if TGlobal.Obj.LogServer.StringValue.IsEmpty then
+  begin
+    TGlobal.Obj.ApplicationMessage(msError, 'Log', 'License Expired');
+    DoStop;
+  end;
+
   while not Terminated do
   begin
     // Main Process Code
 
-    Sleep(1);
+    Sleep(31);
     ServiceThread.ProcessRequests(false);
   end;
 end;
@@ -406,9 +444,11 @@ end;
 procedure TServerContainer.ServiceStart(Sender: TService; var Started: Boolean);
 begin
   TGlobal.Obj.ExeName := GetExeName;
+  if TGlobal.Obj.LogServer.StringValue.IsEmpty then
+    Exit;
 
-  CreateDBPool;
   TGlobal.Obj.Initialize;
+  CreateDBPool;
 
   DSTCPServerTransport.Port := TOption.Obj.TcpPort;
   DSHTTPService.HttpPort := TOption.Obj.HttpPort;
@@ -430,7 +470,6 @@ begin
       on E: Exception do
         _RaiseException('DB Test Failed.', E);
     end;
-
 end;
 
 procedure TServerContainer.ServiceStop(Sender: TService; var Stopped: Boolean);
