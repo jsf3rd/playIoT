@@ -8,38 +8,34 @@ uses
 const
   SIMPLEPB_DLL = 'SimplePB.DLL';
 
-function OpenPort(Com, Baud: Integer): Integer; stdcall; external SIMPLEPB_DLL;
-function OpenIPPort(IPAdd: PAnsiChar; IPPort: Integer): Integer; stdcall;
-  external SIMPLEPB_DLL;
-function ClosePort: Integer; stdcall; external SIMPLEPB_DLL;
-function CloseIPPort: Integer; stdcall; external SIMPLEPB_DLL;
-function GetClock(Address, Device: Integer; out pData: PAnsiChar;
-  out pLgh: Integer): Integer; stdcall; external SIMPLEPB_DLL;
-function SetClock(Address, Device: Integer; out pData: PAnsiChar;
-  out pLgh: Integer): Integer; stdcall; external SIMPLEPB_DLL;
-function GetValue(Address, Device, Swath: Integer; Table, Field: PAnsiChar;
-  out pData: PAnsiChar; out pLgh: Integer): Integer; stdcall;
-  external SIMPLEPB_DLL;
-function SetValue(Address, Device: Integer; Table, Field: PAnsiChar;
-  val: PAnsiChar): Integer; stdcall; external SIMPLEPB_DLL;
-function GetData(Address, Device, Table, Recrd: Integer; out pData: PAnsiChar;
-  out pLgh: Integer): Integer; stdcall; external SIMPLEPB_DLL;
-function GetDataHeader(Address, Device, Table: Integer; out pData: PAnsiChar;
-  out pLgh: Integer): Integer; stdcall; external SIMPLEPB_DLL;
-function GetCommaData(Address, Device, Table, Recrd: Integer;
-  out pData: PAnsiChar; out pLgh: Integer): Integer; stdcall;
-  external SIMPLEPB_DLL;
-function File_Send(Address, Device: Integer; FStr: PAnsiChar;
-  out pData: PAnsiChar; out pLgh: Integer): Integer; stdcall;
-  external SIMPLEPB_DLL;
-function GetAddress(Device: Integer; out pData: PAnsiChar; out pLgh: Integer)
-  : Integer; stdcall; external SIMPLEPB_DLL;
-function GetStatus(Address, Device: Integer; out pData: PAnsiChar;
-  out pLgh: Integer): Integer; stdcall; external SIMPLEPB_DLL;
-function GetTableNames(Address, Device: Integer; out pData: PAnsiChar;
-  out pLgh: Integer): Integer; stdcall; external SIMPLEPB_DLL;
-function GetDLLVersion(out pData: PAnsiChar; out pLgh: Integer): Integer;
-  stdcall; external SIMPLEPB_DLL;
+type
+  TOpenPort = function(Com, Baud: Integer): Integer; stdcall;
+  TOpenIPPort = function(IPAdd: PAnsiChar; IPPort: Integer): Integer; stdcall;
+  TClosePort = function: Integer; stdcall;
+  TCloseIPPort = function: Integer; stdcall;
+  TGetClock = function(Address, Device: Integer; out pData: PAnsiChar; out pLgh: Integer)
+    : Integer; stdcall;
+  TSetClock = function(Address, Device: Integer; out pData: PAnsiChar; out pLgh: Integer)
+    : Integer; stdcall;
+  TGetValue = function(Address, Device, Swath: Integer; Table, Field: PAnsiChar;
+    out pData: PAnsiChar; out pLgh: Integer): Integer; stdcall;
+  TSetValue = function(Address, Device: Integer; Table, Field: PAnsiChar; val: PAnsiChar)
+    : Integer; stdcall;
+  TGetData = function(Address, Device, Table, Recrd: Integer; out pData: PAnsiChar;
+    out pLgh: Integer): Integer; stdcall;
+  TGetDataHeader = function(Address, Device, Table: Integer; out pData: PAnsiChar;
+    out pLgh: Integer): Integer; stdcall;
+  TGetCommaData = function(Address, Device, Table, Recrd: Integer; out pData: PAnsiChar;
+    out pLgh: Integer): Integer; stdcall;
+  TFile_Send = function(Address, Device: Integer; FStr: PAnsiChar; out pData: PAnsiChar;
+    out pLgh: Integer): Integer; stdcall;
+  TGetAddress = function(Device: Integer; out pData: PAnsiChar; out pLgh: Integer)
+    : Integer; stdcall;
+  TGetStatus = function(Address, Device: Integer; out pData: PAnsiChar; out pLgh: Integer)
+    : Integer; stdcall;
+  TGetTableNames = function(Address, Device: Integer; out pData: PAnsiChar; out pLgh: Integer)
+    : Integer; stdcall;
+  TGetDLLVersion = function(out pData: PAnsiChar; out pLgh: Integer): Integer; stdcall;
 
 implementation
 

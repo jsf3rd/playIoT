@@ -33,6 +33,28 @@ type
   TCR1000 = class
   private
     Address: Integer;
+
+    FOpenPort: TOpenPort;
+    FOpenIPPort: TOpenIPPort;
+    FClosePort: TClosePort;
+    FCloseIPPort: TCloseIPPort;
+    FGetClock: TGetClock;
+    FSetClock: TSetClock;
+    FGetValue: TGetValue;
+    FSetValue: TSetValue;
+    FGetData: TGetData;
+    FGetDataHeader: TGetDataHeader;
+    FGetCommaData: TGetCommaData;
+    FFile_Send: TFile_Send;
+    FGetAddress: TGetAddress;
+    FGetStatus: TGetStatus;
+    FGetTableNames: TGetTableNames;
+    FGetDLLVersion: TGetDLLVersion;
+
+    FDLLHandle: THandle;
+    procedure LoadDLL;
+    procedure FreeDLL;
+
     procedure SetLastError(ReturnCode: Integer; FuncType: Integer = -1);
     procedure Debug(const str: string); overload;
     procedure Debug(const Format: string; const Args: array of const); overload;
@@ -74,6 +96,8 @@ begin
 
   PortOpened := False;
   IpPortOpened := False;
+
+  LoadDLL;
 end;
 
 { -------------------------------------------------------------------------------
@@ -88,7 +112,22 @@ destructor TCR1000.Destroy;
 begin
   ClosePort;
 
+  FreeDLL;
+
   inherited;
+end;
+
+procedure TCR1000.FreeDLL;
+begin
+  if FDLLHandle <> 0 then
+  begin
+    try
+      FreeLibrary(FDLLHandle);
+      FDLLHandle := 0;
+    except
+      on E: Exception do
+    end;
+  end;
 end;
 
 { -------------------------------------------------------------------------------
@@ -107,11 +146,11 @@ var
   Opened: Boolean;
 begin
   Result := False;
-  Opened := SPBDLL.OpenPort(ComPort, BaudRate) = 0;
+  Opened := FOpenPort(ComPort, BaudRate) = 0;
   Debug('OpenPort() -> %s', [IfThen(Opened, 'Success', 'Fail')]);
   if Opened then
   begin
-    Result := GetAddress(LOGGER_CR1000, Data, Len) = 0;
+    Result := FGetAddress(LOGGER_CR1000, Data, Len) = 0;
     Debug('GetAddress(ComPort=%d, BaudRate=%d) -> %s',
       [ComPort, BaudRate, IfThen(Result, 'Success', 'Fail')]);
     if Result then
@@ -136,11 +175,11 @@ var
   Opened: Boolean;
 begin
   Result := False;
-  Opened := SPBDLL.OpenIPPort(PAnsiChar(AnsiString(Ip)), Port) = 0;
+  Opened := FOpenIPPort(PAnsiChar(AnsiString(Ip)), Port) = 0;
   Debug('OpenIPPort(Ip=%s, Port=%d) -> %s', [Ip, Port, IfThen(Opened, 'Success', 'Fail')]);
   if Opened then
   begin
-    Result := GetAddress(LOGGER_CR1000, Data, Len) = 0;
+    Result := FGetAddress(LOGGER_CR1000, Data, Len) = 0;
     Debug('GetAddress() -> %s', [IfThen(Result, 'Success', 'Fail')]);
     if Result then
     begin
@@ -151,7 +190,7 @@ begin
     else if Opened then
     begin
       IpPortOpened := True;
-      SPBDLL.CloseIPPort;
+      FCloseIPPort;
     end;
   end;
 end;
@@ -170,14 +209,14 @@ begin
   if PortOpened then
   begin
     Debug('ClosePort()');
-    Result := SPBDLL.ClosePort = 0;
+    Result := FClosePort = 0;
     PortOpened := False;
   end
 
   else if IpPortOpened then
   begin
     Debug('ClosePort()');
-    Result := SPBDLL.CloseIPPort = 0;
+    Result := FCloseIPPort = 0;
     IpPortOpened := False;
   end;
 end;
@@ -195,7 +234,7 @@ var
   Len: Integer;
   ReturnCode: Integer;
 begin
-  ReturnCode := SPBDLL.GetClock(Address, LOGGER_CR1000, ATime, Len);
+  ReturnCode := FGetClock(Address, LOGGER_CR1000, ATime, Len);
   SetLastError(ReturnCode);
   Result := ReturnCode = 0;
 end;
@@ -213,7 +252,7 @@ var
   Len: Integer;
   ReturnCode: Integer;
 begin
-  ReturnCode := SPBDLL.SetClock(Address, LOGGER_CR1000, ATime, Len);
+  ReturnCode := FSetClock(Address, LOGGER_CR1000, ATime, Len);
   SetLastError(ReturnCode);
   Result := ReturnCode = 0;
 end;
@@ -256,7 +295,7 @@ function TCR1000.GetData(Table, Recrd: Integer; out pData: PAnsiChar): Integer;
 var
   Len: Integer;
 begin
-  Result := SPBDLL.GetData(Address, LOGGER_CR1000, Table, Recrd, pData, Len);
+  Result := FGetData(Address, LOGGER_CR1000, Table, Recrd, pData, Len);
 end;
 
 { -------------------------------------------------------------------------------
@@ -271,7 +310,7 @@ function TCR1000.GetCommaData(Table, Recrd: Integer; out pData: PAnsiChar): Inte
 var
   Len: Integer;
 begin
-  Result := SPBDLL.GetCommaData(Address, LOGGER_CR1000, Table, Recrd, pData, Len);
+  Result := FGetCommaData(Address, LOGGER_CR1000, Table, Recrd, pData, Len);
 end;
 
 { -------------------------------------------------------------------------------
@@ -288,7 +327,7 @@ var
   Len: Integer;
   ReturnCode: Integer;
 begin
-  ReturnCode := SPBDLL.GetStatus(Address, LOGGER_CR1000, Data, Len);
+  ReturnCode := FGetStatus(Address, LOGGER_CR1000, Data, Len);
   SetLastError(ReturnCode);
   Result := String(Data);
 end;
@@ -306,10 +345,35 @@ var
   Len: Integer;
   ReturnCode: Integer;
 begin
-  ReturnCode := SPBDLL.GetTableNames(Address, LOGGER_CR1000, Tables, Len);
+  ReturnCode := FGetTableNames(Address, LOGGER_CR1000, Tables, Len);
   Result := ReturnCode = 0;
   if not Result then
     SetLastError(ReturnCode, FN_GET_TABLENAMES);
+end;
+
+procedure TCR1000.LoadDLL;
+begin
+  FDLLHandle := LoadLibrary(SIMPLEPB_DLL);
+  if FDLLHandle < 32 then
+    raise Exception.Create('Load DLL Exception');
+
+  @FOpenPort := GetProcAddress(FDLLHandle, 'OpenPort');
+  @FOpenIPPort := GetProcAddress(FDLLHandle, 'OpenIPPort');
+  @FClosePort := GetProcAddress(FDLLHandle, 'ClosePort');
+  @FCloseIPPort := GetProcAddress(FDLLHandle, 'CloseIPPort');
+  @FGetClock := GetProcAddress(FDLLHandle, 'GetClock');
+  @FSetClock := GetProcAddress(FDLLHandle, 'SetClock');
+  @FGetValue := GetProcAddress(FDLLHandle, 'GetValue');
+  @FSetValue := GetProcAddress(FDLLHandle, 'SetValue');
+  @FGetData := GetProcAddress(FDLLHandle, 'GetData');
+  @FGetDataHeader := GetProcAddress(FDLLHandle, 'GetDataHeader');
+  @FGetCommaData := GetProcAddress(FDLLHandle, 'GetCommaData');
+  @FFile_Send := GetProcAddress(FDLLHandle, 'File_Send');
+  @FGetAddress := GetProcAddress(FDLLHandle, 'GetAddress');
+  @FGetStatus := GetProcAddress(FDLLHandle, 'GetStatus');
+  @FGetTableNames := GetProcAddress(FDLLHandle, 'GetTableNames');
+  @FGetDLLVersion := GetProcAddress(FDLLHandle, 'GetDLLVersion');
+
 end;
 
 { -------------------------------------------------------------------------------
@@ -324,7 +388,7 @@ function TCR1000.UpdateFirmware(FileName: PAnsiChar; out pData: PAnsiChar): Inte
 var
   Len: Integer;
 begin
-  Result := SPBDLL.File_Send(Address, LOGGER_CR1000, FileName, pData, Len);
+  Result := FFile_Send(Address, LOGGER_CR1000, FileName, pData, Len);
 end;
 
 { -------------------------------------------------------------------------------
