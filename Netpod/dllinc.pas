@@ -120,19 +120,19 @@ type
     reserved: array [0 .. 64] of Integer;
     function LatestDateTime: TDateTime;
     function LatestDateTimeStr: String;
-    function SampleCount: Int64;
+    function TotalCount: Int64;
     function ToString: string;
   end;
 
-  TNP_GetStatus = function(stat: Integer): Integer stdcall;
-  TNP_SetStatus = function(stat: Integer): Integer stdcall;
-  TNP_GetPodInfo = function(pid: Integer; var Info: TPodInfoStruct): Integer stdcall;
+  TNP_GetStatus = function(stat: Integer): Integer; stdcall;
+  TNP_SetStatus = function(stat: Integer): Integer; stdcall;
+  TNP_GetPodInfo = function(pid: Integer; var Info: TPodInfoStruct): Integer; stdcall;
   TNP_GetChannelInfo = function(pid, cid: Integer; var Info: TChannelInfoStruct)
-    : Integer stdcall;
-  TNP_GetPodList = function(data: TArray<Integer>): Integer stdcall;
+    : Integer; stdcall;
+  TNP_GetPodList = function(data: TArray<Integer>): Integer; stdcall;
   TNP_ChannelBufRead = function(pid, cid, flag: Integer; StartP: TSampleL; length: Integer;
-    results: Pointer): Integer stdcall;
-  TNP_GetBufParam = function(pid: Integer; var Param: TBufParamStruct): Integer stdcall;
+    results: Pointer): Integer; stdcall;
+  TNP_GetBufParam = function(pid: Integer; var Param: TBufParamStruct): Integer; stdcall;
 
 implementation
 
@@ -151,7 +151,7 @@ begin
   result := FormatDateTime('YYYY-MM-DD HH:NN:SS.zzz', Self.LatestDateTime);
 end;
 
-function TBufParamStruct.SampleCount: Int64;
+function TBufParamStruct.TotalCount: Int64;
 begin
   result := Self.LatestSample - Self.StartSample;
 end;
@@ -163,3 +163,4 @@ begin
 end;
 
 end.
+

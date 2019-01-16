@@ -47,6 +47,7 @@ contains
   dllinc in 'dllinc.pas',
   ProcessViewer in 'ProcessViewer.pas',
   ScanNetwork in 'ScanNetwork.pas' {frmScanNetwork},
-  Netpod in 'Netpod.pas';
+  _Netpod in '_Netpod.pas';
 
 end.
+

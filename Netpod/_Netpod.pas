@@ -7,7 +7,7 @@
 { }
 { ******************************************************* }
 
-unit Netpod;
+unit _Netpod;
 
 interface
 
@@ -22,19 +22,19 @@ const
 type
   TPodData = array of array of Single;
 
-  TNetpod = class;
+  TNetPod = class;
   TBeforeReceiveData = procedure(Sender: TObject; const Pid: Integer) of Object;
   TAfterReceiveData = procedure(Sender: TObject; const Pid: Integer; const SDate: TDateTime;
     const Data: TPodData; const SampleCount: Integer; var Accept: boolean) of Object;
   TOnLog = procedure(Sender: TObject; AType: string; AMsg: string) of Object;
 
-  TNetpod = class(TComponent)
+  TNetPod = class(TComponent)
   private
     FDLLHandle: THandle;
 
     FVersion: string;
     FOwner: TComponent;
-    FLatestSample: TDictionary<Integer, Int64>; // 마지막 읽은 샘플 번호
+    FLastSample: TDictionary<Integer, Int64>; // 마지막 읽은 샘플 번호
 
     FNP_GetStatus: TNP_GetStatus;
     FNP_SetStatus: TNP_SetStatus;
@@ -71,6 +71,7 @@ type
     procedure RunPodMng;
     procedure Stop;
     procedure Run;
+    procedure ScanNet;
     function Scanned: boolean;
     function IsRunning: boolean;
     function IsCallback: boolean;
@@ -78,9 +79,15 @@ type
     procedure ConnectNetpod(IP: string);
     procedure ConnectNDACS(IP: string);
     procedure ManualConnect(IsNetpod: boolean; IP: string);
+    function IsAlivePodMng: boolean;
     procedure KillPodMng;
-    function GetAutoScanOnStartupPodmng: boolean;
-    procedure SetAutoScanOnStartupPodmng(const Value: boolean);
+
+    function GetInitCommand(const Index: Integer): String;
+    procedure SetInitCommand(const Index: Integer; const Value: String);
+
+    function GetAccess: string;
+    procedure SetAccess(const Value: string);
+
     function SetStatus(stat: Integer): Integer;
     function GetStatus(stat: Integer): Integer;
 
@@ -106,12 +113,12 @@ uses
 
 { TNetpod }
 
-constructor TNetpod.Create(AOwner: TComponent);
+constructor TNetPod.Create(AOwner: TComponent);
 begin
   inherited Create(AOwner);
 
   FOwner := AOwner;
-  FLatestSample := TDictionary<Integer, Int64>.Create;
+  FLastSample := TDictionary<Integer, Int64>.Create;
 
   FLocked := false;
   FVersion := NETPOD_VERSION;
@@ -120,18 +127,18 @@ begin
   LoadDLL;
 end;
 
-destructor TNetpod.Destroy;
+destructor TNetPod.Destroy;
 begin
   FreeDLL;
-
   inherited;
 end;
 
-procedure TNetpod.FreeDLL;
+procedure TNetPod.FreeDLL;
 begin
   if FDLLHandle <> 0 then
   begin
     try
+      FreeLibrary(FDLLHandle);
       FDLLHandle := 0;
     except
       on E: Exception do
@@ -139,15 +146,31 @@ begin
   end;
 end;
 
-function TNetpod.GetBufInfo(Pid: Integer): TBufParamStruct;
+function TNetPod.GetBufInfo(Pid: Integer): TBufParamStruct;
 begin
   FNP_GetBufParam(Pid, result);
+end;
+
+function TNetPod.GetInitCommand(const Index: Integer): String;
+var
+  reg: TRegistry;
+begin
+  reg := TRegistry.Create;
+  try
+    reg.RootKey := HKEY_CURRENT_USER;
+    reg.LazyWrite := false;
+    reg.OpenKey('Software\NetPod\InitCommands', True);
+    result := reg.ReadString('Command' + Index.ToString);
+  finally
+    reg.CloseKey;
+    reg.Free;
+  end;
 end;
 
 { -------------------------------------------------------------------------
   계측 데이터 취득 메인
   ------------------------------------------------------------------------- }
-procedure TNetpod.ReceiveManual(Pid, ChCount: Integer; DateTime: TDateTime; LateSample: Int64;
+procedure TNetPod.ReceiveManual(Pid, ChCount: Integer; DateTime: TDateTime; LateSample: Int64;
   SampleCount: Integer);
 var
   i, rlt: Integer;
@@ -174,7 +197,7 @@ begin
     FOnAfterReceiveData(Self, Pid, DateTime, Data, SampleCount, Accept);
 end;
 
-procedure TNetpod.ReceiveNextData(Pid: Integer; Count: Integer);
+procedure TNetPod.ReceiveNextData(Pid: Integer; Count: Integer);
 
   function HexTimesValue(Value: Int64): Int64; // 가장 가까운 16의 배수
   begin
@@ -190,8 +213,6 @@ var
 
   Accept: boolean;
 begin
-  // result := false;
-
   if Count = 0 then
   begin
     _OnLog('WARNING', 'No Channel');
@@ -201,43 +222,51 @@ begin
   // ------------------------------------------------------------------------------
   // 버퍼 정보 읽기
   // ------------------------------------------------------------------------------
-  FNP_GetBufParam(Pid, Info);
-  {
-    if rlt > 0 then
-    begin
-    _OnLog('ERROR', 'FNP_GetBufParam=' + rlt.ToString+','+Info.ToString);
+  rlt := FNP_GetBufParam(Pid, Info);
+  if rlt > 0 then
+  begin
+    _OnLog('ERROR', 'FNP_GetBufParam=' + rlt.ToString + ',' + Info.ToString);
     exit;
-    end;
-  }
-  _OnLog('ERROR', 'FNP_GetBufParam=' + Info.ToString);
+  end;
 
-  if FLatestSample.ContainsKey(Pid) then
-    SampleCount := Info.LatestSample - FLatestSample.Items[Pid]
+  if FLastSample.ContainsKey(Pid) then
+  begin
+    SampleCount := Info.LatestSample - FLastSample.Items[Pid];
+    SampleCount := Min(SampleCount, Info.TotalCount);
+  end
   else
   begin
-    FLatestSample.Add(Pid, Info.LatestSample - HexTimesValue(FSampleRate));
-    SampleCount := Min(Info.SampleCount, HexTimesValue(FSampleRate));
+    SampleCount := Min(Info.TotalCount, HexTimesValue(FSampleRate));
+    FLastSample.Add(Pid, Info.LatestSample - SampleCount);
   end;
 
   if (SampleCount mod 16) <> 0 then
-    SampleCount := Min(Info.SampleCount, HexTimesValue(SampleCount));
+    SampleCount := Min(Info.TotalCount, HexTimesValue(SampleCount));
+
+  _OnLog('DEBUG', Format('Pid=%d,Count=%d,Info=%s', [Pid, SampleCount, Info.ToString]));
 
   if SampleCount = 0 then
     exit;
 
-  SetLength(Data, Count, SampleCount);
-  // 배열 초기화
-  for i := 0 to Count - 1 do
-    ZeroMemory(Data[i], SizeOf(Data[i]));
+  try
+    // 배열 초기화
+    SetLength(Data, Count, SampleCount);
+    for i := 0 to Count - 1 do
+      ZeroMemory(Data[i], SizeOf(Data[i]));
+  except
+    on E: Exception do
+    begin
+      FLastSample.Items[Pid] := 0;
+      raise Exception.Create(Format('E=%s,Pid=%d,SampleCount=%d,LastSample=%d,Info=%s',
+        [E.Message, Pid, SampleCount, FLastSample.Items[Pid], Info.ToString]));
+    end;
+  end;
 
   // 데이터 취득전 이벤트 호출
   if @FOnBeforeReceiveData <> nil then
     FOnBeforeReceiveData(Self, Pid);
 
   // 각 채널의 데이터를 취득
-  _OnLog('DEBUG', Format('Pid=%d,Latest=%d,Count=%d,Date=%s', [Pid, Info.LatestSample,
-    SampleCount, Info.LatestDateTimeStr]));
-
   for i := 0 to Count - 1 do
   begin
     // ------------------------------------------------------------------------------
@@ -260,12 +289,12 @@ begin
   // 전체 데이터 취득 이벤트 호출
 
   if Accept then
-    FLatestSample.Items[Pid] := Info.LatestSample
+    FLastSample.Items[Pid] := Info.LatestSample
   else
     _OnLog('ERROR', 'Denyed, ' + Info.LatestDateTimeStr);
 end;
 
-procedure TNetpod.LoadDLL;
+procedure TNetPod.LoadDLL;
 begin
   FDLLHandle := LoadLibrary(NETPOD_DLL);
   if FDLLHandle < 32 then
@@ -280,17 +309,17 @@ begin
   @FNP_GetBufParam := GetProcAddress(FDLLHandle, 'NP_GetBufParam');
 end;
 
-procedure TNetpod.Lock;
+procedure TNetPod.Lock;
 begin
   FLocked := True;
 end;
 
-procedure TNetpod.UnLock;
+procedure TNetPod.UnLock;
 begin
   FLocked := false;
 end;
 
-procedure TNetpod._OnLog(AType, AMsg: string);
+procedure TNetPod._OnLog(AType, AMsg: string);
 begin
   if Assigned(FOnLog) then
     FOnLog(Self, AType, AMsg);
@@ -299,7 +328,7 @@ end;
 { -------------------------------------------------------------------------
   네트워크에서 넷포드 검색
   ------------------------------------------------------------------------- }
-procedure TNetpod.Scan;
+procedure TNetPod.Scan;
 begin
   frmScanNetwork := TfrmScanNetwork.Create(Self);
   try
@@ -313,30 +342,52 @@ end;
 { -------------------------------------------------------------------------
   포드매니져 실행
   ------------------------------------------------------------------------- }
-procedure TNetpod.RunPodMng;
+procedure TNetPod.RunPodMng;
+var
+  rlt: Integer;
 begin
   if not IsRunning then
-    FNP_SetStatus(NP_RUNPODMNG);
+  begin
+    rlt := FNP_SetStatus(NP_RUNPODMNG);
+    _OnLog('DEBUG', 'NP_RUNPODMNG=' + rlt.ToString);
+  end;
 end;
 
 { -------------------------------------------------------------------------
   넷포드 검색되었는지 여부
   ------------------------------------------------------------------------- }
-function TNetpod.Scanned: boolean;
+function TNetPod.Scanned: boolean;
 begin
   // 실행 중 podmng.exe가 종료되어도 true를 반환함
   result := (FNP_GetStatus(NP_ISINITSCAN) <> 0);
 end;
 
-{ -------------------------------------------------------------------------
-  포드매니져 실행 여부
-  ------------------------------------------------------------------------- }
-function TNetpod.IsRunning: boolean;
+procedure TNetPod.ScanNet;
+var
+  rlt: Integer;
 begin
-  result := (FNP_GetStatus(NP_ISRUNNING) <> 0) and IsFileActive(UpperCase(PODMNG));
+  rlt := FNP_SetStatus(NP_SCANNET);
+  _OnLog('DEBUG', 'NP_SCANNET=' + rlt.ToString);
 end;
 
-function TNetpod.IsCallback: boolean;
+{ -------------------------------------------------------------------------
+  포드매니져 동작 여부
+  ------------------------------------------------------------------------- }
+function TNetPod.IsRunning: boolean;
+var
+  rlt: Integer;
+begin
+  rlt := FNP_GetStatus(NP_ISRUNNING);
+  result := rlt <> 0;
+  // _OnLog('DEBUG', 'NP_ISRUNNING=' + rlt.ToString);
+end;
+
+function TNetPod.IsAlivePodMng: boolean;
+begin
+  result := IsFileActive(UpperCase(PODMNG));
+end;
+
+function TNetPod.IsCallback: boolean;
 begin
   result := FNP_GetStatus(NP_ISCALLBACK) <> 0;
 end;
@@ -344,20 +395,26 @@ end;
 { -------------------------------------------------------------------------
   계측 시작
   ------------------------------------------------------------------------- }
-procedure TNetpod.Run;
+procedure TNetPod.Run;
+var
+  rlt: Integer;
 begin
-  FNP_SetStatus(NP_STARTRUN);
+  rlt := FNP_SetStatus(NP_STARTRUN);
+  _OnLog('DEBUG', 'NP_STARTRUN=' + rlt.ToString);
 end;
 
 { -------------------------------------------------------------------------------
   계측 종료
   ------------------------------------------------------------------------------- }
-procedure TNetpod.Stop;
+procedure TNetPod.Stop;
+var
+  rlt: Integer;
 begin
-  FNP_SetStatus(NP_STOPRUN);
+  rlt := FNP_SetStatus(NP_STOPRUN);
+  _OnLog('DEBUG', 'NP_STOPRUN=' + rlt.ToString);
 end;
 
-procedure TNetpod.SetVersion(const Value: string);
+procedure TNetPod.SetVersion(const Value: string);
 begin
 end;
 
@@ -369,7 +426,7 @@ end;
   결과   : None
   설명   : 포드매니져를 이용하여 Netpod 또는 NDACS에 IP로 연결하기
   ------------------------------------------------------------------------------- }
-procedure TNetpod.ManualConnect(IsNetpod: boolean; IP: string);
+procedure TNetPod.ManualConnect(IsNetpod: boolean; IP: string);
 var
   h, c: HWND;
 begin
@@ -429,7 +486,7 @@ end;
   결과   : None
   설명   : 포드매니져를 이용하여 NDACS에 IP로 연결하기
   ------------------------------------------------------------------------------- }
-procedure TNetpod.ConnectNDACS(IP: string);
+procedure TNetPod.ConnectNDACS(IP: string);
 begin
   ManualConnect(false, IP);
 end;
@@ -442,7 +499,7 @@ end;
   결과   : None
   설명   : 포드매니져를 이용하여 Netpod에 IP로 연결하기
   ------------------------------------------------------------------------------- }
-procedure TNetpod.ConnectNetpod(IP: string);
+procedure TNetPod.ConnectNetpod(IP: string);
 begin
   ManualConnect(True, IP);
 end;
@@ -455,7 +512,7 @@ end;
   결과   : None
   설명   : 포드매니져를 이용한 넷포드 스캔
   ------------------------------------------------------------------------------- }
-procedure TNetpod.ManualScan;
+procedure TNetPod.ManualScan;
 var
   h: HWND;
 begin
@@ -467,10 +524,21 @@ begin
   PostMessage(h, WM_COMMAND, 18, 0); // spy++로 찾았음^^
 end;
 
-function TNetpod.PodList: TArray<Integer>;
+function TNetPod.PodList: TArray<Integer>;
+var
+  _List: TArray<Integer>;
+  MyElem: Integer;
 begin
-  SetLength(result, 100);
-  FNP_GetPodList(result);
+  SetLength(_List, 100);
+  FNP_GetPodList(_List);
+
+  SetLength(result, 0);
+  for MyElem in _List do
+  begin
+    if MyElem > 0 then
+      result := result + [MyElem]
+  end;
+
 end;
 
 { -------------------------------------------------------------------------------
@@ -481,24 +549,18 @@ end;
   결과   : None
   설명   : 포드 매니져 강제 종료
   ------------------------------------------------------------------------------- }
-procedure TNetpod.KillPodMng;
+procedure TNetPod.KillPodMng;
 var
   h: HWND;
 begin
-  {
-    if FOwner is TForm then
-    begin
-
-    h := FindWindow(nil, PChar((FOwner as TForm).Caption));
-    if h <> 0 then
-    PostMessage(h, WM_QUIT, 0, 0);
-    end;
-  }
-
   h := FindWindow('PodMngClass', 'Pod Manager');
   if h = 0 then
     exit;
 
+  if Self.IsRunning then
+    Self.Stop;
+
+  _OnLog('DEBUG', 'KillPodMng - WM_CLOSE');
   PostMessage(h, WM_CLOSE, 0, 0);
   PostMessage(h, WM_QUIT, 0, 0);
 end;
@@ -511,35 +573,23 @@ end;
   결    과: Boolean
   설    명: 포드매니져 시작시 자동으로 스캔으로 설정되어 있는지 검사
   ------------------------------------------------------------------------------- }
-function TNetpod.GetAutoScanOnStartupPodmng: boolean;
+function TNetPod.GetAccess: string;
 var
   reg: TRegistry;
-  sl: TStringList;
-  i: Integer;
 begin
-  result := false;
-
   reg := TRegistry.Create;
   try
     reg.RootKey := HKEY_CURRENT_USER;
     reg.LazyWrite := false;
-    reg.OpenKey('Software\NetPod\InitCommands', True);
-    sl := TStringList.Create;
-    reg.GetValueNames(sl);
-    for i := 0 to sl.Count - 1 do
-      if reg.ReadString(sl.Strings[i]) = 'SCANNET D' then
-      begin
-        result := True;
-        exit;
-      end;
-    sl.Free;
+    reg.OpenKey('Software\NetPod', True);
+    result := reg.ReadString('Access');
   finally
     reg.CloseKey;
     reg.Free;
   end;
 end;
 
-function TNetpod.GetStatus(stat: Integer): Integer;
+function TNetPod.GetStatus(stat: Integer): Integer;
 begin
   result := FNP_GetStatus(stat);
 end;
@@ -552,33 +602,40 @@ end;
   결    과: None
   설    명: 포드매니져 시작시 자동으로 스캔하도록 설정
   ------------------------------------------------------------------------------- }
-procedure TNetpod.SetAutoScanOnStartupPodmng(const Value: boolean);
+procedure TNetPod.SetAccess(const Value: string);
 var
   reg: TRegistry;
-  sl: TStringList;
-  i: Integer;
+begin
+  reg := TRegistry.Create;
+  try
+    reg.RootKey := HKEY_CURRENT_USER;
+    reg.LazyWrite := false;
+    reg.OpenKey('Software\NetPod', True);
+    reg.WriteString('Access', Value);
+  finally
+    reg.CloseKey;
+    reg.Free;
+  end;
+
+end;
+
+procedure TNetPod.SetInitCommand(const Index: Integer; const Value: String);
+var
+  reg: TRegistry;
 begin
   reg := TRegistry.Create;
   try
     reg.RootKey := HKEY_CURRENT_USER;
     reg.LazyWrite := false;
     reg.OpenKey('Software\NetPod\InitCommands', True);
-    sl := TStringList.Create;
-    reg.GetValueNames(sl);
-    for i := 0 to sl.Count - 1 do
-      if reg.ReadString(sl.Strings[i]) = 'SCANNET D' then
-        exit;
-
-    if Value then
-      reg.WriteString('Command' + IntToStr(sl.Count), 'SCANNET D');
-    sl.Free;
+    reg.WriteString('Command' + Index.ToString, Value);
   finally
     reg.CloseKey;
     reg.Free;
   end;
 end;
 
-function TNetpod.SetStatus(stat: Integer): Integer;
+function TNetPod.SetStatus(stat: Integer): Integer;
 begin
   result := FNP_SetStatus(stat);
 end;

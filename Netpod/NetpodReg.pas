@@ -3,7 +3,7 @@ unit NetpodReg;
 interface
 
 uses
-  Netpod;
+  _Netpod;
 
 procedure Register;
 
@@ -14,7 +14,7 @@ uses
 
 procedure Register;
 begin
- RegisterComponents('ATMACS', [TNetpod]);
+  RegisterComponents('ATMACS', [TNetpod]);
 end;
 
 end.

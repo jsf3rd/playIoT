@@ -4,7 +4,7 @@ interface
 
 uses
   SysUtils, Windows, Messages, Classes, Graphics, Controls,
-  StdCtrls, ExtCtrls, Forms, Dialogs, ComCtrls, Gauges, NetPod;
+  StdCtrls, ExtCtrls, Forms, Dialogs, ComCtrls, Gauges, _Netpod;
 
 type
   TfrmScanNetwork = class(TForm)
