@@ -139,6 +139,14 @@
                 <Source>
                     <Source Name="MainSource">SmartComboPkg.dpk</Source>
                 </Source>
+                <Excluded_Packages>
+                    <Excluded_Packages Name="$(BDSBIN)\dcloffice2k230.bpl">Microsoft Office 2000 Sample Automation Server Wrapper Components</Excluded_Packages>
+                    <Excluded_Packages Name="$(BDSBIN)\dclofficexp230.bpl">Microsoft Office XP Sample Automation Server Wrapper Components</Excluded_Packages>
+                    <Excluded_Packages Name="C:\Users\Public\Documents\Embarcadero\Studio\17.0\Bpl\JvPluginSystemDesign230.bpl">JVCL Plugin Components</Excluded_Packages>
+                    <Excluded_Packages Name="C:\WINDOWS\SysWOW64\MtxTee523.bpl">Dew MtxVec v5 TeeChart</Excluded_Packages>
+                    <Excluded_Packages Name="$(BDSBIN)\MtxVisualizer523.bpl">Dew MtxVec v5 Debugger Visualizer</Excluded_Packages>
+                    <Excluded_Packages Name="C:\Users\Public\Documents\Embarcadero\Studio\17.0\Bpl\SDKViewer.bpl">(untitled)</Excluded_Packages>
+                </Excluded_Packages>
             </Delphi.Personality>
             <Platforms>
                 <Platform value="Android">False</Platform>
