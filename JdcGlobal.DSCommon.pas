@@ -294,11 +294,16 @@ function TFDQueryHelper.Clone: TFDQuery;
 var
   I: Integer;
 begin
-  result := TFDQuery.Create(Self);
+  result := TFDQuery.Create(nil);
   result.OnExecuteError := Self.OnExecuteError;
   result.OnReconcileError := Self.OnReconcileError;
+  result.CachedUpdates := Self.CachedUpdates;
+  result.UpdateOptions.KeyFields := Self.UpdateOptions.KeyFields;
+  result.UpdateOptions.UpdateTableName := Self.UpdateOptions.UpdateTableName;
+
   result.SQL.Text := Self.SQL.Text;
   result.Name := Self.Name + '_' + Format('%0.5d', [Random(100000)]);
+
   for I := 0 to Self.ParamCount - 1 do
     result.Params.Items[I].DataType := Self.Params.Items[I].DataType;
 end;
