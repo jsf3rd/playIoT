@@ -181,12 +181,31 @@ procedure StopService(const ServiceName: String; var OldStatus: TJclServiceState
 procedure UpdateServiceStatus(const ServiceName: String; var OldStatus: TJclServiceState;
   StartAction, StopAction: TAction; StatusEdit: TLabeledEdit);
 
+function IntToBin(Value: Cardinal; Digits: integer): String;
+
 const
   LOCAL_SERVER = '\\localhost';
 
 implementation
 
 uses JdcGlobal.ClassHelper;
+
+function IntToBin(Value: Cardinal; Digits: integer): String;
+var
+  S: String;
+begin
+  S := '';
+  While Digits > 0 do
+  begin
+    if Odd(Value) then
+      S := '1' + S
+    Else
+      S := '0' + S;
+    Value := Value shr 1;
+    Digits := Digits - 1;
+  end;
+  Result := S;
+end;
 
 procedure FreeAndNilEx(var Obj; const AGlobal: TGlobalAbstract);
 begin
@@ -272,7 +291,7 @@ end;
 
 function GetPeerInfo(AContext: TIdContext): string;
 begin
-  result := AContext.Connection.Socket.Binding.PeerIP + ':' +
+  Result := AContext.Connection.Socket.Binding.PeerIP + ':' +
     AContext.Connection.Socket.Binding.PeerPort.ToString;
 end;
 
@@ -295,14 +314,14 @@ end;
 function DefaultFormatSettings: TFormatSettings;
 begin
 {$WARN SYMBOL_PLATFORM OFF}
-  result := TFormatSettings.Create(GetThreadLocale);
+  Result := TFormatSettings.Create(GetThreadLocale);
 {$WARN SYMBOL_PLATFORM ON}
-  result.ShortDateFormat := 'YYYY-MM-DD';
-  result.LongDateFormat := 'YYYY-MM-DD';
-  result.ShortTimeFormat := 'hh:mm:ss';
-  result.LongTimeFormat := 'hh:mm:ss';
-  result.DateSeparator := '-';
-  result.TimeSeparator := ':';
+  Result.ShortDateFormat := 'YYYY-MM-DD';
+  Result.LongDateFormat := 'YYYY-MM-DD';
+  Result.ShortTimeFormat := 'hh:mm:ss';
+  Result.LongTimeFormat := 'hh:mm:ss';
+  Result.DateSeparator := '-';
+  Result.TimeSeparator := ':';
 end;
 
 function IdBytesPos(const SubIdBytes, IdBytes: TIdBytes; const AIndex: integer = 0): integer;
@@ -319,17 +338,17 @@ begin
     if IdBytes[Index + I] <> SubIdBytes[I] then
       Exit(IdBytesPos(SubIdBytes, IdBytes, Index + I));
   end;
-  result := Index;
+  Result := Index;
 end;
 
 function IdBytesToHex(const AValue: TIdBytes; const ASpliter: String): String;
 var
   I: integer;
 begin
-  result := '';
+  Result := '';
   for I := 0 to Length(AValue) - 1 do
   begin
-    result := result + ByteToHex(AValue[I]) + ASpliter;
+    Result := Result + ByteToHex(AValue[I]) + ASpliter;
   end;
 end;
 
@@ -337,10 +356,10 @@ function BytesToHex(const AValue: TBytes; const ASpliter: String): String;
 var
   I: integer;
 begin
-  result := '';
+  Result := '';
   for I := 0 to Length(AValue) - 1 do
   begin
-    result := result + ByteToHex(AValue[I]) + ASpliter;
+    Result := Result + ByteToHex(AValue[I]) + ASpliter;
   end;
 end;
 
@@ -418,8 +437,8 @@ end;
 
 function TruncInt(Value: integer; Digit: integer): integer;
 begin
-  result := Trunc(Value / Digit);
-  result := Trunc(result * Digit);
+  Result := Trunc(Value / Digit);
+  Result := Trunc(Result * Digit);
 end;
 
 function CurrentProcessMemory: Cardinal;
@@ -428,9 +447,9 @@ var
 begin
   MemCounters.cb := SizeOf(MemCounters);
   if GetProcessMemoryInfo(GetCurrentProcess, @MemCounters, SizeOf(MemCounters)) then
-    result := MemCounters.WorkingSetSize
+    Result := MemCounters.WorkingSetSize
   else
-    result := 0;
+    Result := 0;
 end;
 
 function FileVersion(const FileName: String): String;
@@ -441,7 +460,7 @@ var
   PVerInfo: Pointer;
   PVerValue: PVSFixedFileInfo;
 begin
-  result := '';
+  Result := '';
 
   if not TFile.Exists(FileName) then
     Exit;
@@ -452,7 +471,7 @@ begin
     if GetFileVersionInfo(PChar(FileName), 0, VerInfoSize, PVerInfo) then
       if VerQueryValue(PVerInfo, '\', Pointer(PVerValue), VerValueSize) then
         with PVerValue^ do
-          result := Format('v%d.%d.%d', [HiWord(dwFileVersionMS),
+          Result := Format('v%d.%d.%d', [HiWord(dwFileVersionMS),
             // Major
             LoWord(dwFileVersionMS), // Minor
             HiWord(dwFileVersionLS) // Release
@@ -476,9 +495,11 @@ begin
   MBFactor := 1024 * 1024;
   GBFactor := MBFactor * 1024;
 
-  SysInfo := Format('OS=%s,MemUsage=%.2fMB,TotalMem=%.2fGB,FreeMem=%.2fGB,IPAddress=%s',
+  SysInfo :=
+    Format('OS=%s,MemUsage=%.2fMB,TotalMem=%.2fGB,FreeMem=%.2fGB,IPAddress=%s,Server=%s',
     [GetOSVersionString, CurrentProcessMemory / MBFactor, GetTotalPhysicalMemory / GBFactor,
-    GetFreePhysicalMemory / GBFactor, GetIPAddress(GetLocalComputerName)]);
+    GetFreePhysicalMemory / GBFactor, GetIPAddress(GetLocalComputerName),
+    AServer.StringValue]);
 
   DiskInfo := Format('C_Free=%.2fGB,C_Size=%.2fGB,D_Free=%.2fGB,D_Size=%.2fGB',
     [DiskFree(3) / GBFactor, DiskSize(3) / GBFactor, DiskFree(4) / GBFactor,
@@ -528,7 +549,7 @@ begin
     // 완료시 한번 더 이벤트를 불러준다.
     if Assigned(OnProgress) then
       OnProgress(CS);
-    result := true;
+    Result := true;
   finally
     CS.Free;
   end;
@@ -538,7 +559,7 @@ function Contains(Contents: string; const str: array of const): boolean;
 var
   I: integer;
 begin
-  result := False;
+  Result := False;
 
   for I := 0 to High(str) do
   begin
@@ -546,7 +567,7 @@ begin
       Exit;
   end;
 
-  result := true;
+  Result := true;
 end;
 
 function IsGoodResponse(Text, Command: string; Response: array of const): boolean;
@@ -557,7 +578,7 @@ begin
   try
     SL.Text := Text;
 
-    result := (SL.Strings[0] = Command) and (Contains(Text, Response));
+    Result := (SL.Strings[0] = Command) and (Contains(Text, Response));
   finally
     SL.Free;
   end;
@@ -594,7 +615,7 @@ begin
       if Assigned(OnProgress) then
         OnProgress(DS);
       // Compress와 같은이유
-      result := true;
+      Result := true;
     finally
       FreeMem(Buff)
     end;
@@ -619,15 +640,15 @@ var
   tmp: LongInt;
 begin
   tmp := Rev4Bytes(Value);
-  CopyMemory(@result, @tmp, SizeOf(tmp));
+  CopyMemory(@Result, @tmp, SizeOf(tmp));
 end;
 
 function CheckHexStr(ASource: String): String;
 begin
   if (Length(ASource) mod 2) = 0 then
-    result := ASource
+    Result := ASource
   else
-    result := '0' + ASource;
+    Result := '0' + ASource;
 end;
 
 function HexStrToByte(const ASource: String; const AIndex: integer): Byte;
@@ -639,23 +660,23 @@ begin
 
   if Length(str) < AIndex + 1 then
   begin
-    result := $00;
+    Result := $00;
     Exit;
   end;
 
   str := Copy(str, AIndex, 2);
   tmp := HexStrToBytes(str);
-  CopyMemory(@result, tmp, 1);
+  CopyMemory(@Result, tmp, 1);
 end;
 
 function WordToBytes(AValue: WORD): TIdBytes;
 begin
-  result := ToBytes(Rev2Bytes(AValue));
+  Result := ToBytes(Rev2Bytes(AValue));
 end;
 
 function DWordToBytes(AValue: DWORD): TIdBytes;
 begin
-  result := ToBytes(Rev4Bytes(AValue));
+  Result := ToBytes(Rev4Bytes(AValue));
 end;
 
 function HexStrToWord(const ASource: string; const AIndex: integer): WORD;
@@ -669,16 +690,16 @@ begin
 
   if Length(str) < AIndex + 3 then
   begin
-    result := $00;
+    Result := $00;
     Exit;
   end;
 
   str := Copy(str, AIndex, 4);
 
 {$IF CompilerVersion  > 28} // Ver28 = XE7
-  result := BytesToUInt16(HexStrToBytes(str));
+  Result := BytesToUInt16(HexStrToBytes(str));
 {$ELSE}
-  result := BytesToWord(HexStrToBytes(str));
+  Result := BytesToWord(HexStrToBytes(str));
 {$ENDIF}
 end;
 
@@ -691,7 +712,7 @@ var
 begin
   str := CheckHexStr(ASource);
 
-  SetLength(result, 0);
+  SetLength(Result, 0);
 
   j := 0;
   b := 0;
@@ -721,7 +742,7 @@ begin
       b := (b shl 4) + n;
       j := 0;
 
-      AppendBytes(result, ToBytes(b));
+      AppendBytes(Result, ToBytes(b));
     end
   end;
 
@@ -781,12 +802,12 @@ end;
 
 function TGlobalAbstract.GetErrorLogName: string;
 begin
-  result := ChangeFileExt(FLogName, FormatDateTime('_YYYYMMDD', Now) + '.err');
+  Result := ChangeFileExt(FLogName, FormatDateTime('_YYYYMMDD', Now) + '.err');
 end;
 
 function TGlobalAbstract.GetLogName: string;
 begin
-  result := ChangeFileExt(FLogName, FormatDateTime('_YYYYMMDD', Now) + '.log');
+  Result := ChangeFileExt(FLogName, FormatDateTime('_YYYYMMDD', Now) + '.log');
 end;
 
 procedure TGlobalAbstract.Initialize;
@@ -831,21 +852,21 @@ end;
 
 function TConnInfo.Equals(const ConnInfo: TConnInfo): boolean;
 begin
-  result := Self.StringValue.Equals(ConnInfo.StringValue) and
+  Result := Self.StringValue.Equals(ConnInfo.StringValue) and
     (Self.IntegerValue = ConnInfo.IntegerValue);
 end;
 
 function TConnInfo.ToString: string;
 begin
-  result := Self.StringValue + ':' + Self.IntegerValue.ToString;
+  Result := Self.StringValue + ':' + Self.IntegerValue.ToString;
 end;
 
 function StrDefault(str: string; Default: string): string;
 begin
   if str.IsEmpty then
-    result := Default
+    Result := Default
   else
-    result := str;
+    Result := str;
 end;
 
 { TMemoLog }
