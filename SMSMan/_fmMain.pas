@@ -60,7 +60,7 @@ begin
     except
       on E: Exception do
         OperationLog('메시지(Message) 송신자(From) 수신자(To) 데이터가 필요합니다.' + NEXT_LINE +
-          '공백 (_),  줄바꿈 (@), 수신자 구분(/)');
+          '아스키코드 ($00) , 수신자 구분(/)');
     end;
 
     RawMessage.free;
@@ -84,10 +84,25 @@ var
   _SMSUser: string;
   SMSUser: TStringList;
   SMSMessage, AFrom, ATo: string;
+
+  Index: Integer;
+  Ascii, Msg: string;
+  Dec: Integer;
 begin
   SMSMessage := AMessage.strings[0];
-  SMSMessage := SMSMessage.Replace('_', ' ', [rfReplaceAll]);
-  SMSMessage := SMSMessage.Replace('@', NEXT_LINE, [rfReplaceAll]);
+  // SMSMessage := SMSMessage.Replace('_', ' ', [rfReplaceAll]);
+  // SMSMessage := SMSMessage.Replace('@', NEXT_LINE, [rfReplaceAll]);
+
+  Msg := SMSMessage;
+  while pos('$', Msg) > 0 do
+  begin
+    Index := pos('$', Msg);
+    Ascii := Msg.Substring(Index, 2);
+
+    Dec := HexStrToByte(Ascii);
+    SMSMessage := SMSMessage.Replace('$' + Ascii, Char(Dec), [rfReplaceAll]);
+    Msg := Msg.Replace('$' + Ascii, '', [rfReplaceAll]);
+  end;
 
   AFrom := AMessage.strings[1];
 

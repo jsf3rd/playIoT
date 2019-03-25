@@ -243,7 +243,7 @@ begin
   if (SampleCount mod 16) <> 0 then
     SampleCount := Min(Info.TotalCount, HexTimesValue(SampleCount));
 
-  _OnLog('DEBUG', Format('Pid=%d,Count=%d,Info=%s', [Pid, SampleCount, Info.ToString]));
+  // _OnLog('DEBUG', Format('Pid=%d,Count=%d,Info=%s', [Pid, SampleCount, Info.ToString]));
 
   if SampleCount = 0 then
     exit;
@@ -291,7 +291,7 @@ begin
   if Accept then
     FLastSample.Items[Pid] := Info.LatestSample
   else
-    _OnLog('ERROR', 'Denyed, ' + Info.LatestDateTimeStr);
+    _OnLog('DEBUG', 'Denyed, ' + Info.LatestDateTimeStr);
 end;
 
 procedure TNetPod.LoadDLL;

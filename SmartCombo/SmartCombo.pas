@@ -60,6 +60,9 @@ begin
     SendMessage(Handle, CB_SHOWDROPDOWN, 1, 0);
     // something matched -> dropdown combo to display results
   end;
+
+  if dofilter and (ord(Key) = 8) then
+    FChar := Key;
 end;
 
 procedure TSmartComboBox.CloseUp;
