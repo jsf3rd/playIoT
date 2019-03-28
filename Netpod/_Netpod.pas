@@ -290,8 +290,6 @@ begin
 
   if Accept then
     FLastSample.Items[Pid] := Info.LatestSample
-  else
-    _OnLog('DEBUG', 'Denyed, ' + Info.LatestDateTimeStr);
 end;
 
 procedure TNetPod.LoadDLL;
