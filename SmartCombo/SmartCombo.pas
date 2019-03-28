@@ -67,8 +67,8 @@ end;
 
 procedure TSmartComboBox.CloseUp;
 // ugly workaround for some wierd combobox/modified code interactions
-var
-  x: string;
+// var
+// x: string;
 begin
   if dofilter then
   begin
@@ -78,10 +78,13 @@ begin
       ((text = '') and (itemindex = 0)) then
     begin
       storeditemindex := itemindex;
-      x := text;
-      itemindex := items.indexof(text);
-      if itemindex = -1 then
+      {
+        // jsf3rd - 사용자 입력 후 콤보선택 시 버그
+        x := text;
+        itemindex := items.indexof(text);
+        if itemindex = -1 then
         text := x;
+      }
     end
     else
       storeditemindex := -1;
