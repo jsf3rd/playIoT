@@ -396,13 +396,11 @@ begin
     Reg.Free;
   end;
 
-  TGlobal.Obj.ExeName := GetExeName;
   TGlobal.Obj.ApplicationMessage(msWarning, 'Installed', SERVICE_NAME);
 end;
 
 procedure TServerContainer.ServiceAfterUninstall(Sender: TService);
 begin
-  TGlobal.Obj.ExeName := GetExeName;
   TGlobal.Obj.ApplicationMessage(msWarning, 'Uninstalled', SERVICE_NAME);
 end;
 
@@ -410,6 +408,7 @@ procedure TServerContainer.ServiceCreate(Sender: TObject);
 begin
   Self.Name := SERVICE_CODE;
   Self.DisplayName := SERVICE_NAME;
+  TGlobal.Obj.ExeName := GetExeName;
 end;
 
 procedure TServerContainer.ServiceEnd;
@@ -443,7 +442,6 @@ end;
 
 procedure TServerContainer.ServiceStart(Sender: TService; var Started: Boolean);
 begin
-  TGlobal.Obj.ExeName := GetExeName;
   if TGlobal.Obj.LogServer.StringValue.IsEmpty then
     Exit;
 

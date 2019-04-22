@@ -72,11 +72,11 @@ procedure TGlobal.Finalize;
 begin
   if FIsfinalized then
     Exit;
-  FIsfinalized := true;
 
   // Todo :
 
   ApplicationMessage(msDebug, 'Stop', 'StartTime=' + FStartTime.ToString);
+  FIsfinalized := true;
 end;
 
 procedure TGlobal.Initialize;

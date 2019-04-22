@@ -52,11 +52,12 @@ procedure TGlobal.Finalize;
 begin
   if FIsfinalized then
     Exit;
-  FIsfinalized := true;
+
 
   // Todo :
 
   inherited;
+  FIsfinalized := true;
 end;
 
 procedure TGlobal.Initialize;
