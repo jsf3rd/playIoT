@@ -76,6 +76,7 @@ type
 
     function ToJSON: TJSONObject;
     function ToRecord<T: Record >(AName: String = ''): T;
+    function ToArrayRecord<T: Record >(AName: String = ''): TArray<T>;
 
     procedure FieldByJSONObject(AObject: TJSONObject; AProc: TLogProc = nil); overload;
     procedure FieldByJSONObject(AJSON: String; AProc: TLogProc = nil); overload;
@@ -95,6 +96,7 @@ type
 
     function ToJSON: TJSONObject;
     function ToRecord<T: Record >(AName: String = ''): T;
+    function ToArrayRecord<T: Record >(AName: String = ''): TArray<T>;
 
     procedure ParamByJSONObject(AObject: TJSONObject; AProc: TLogProc = nil);
     procedure FieldByJSONObject(AObject: TJSONObject; AProc: TLogProc = nil); overload;
@@ -109,6 +111,7 @@ type
 
     function ToJSON: TJSONObject;
     function ToRecord<T: Record >(AName: String = ''): T;
+    function ToArrayRecord<T: Record >(AName: String = ''): TArray<T>;
     procedure FieldByJSONObject(AObject: TJSONObject; AProc: TLogProc = nil); overload;
     procedure FieldByJSONObject(AJSON: String; AProc: TLogProc = nil); overload;
   end;
@@ -444,6 +447,11 @@ begin
       else
         AParam.AsSingles[Self.Tag] := (AValue as TJSONNumber).AsDouble;
 
+    ftWideMemo:
+      if Self.Params.ArraySize = 1 then
+        AParam.AsWideMemo := (AValue as TJSONString).Value
+      else
+        AParam.AsWideMemos[Self.Tag] := (AValue as TJSONString).Value;
   else
     raise Exception.Create(Format('DataSet=%s,ParamName=%s,UnsurportDataType=%s',
       [Self.Name, AParam.Name, GetFieldTypeName(AParam.DataType)]));
@@ -494,6 +502,11 @@ begin
   result.Position := 0;
 end;
 
+function TFDQueryHelper.ToArrayRecord<T>(AName: String): TArray<T>;
+begin
+  result := TFDDataSet(Self).ToArrayRecord<T>(AName);
+end;
+
 function TFDQueryHelper.ToJSON: TJSONObject;
 begin
   result := TFDDataSet(Self).ToJSON;
@@ -539,6 +552,11 @@ end;
 procedure TFDMemTableHelper.LoadFromDSStream(AStream: TStream);
 begin
   TFDDataSet(Self).LoadFromDSStream(AStream);
+end;
+
+function TFDMemTableHelper.ToArrayRecord<T>(AName: String): TArray<T>;
+begin
+  result := TFDDataSet(Self).ToArrayRecord<T>(AName);
 end;
 
 function TFDMemTableHelper.ToJSON: TJSONObject;
@@ -795,6 +813,21 @@ begin
     Self.LoadFromStream(LStream, sfBinary);
   finally
     FreeAndNil(LStream);
+  end;
+end;
+
+function TFDDataSetHelper.ToArrayRecord<T>(AName: String): TArray<T>;
+var
+  _record: T;
+begin
+  SetLength(result, 0);
+
+  Self.First;
+  while not Self.Eof do
+  begin
+    _record := Self.ToRecord<T>(AName);
+    result := result + [_record];
+    Self.Next;
   end;
 end;
 
