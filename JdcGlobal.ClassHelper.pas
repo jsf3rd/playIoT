@@ -15,7 +15,8 @@ interface
 
 uses
   Classes, SysUtils, REST.JSON,
-  XSuperObject, System.IOUtils, System.Generics.Collections, System.DateUtils, Data.SqlTimSt
+  XSuperObject, System.IOUtils, System.Generics.Collections, System.DateUtils, Data.SqlTimSt,
+  IdContext
 
 {$IF CompilerVersion  > 26} // upper XE5
     , System.JSON
@@ -34,6 +35,12 @@ type
     procedure Reset;
   end;
 {$ENDIF}
+
+  TIdContextHelper = class helper for TIdContext
+  public
+    function PeerIP: string;
+    function PeerPort: word;
+  end;
 
   TJSONObjectHelper = class helper for TJSONObject
   public
@@ -69,6 +76,11 @@ type
     class function JsonToRecord<T: record >(AJson: String): T; overload;
     class function FileToRecord<T: record >(FileName: String): T;
     class function ConvertRecord<T1, T2: record >(ARecord: T1): T2;
+  end;
+
+  TTimeHelper = record helper for TTime
+  public
+    function ToString: String;
   end;
 
   TDateTimeHelper = record helper for TDateTime
@@ -346,6 +358,25 @@ end;
 function TDateTimeHelper.ToString: String;
 begin
   Result := Self.FormatWithMSec;
+end;
+
+{ TIdContextHelper }
+
+function TIdContextHelper.PeerIP: string;
+begin
+  Result := Self.Connection.Socket.Binding.PeerIP;
+end;
+
+function TIdContextHelper.PeerPort: word;
+begin
+  Result := Self.Connection.Socket.Binding.PeerPort;
+end;
+
+{ TTimeHelper }
+
+function TTimeHelper.ToString: String;
+begin
+  Result := FormatDateTime('HH:NN:SS', Self);
 end;
 
 end.
