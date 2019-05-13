@@ -139,10 +139,10 @@ function IsGoodResponse(Text, Command: string; Response: array of const): boolea
 function Rev2Bytes(w: WORD): WORD;
 
 // Reverse 4Btyes..
-function Rev4Bytes(Value: LongInt): LongInt;
+function Rev4Bytes(Value: Int32): Int32;
 
 // Reverse 4Btyes..
-function Rev4BytesF(Value: LongInt): Single;
+function Rev4BytesF(Value: Single): Single;
 
 // Big endian
 function WordToBytes(AValue: WORD): TIdBytes;
@@ -397,28 +397,32 @@ begin
     end;
   end;
 
-  try
-    Stream := TFile.AppendText(FileName);
-    try
-      if AMessage.IsEmpty then
-        Stream.WriteLine
-      else
-        Stream.WriteLine(FormatDateTime('YYYY-MM-DD, HH:NN:SS.zzz, ', Now) + AMessage);
-    finally
-      FreeAndNil(Stream);
-    end;
-  except
-    on E: Exception do
+  ThreadSafe(
+    procedure
     begin
-      if ExtractFileExt(FileName) = '.tmp' then
-      begin
-        PrintDebug(E.Message + ', ' + AMessage);
-        Exit;
-      end
-      else
-        PrintLog(FileName + '.tmp', AMessage);
-    end;
-  end;
+      try
+        Stream := TFile.AppendText(FileName);
+        try
+          if AMessage.IsEmpty then
+            Stream.WriteLine
+          else
+            Stream.WriteLine(FormatDateTime('YYYY-MM-DD, HH:NN:SS.zzz, ', Now) + AMessage);
+        finally
+          FreeAndNil(Stream);
+        end;
+      except
+        on E: Exception do
+        begin
+          if ExtractFileExt(FileName) = '.tmp' then
+          begin
+            PrintDebug(E.Message + ', ' + AMessage);
+            Exit;
+          end
+          else
+            PrintLog(FileName + '.tmp', AMessage);
+        end;
+      end;
+    end);
 
 end;
 
@@ -472,9 +476,9 @@ begin
       if VerQueryValue(PVerInfo, '\', Pointer(PVerValue), VerValueSize) then
         with PVerValue^ do
           Result := Format('v%d.%d.%d', [HiWord(dwFileVersionMS),
-            // Major
-            LoWord(dwFileVersionMS), // Minor
-            HiWord(dwFileVersionLS) // Release
+          // Major
+          LoWord(dwFileVersionMS), // Minor
+          HiWord(dwFileVersionLS) // Release
             ]);
   finally
     FreeMem(PVerInfo, VerInfoSize);
@@ -585,7 +589,7 @@ begin
 end;
 
 function DeCompressStream(Stream: TStream; OutStream: TStream;
-  OnProgress: TNotifyEvent): boolean;
+OnProgress: TNotifyEvent): boolean;
 const
   BuffSize = 65535; // 버퍼 사이즈
 var
@@ -629,18 +633,21 @@ asm
   XCHG   AL, AH
 end;
 
-function Rev4Bytes(Value: LongInt): LongInt; assembler;
+function Rev4Bytes(Value: Int32): Int32; assembler;
 asm
   MOV EAX, Value;
   BSWAP    EAX;
 end;
 
-function Rev4BytesF(Value: LongInt): Single;
+function Rev4BytesF(Value: Single): Single; assembler;
 var
-  tmp: LongInt;
+  tmp1: PInteger;
+  tmp2: PSingle;
 begin
-  tmp := Rev4Bytes(Value);
-  CopyMemory(@Result, @tmp, SizeOf(tmp));
+  tmp1 := @Value;
+  tmp1^ := Rev4Bytes(tmp1^);
+  tmp2 := @tmp1^;
+  Result := tmp2^;
 end;
 
 function CheckHexStr(ASource: String): String;
@@ -754,7 +761,7 @@ end;
 { TGlobalAbstract }
 
 procedure TGlobalAbstract.ApplicationMessage(const AType: TMessageType; const ATitle: string;
-  const AMessage: String);
+const AMessage: String);
 begin
   if FIsFinalized then
     Exit;
@@ -774,7 +781,7 @@ begin
 end;
 
 procedure TGlobalAbstract.ApplicationMessage(const AType: TMessageType; const ATitle: string;
-  const AFormat: String; const Args: array of const);
+const AFormat: String; const Args: array of const);
 var
   str: string;
 begin
@@ -822,7 +829,7 @@ begin
 end;
 
 procedure TGlobalAbstract._ApplicationMessage(const AType: string; const ATitle: string;
-  const AMessage: String; const AOutputs: TMsgOutputs);
+const AMessage: String; const AOutputs: TMsgOutputs);
 var
   splitter: string;
 begin

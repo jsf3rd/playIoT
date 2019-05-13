@@ -18,6 +18,7 @@ type
 
     procedure sp_ErrorMessage(const AName: String; AMsg: String = '');
     procedure sp_LogMessage(const AName: String; AMsg: String = '');
+    procedure sp_DebugMessage(const AName: String; AMsg: String = '');
 
     procedure sp_SyncMessage(const ACode: String; AMsg: String = '');
     procedure sp_AsyncMessage(const ACode: String; AMsg: String = '');
@@ -64,6 +65,22 @@ begin
   ValueList := TValueList.Create;
   try
     ValueList.Text := APacket;
+    AsyncBroadcast(ValueList);
+  finally
+    ValueList.Free;
+  end;
+end;
+
+procedure TView.sp_DebugMessage(const AName: String; AMsg: String);
+var
+  ValueList: TValueList;
+begin
+  ValueList := TValueList.Create;
+  try
+    ValueList.Values['Code'] := 'DebugMessage';
+    ValueList.Values['Name'] := AName;
+    ValueList.Values['Msg'] := AMsg;
+
     AsyncBroadcast(ValueList);
   finally
     ValueList.Free;

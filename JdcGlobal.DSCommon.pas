@@ -27,6 +27,10 @@ uses
     ;
 
 type
+  TDSOpenProc = function(const ARequestFilter: string = ''): TStream of object;
+  TDSOpenParamProc = function(AParams: TJSONObject; const ARequestFilter: string = '')
+    : TStream of object;
+
   TDSCommon = class
   private
 
@@ -57,6 +61,14 @@ type
     class procedure AddJSONValue<T: record >(var AObject: TJSONObject; ARecord: T;
       APreFix: string = '');
     class procedure AddJSONArray<T: record >(var AObject: TJSONObject; ARecord: T);
+
+    class function DSProcToRecord<T: record >(AProc: TDSOpenProc): T; overload;
+    class function DSProcToRecord<T: record >(AProc: TDSOpenParamProc; AParam: TJSONObject)
+      : T; overload;
+
+    class function DSProcToRecordArray<T: record >(AProc: TDSOpenProc): TArray<T>; overload;
+    class function DSProcToRecordArray<T: record >(AProc: TDSOpenParamProc;
+      AParam: TJSONObject): TArray<T>; overload;
   end;
 
   TFDDataSetHelper = class helper for TFDDataSet
@@ -76,7 +88,7 @@ type
 
     function ToJSON: TJSONObject;
     function ToRecord<T: Record >(AName: String = ''): T;
-    function ToArrayRecord<T: Record >(AName: String = ''): TArray<T>;
+    function ToRecordArray<T: Record >(AName: String = ''): TArray<T>;
 
     procedure FieldByJSONObject(AObject: TJSONObject; AProc: TLogProc = nil); overload;
     procedure FieldByJSONObject(AJSON: String; AProc: TLogProc = nil); overload;
@@ -96,7 +108,7 @@ type
 
     function ToJSON: TJSONObject;
     function ToRecord<T: Record >(AName: String = ''): T;
-    function ToArrayRecord<T: Record >(AName: String = ''): TArray<T>;
+    function ToRecordArray<T: Record >(AName: String = ''): TArray<T>;
 
     procedure ParamByJSONObject(AObject: TJSONObject; AProc: TLogProc = nil);
     procedure FieldByJSONObject(AObject: TJSONObject; AProc: TLogProc = nil); overload;
@@ -111,7 +123,7 @@ type
 
     function ToJSON: TJSONObject;
     function ToRecord<T: Record >(AName: String = ''): T;
-    function ToArrayRecord<T: Record >(AName: String = ''): TArray<T>;
+    function ToRecordArray<T: Record >(AName: String = ''): TArray<T>;
     procedure FieldByJSONObject(AObject: TJSONObject; AProc: TLogProc = nil); overload;
     procedure FieldByJSONObject(AJSON: String; AProc: TLogProc = nil); overload;
   end;
@@ -248,6 +260,59 @@ begin
   end;
 end;
 
+class function TDSCommon.DSProcToRecord<T>(AProc: TDSOpenParamProc; AParam: TJSONObject): T;
+var
+  MemTab: TFDMemTable;
+begin
+  MemTab := TFDMemTable.Create(nil);
+  try
+    MemTab.LoadFromDSStream(AProc(AParam));
+    result := MemTab.ToRecord<T>;
+  finally
+    MemTab.Free;
+  end;
+end;
+
+class function TDSCommon.DSProcToRecord<T>(AProc: TDSOpenProc): T;
+var
+  MemTab: TFDMemTable;
+begin
+  MemTab := TFDMemTable.Create(nil);
+  try
+    MemTab.LoadFromDSStream(AProc);
+    result := MemTab.ToRecord<T>;
+  finally
+    MemTab.Free;
+  end;
+end;
+
+class function TDSCommon.DSProcToRecordArray<T>(AProc: TDSOpenParamProc; AParam: TJSONObject)
+  : TArray<T>;
+var
+  MemTab: TFDMemTable;
+begin
+  MemTab := TFDMemTable.Create(nil);
+  try
+    MemTab.LoadFromDSStream(AProc(AParam));
+    result := MemTab.ToRecordArray<T>;
+  finally
+    MemTab.Free;
+  end;
+end;
+
+class function TDSCommon.DSProcToRecordArray<T>(AProc: TDSOpenProc): TArray<T>;
+var
+  MemTab: TFDMemTable;
+begin
+  MemTab := TFDMemTable.Create(nil);
+  try
+    MemTab.LoadFromDSStream(AProc);
+    result := MemTab.ToRecordArray<T>;
+  finally
+    MemTab.Free;
+  end;
+end;
+
 class function TDSCommon.DSStreamToBytesStream(AStream: TStream): TBytesStream;
 const
   BufferSize = 1024 * 32;
@@ -298,6 +363,7 @@ var
   I: Integer;
 begin
   result := TFDQuery.Create(nil);
+  result.Connection := Self.Connection;
   result.OnExecuteError := Self.OnExecuteError;
   result.OnReconcileError := Self.OnReconcileError;
   result.CachedUpdates := Self.CachedUpdates;
@@ -502,9 +568,9 @@ begin
   result.Position := 0;
 end;
 
-function TFDQueryHelper.ToArrayRecord<T>(AName: String): TArray<T>;
+function TFDQueryHelper.ToRecordArray<T>(AName: String): TArray<T>;
 begin
-  result := TFDDataSet(Self).ToArrayRecord<T>(AName);
+  result := TFDDataSet(Self).ToRecordArray<T>(AName);
 end;
 
 function TFDQueryHelper.ToJSON: TJSONObject;
@@ -554,9 +620,9 @@ begin
   TFDDataSet(Self).LoadFromDSStream(AStream);
 end;
 
-function TFDMemTableHelper.ToArrayRecord<T>(AName: String): TArray<T>;
+function TFDMemTableHelper.ToRecordArray<T>(AName: String): TArray<T>;
 begin
-  result := TFDDataSet(Self).ToArrayRecord<T>(AName);
+  result := TFDDataSet(Self).ToRecordArray<T>(AName);
 end;
 
 function TFDMemTableHelper.ToJSON: TJSONObject;
@@ -816,7 +882,7 @@ begin
   end;
 end;
 
-function TFDDataSetHelper.ToArrayRecord<T>(AName: String): TArray<T>;
+function TFDDataSetHelper.ToRecordArray<T>(AName: String): TArray<T>;
 var
   _record: T;
 begin

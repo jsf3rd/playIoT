@@ -46,12 +46,12 @@ type
   public
     function GetValueEx(const Name: string): TJSONValue;
     function GetString(const Name: string): String;
-    function GetInt(const Name: string): integer;
+    function GetInt(const Name: string): Integer;
     function GetDouble(const Name: string): double;
     function GetJSONArray(const Name: string): TJSONArray;
     function GetJSONObject(const Name: string): TJSONObject;
 
-    function AddPair(const Str: string; const Val: integer): TJSONObject; overload;
+    function AddPair(const Str: string; const Val: Integer): TJSONObject; overload;
     function AddPair(const Str: string; const Val: double): TJSONObject; overload;
 
     function ToRecord<T: record >: T;
@@ -99,7 +99,7 @@ implementation
 
 {$IFDEF MSWINDOWS}
 
-uses JdcGlobal.DSCommon;
+uses JdcGlobal, JdcGlobal.DSCommon;
 
 { TTimerHelper }
 
@@ -111,7 +111,7 @@ end;
 {$ENDIF}
 
 { TJSONObjectHelper }
-function TJSONObjectHelper.AddPair(const Str: string; const Val: integer): TJSONObject;
+function TJSONObjectHelper.AddPair(const Str: string; const Val: Integer): TJSONObject;
 begin
   if not Str.IsEmpty then
     AddPair(TJSONPair.Create(Str, TJSONNumber.Create(Val)));
@@ -175,7 +175,7 @@ begin
   end;
 end;
 
-function TJSONObjectHelper.GetInt(const Name: string): integer;
+function TJSONObjectHelper.GetInt(const Name: string): Integer;
 var
   JSONValue: TJSONValue;
 begin
@@ -330,7 +330,7 @@ end;
 
 function TDateTimeHelper.RecodeTenMinute: TDateTime;
 var
-  Min: integer;
+  Min: Integer;
 begin
   Min := MinuteOf(Self);
   Min := (Min div 10) * 10;
