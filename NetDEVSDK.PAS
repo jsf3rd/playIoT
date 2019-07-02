@@ -301,6 +301,7 @@ type
     FNETDEV_SetLogPath: NETDEV_SetLogPath;
     FNETDEV_GetLastError: TNETDEV_GetLastError;
     FCCTVInfo: TCCTVInfo;
+    FTag: Cardinal;
 
     procedure FreeDLL;
     procedure LoadDLL(APath: string);
@@ -329,6 +330,7 @@ type
 
     property OnException: TOnException write SetOnException;
     property CCTVInfo: TCCTVInfo read FCCTVInfo write FCCTVInfo;
+    property Tag: Cardinal read FTag write FTag;
   end;
 
 implementation
@@ -376,6 +378,8 @@ begin
   FDLLHandle := 0;
   FUserID := 0;
   FRealHandle := 0;
+
+  FTag := 0;
 
   LoadDLL(ALibPath);
 
