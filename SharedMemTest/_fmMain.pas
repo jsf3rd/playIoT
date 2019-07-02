@@ -52,7 +52,15 @@ type
     { Public declarations }
   end;
 
-  TDataList = array [0 .. 99] of double;
+  TItemDataFormatHeader = packed record
+    Version: Byte;
+    SensorItemID: Word;
+    SampleCount: Byte;
+    TimeStamp: double;
+    DataLength: Cardinal;
+  end;
+
+  TData = TArray<double>;
 
 var
   Form2: TForm2;
@@ -74,27 +82,35 @@ end;
 
 procedure TForm2.btnPutClick(Sender: TObject);
 var
-  DataList: TDataList;
+  Header: TItemDataFormatHeader;
+  Data: TData;
+
+  Value: double;
   I: Integer;
-  Sum: double;
   Stream: TStream;
 begin
-  Sum := 0;
-  for I := Low(DataList) to High(DataList) do
+  Header.Version := 1;
+  Header.SensorItemID := 0;
+  Header.SampleCount := 100;
+  Header.TimeStamp := RecodeMilliSecond(now, 0);
+  Header.DataLength := 100 * SizeOf(double);
+
+  SetLength(Data, 100);
+
+  Value := FMemWriter.Sequence * 10;
+  for I := Low(Data) to High(Data) do
   begin
-    DataList[I] := FMemWriter.Sequence * 10; // Random(1000) / 0.0001;
-    Sum := Sum + DataList[I];
+    Data[I] := FMemWriter.Sequence * 10; // Random(1000) / 0.0001;
   end;
 
-  Sum := Sum / Length(DataList);
-
   Stream := TMemoryStream.Create;
-  Stream.WriteBuffer(DataList, SizeOf(DataList));
+  Stream.Write(@Header, SizeOf(Header));
+  Stream.Write(@Data[0], Header.DataLength);
   FMemWriter.PutData(Stream);
   Stream.Free;
 
-  PrintLog(Memo1, 'Put Data : ' + edtCodeName.Text + ', Avg :' + Sum.ToString +
-    ', Seq : ' + FMemWriter.Sequence.ToString);
+  PrintLog(Memo1, 'Put Data : ' + edtCodeName.Text + ', Value :' + Value.ToString + ', Seq : '
+    + FMemWriter.Sequence.ToString);
 end;
 
 procedure TForm2.btnGetFinalClick(Sender: TObject);
@@ -120,7 +136,7 @@ end;
 
 procedure TForm2.btnGetInitClick(Sender: TObject);
 begin
-  Caption := 'Memory Reader.';
+  Caption := 'Memory Mapped File Tester.';
   FMemReader := TJdcSharedMemReader.Create(edtCodeName.Text);
 end;
 
@@ -162,7 +178,8 @@ begin
   if Assigned(FMemWriter) then
     FreeAndNil(FMemWriter);
 
-  FMemWriter := TJdcSharedMemWriter.Create(edtCodeName.Text, SizeOf(TDataList));
+  FMemWriter := TJdcSharedMemWriter.Create(edtCodeName.Text, SizeOf(TItemDataFormatHeader) +
+    100 * SizeOf(double));
 end;
 
 procedure TForm2.btnAutoPutClick(Sender: TObject);
@@ -215,21 +232,16 @@ end;
 
 procedure TForm2.PrintData(p: Pointer);
 var
-  DataList: TDataList;
-  Sum: double;
-  I: Integer;
+  Header: TItemDataFormatHeader;
+  Data: TData;
+  pdata: Pointer;
 begin
-  CopyMemory(@DataList, p, SizeOf(DataList));
+  CopyMemory(@Header, p, SizeOf(Header));
+  pdata := Pointer(Integer(p) + SizeOf(Header));
+  SetLength(Data, Header.SampleCount);
+  CopyMemory(@Data[0], pdata, Header.DataLength);
 
-  Sum := 0;
-  for I := Low(DataList) to High(DataList) do
-  begin
-    Sum := Sum + DataList[I];
-  end;
-
-  Sum := Sum / Length(DataList);
-  PrintLog(Memo1, 'Get Data : ' + edtCodeName.Text + ', Avg :' + Sum.ToString);
-
+  PrintLog(Memo1, 'Get Data : ' + edtCodeName.Text + ', Data[0] :' + Data[0].ToString);
 end;
 
 procedure TForm2.GetTimerTimer(Sender: TObject);
