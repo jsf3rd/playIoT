@@ -61,7 +61,7 @@ type
   end;
 
   TGlobalAbstract = class abstract
-  strict protected
+  protected
     FProjectCode: string;
     FAppCode: string;
 
@@ -70,6 +70,7 @@ type
     FExeName: String;
     FLogName: string;
     FUseCloudLog: boolean;
+    FUseDebug: boolean;
 
     FStartTime: TDateTime;
 
@@ -82,6 +83,7 @@ type
 
     function GetErrorLogName: string; virtual;
     function GetLogName: string; virtual;
+    procedure SetUseDebug(const Value: boolean); virtual;
   public
     constructor Create; virtual;
 
@@ -98,6 +100,7 @@ type
     property ErrorLogName: string read GetErrorLogName;
 
     property LogServer: TConnInfo read FLogServer write FLogServer;
+    property UseDebug: boolean read FUseDebug write SetUseDebug;
 
   const
     MESSAGE_TYPE_INFO = 'INFO';
@@ -494,7 +497,11 @@ var
   _Title: string;
 begin
 {$IFDEF DEBUG}
-  Exit;
+  {
+    PrintDebug('XCloudLog,<%s> [%s] %s=%s,Host=%s', [TypeCode, AppCode, _Title, Msg,
+    AServer.StringValue]);
+    Exit;
+  }
 {$ENDIF}
   MBFactor := 1024 * 1024;
   GBFactor := MBFactor * 1024;
@@ -529,10 +536,11 @@ begin
   try
     try
       UDPClient.Send(AServer.StringValue, AServer.IntegerValue, Msg, IndyTextEncoding_UTF8);
-      PrintDebug('<%s> [%s] %s=%s,Host=%s', [TypeCode, AppCode, _Title, Msg,
+      PrintDebug('CloudLog,<%s> [%s] %s=%s,Host=%s', [TypeCode, AppCode, _Title, Msg,
         AServer.StringValue]);
     except
       on E: Exception do
+        PrintDebug('CloudLog,E=' + E.Message);
     end;
   finally
     UDPClient.Free;
@@ -800,6 +808,7 @@ begin
   FIsInitialized := False;
   FIsFinalized := False;
   FUseCloudLog := False;
+  FUseDebug := False;
 end;
 
 procedure TGlobalAbstract.Finalize;
@@ -826,6 +835,11 @@ begin
 {$IFDEF WIN64}
   ApplicationMessage(msInfo, 'Start', '(x64)' + FExeName);
 {$ENDIF}
+end;
+
+procedure TGlobalAbstract.SetUseDebug(const Value: boolean);
+begin
+  FUseDebug := Value;
 end;
 
 procedure TGlobalAbstract._ApplicationMessage(const AType: string; const ATitle: string;
