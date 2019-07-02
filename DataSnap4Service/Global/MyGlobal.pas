@@ -69,7 +69,7 @@ begin
 
   inherited;
 
-  // TODO
+  FUseDebug := TOption.Obj.UseDebug;
 end;
 
 class function TGlobal.Obj: TGlobal;

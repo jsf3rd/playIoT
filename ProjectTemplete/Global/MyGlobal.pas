@@ -16,6 +16,7 @@ type
   TGlobal = class(TGlobalAbstract)
   strict protected
     procedure SetExeName(const Value: String); override;
+    procedure SetUseDebug(const Value: boolean); override;
   public
     constructor Create; override;
     destructor Destroy; override;
@@ -95,7 +96,7 @@ begin
 {$IFDEF WIN64}
   ApplicationMessage(mtDebug, 'Start', '(x64)' + FxeName);
 {$ENDIF}
-  // Todo :
+  FUseDebug := TOption.Obj.UseDebug;
 end;
 
 class function TGlobal.Obj: TGlobal;
@@ -119,6 +120,12 @@ begin
   FProjectCode := TOption.Obj.ProjectCode;
   FUseCloudLog := TOption.Obj.UseCloudLog;
   FLogServer := TOption.Obj.LogServer;
+end;
+
+procedure TGlobal.SetUseDebug(const Value: boolean);
+begin
+  inherited;
+  TOption.Obj.UseDebug := Value;
 end;
 
 initialization

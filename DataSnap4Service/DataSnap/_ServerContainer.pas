@@ -168,7 +168,12 @@ begin
     AQuery.Connection := Conn;
     try
       if Assigned(AParams) then
-        AQuery.ParamByJSONObject(AParams);
+      begin
+        if TGlobal.Obj.UseDebug then
+          AQuery.ParamByJSONObject(AParams, TGlobal.Obj.ApplicationMessage)
+        else
+          AQuery.ParamByJSONObject(AParams);
+      end;
 
       ExecTime := Now;
       AQuery.ExecSQL;
@@ -319,7 +324,12 @@ begin
     AQuery.Connection := Conn;
     try
       if Assigned(AParams) then
-        AQuery.ParamByJSONObject(AParams);
+      begin
+        if TGlobal.Obj.UseDebug then
+          AQuery.ParamByJSONObject(AParams, TGlobal.Obj.ApplicationMessage)
+        else
+          AQuery.ParamByJSONObject(AParams);
+      end;
 
       ExecTime := Now;
       result := AQuery.ToStream;

@@ -30,6 +30,12 @@ object fmMain: TfmMain
     end
     object ool1: TMenuItem
       Caption = '&Tool'
+      object DebugLog1: TMenuItem
+        Action = actDebug
+      end
+      object N1: TMenuItem
+        Caption = '-'
+      end
       object ShowLog1: TMenuItem
         Action = actShowLog
       end
@@ -83,6 +89,10 @@ object fmMain: TfmMain
       Caption = '&Test&Menu'
       ShortCut = 16456
       OnExecute = actTestMenuExecute
+    end
+    object actDebug: TAction
+      Caption = '&Debug Log'
+      OnExecute = actDebugExecute
     end
   end
 end

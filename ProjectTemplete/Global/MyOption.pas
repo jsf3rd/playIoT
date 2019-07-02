@@ -20,6 +20,8 @@ type
     procedure SetProjectCode(const Value: string);
     function GetLogServer: TConnInfo;
     procedure SetLogServer(const Value: TConnInfo);
+    function GetUseDebug: boolean;
+    procedure SetUseDebug(const Value: boolean);
   public
     class function Obj: TOption;
 
@@ -31,6 +33,7 @@ type
     property LogServer: TConnInfo read GetLogServer write SetLogServer;
     property ProjectCode: string read GetProjectCode write SetProjectCode;
     property UseCloudLog: boolean read GetUseCloudLog write SetUseCloudLog;
+    property UseDebug: boolean read GetUseDebug write SetUseDebug;
   end;
 
 implementation
@@ -48,7 +51,7 @@ begin
   FileName := ChangeFileExt(TGlobal.Obj.ExeName, '.ini');
   FIniFile := TIniFile.Create(FileName);
 
-  // FIniFile := TMemIniFile.Create(FileName);
+  // FIniFile := TMemIniFile.Create(FileName,TEncoding.UTF8);
 
   // Registry...
   // FileName:= ''SOFTWARE\PlayIoT\' + PROJECT_CODE;
@@ -91,6 +94,11 @@ begin
   result := FIniFile.ReadBool('CloudLog', 'Enable', False);
 end;
 
+function TOption.GetUseDebug: boolean;
+begin
+  result := FIniFile.ReadBool('Config', 'UseDebug', False);
+end;
+
 class function TOption.Obj: TOption;
 begin
   if MyObj = nil then
@@ -124,6 +132,11 @@ end;
 procedure TOption.SetUseCloudLog(const Value: boolean);
 begin
   FIniFile.WriteBool('CloudLog', 'Enable', Value);
+end;
+
+procedure TOption.SetUseDebug(const Value: boolean);
+begin
+  FIniFile.WriteBool('Config', 'UseDebug', Value);
 end;
 
 end.

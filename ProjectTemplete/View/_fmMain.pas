@@ -27,6 +27,9 @@ type
     Exit1: TMenuItem;
     ShowIniFile1: TMenuItem;
     ShowLog1: TMenuItem;
+    actDebug: TAction;
+    DebugLog1: TMenuItem;
+    N1: TMenuItem;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure actAboutExecute(Sender: TObject);
@@ -38,6 +41,7 @@ type
     procedure actShowLogExecute(Sender: TObject);
     procedure actTestMenuExecute(Sender: TObject);
     procedure FormShow(Sender: TObject);
+    procedure actDebugExecute(Sender: TObject);
   published
     procedure rp_Terminate(APacket: TValueList);
     procedure rp_Init(APacket: TValueList);
@@ -57,14 +61,20 @@ uses JdcGlobal, MyGlobal, MyOption, MyCommon, JdcView, Core, System.UITypes;
 
 procedure TfmMain.actAboutExecute(Sender: TObject);
 begin
-  MessageDlg(APPLICATION_TITLE + ' ' + FileVersion(Application.ExeName) + ' ' + COPY_RIGHT_SIGN +
-    #13#10#13#10 + HOME_PAGE_URL, mtInformation, [mbOK], 0);
+  MessageDlg(APPLICATION_TITLE + ' ' + FileVersion(Application.ExeName) + ' ' + COPY_RIGHT_SIGN
+    + #13#10#13#10 + HOME_PAGE_URL, mtInformation, [mbOK], 0);
 end;
 
 procedure TfmMain.actClearLogExecute(Sender: TObject);
 begin
   // ClipBoard.AsText := mmLog.Lines.Text;
   // mmLog.Clear;
+end;
+
+procedure TfmMain.actDebugExecute(Sender: TObject);
+begin
+  actDebug.Checked := not actDebug.Checked;
+  TGlobal.Obj.UseDebug := actDebug.Checked;
 end;
 
 procedure TfmMain.actExitExecute(Sender: TObject);
@@ -127,7 +137,8 @@ end;
 
 procedure TfmMain.rp_Init(APacket: TValueList);
 begin
-  Caption := TOption.Obj.AppName + FileVersion(Application.ExeName);
+  Caption := TOption.Obj.AppName + ' ' + FileVersion(Application.ExeName);
+  actDebug.Checked := TGlobal.Obj.UseDebug;
 end;
 
 procedure TfmMain.rp_LogMessage(APacket: TValueList);
