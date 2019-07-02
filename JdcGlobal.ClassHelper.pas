@@ -40,6 +40,7 @@ type
   public
     function PeerIP: string;
     function PeerPort: word;
+    function PeerInfo: string;
   end;
 
   TJSONObjectHelper = class helper for TJSONObject
@@ -361,6 +362,11 @@ begin
 end;
 
 { TIdContextHelper }
+
+function TIdContextHelper.PeerInfo: string;
+begin
+  Result := Format('IP=%s,Port=%d', [Self.PeerIP, Self.PeerPort]);
+end;
 
 function TIdContextHelper.PeerIP: string;
 begin
