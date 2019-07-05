@@ -10,11 +10,11 @@
 //
 // *******************************************************
 
-unit JdcSIx55.Common;
+unit JdcHyperion.Common;
 
 interface
 
-uses System.Classes, System.SysUtils, IdGlobal, JdcGlobal;
+uses System.Classes, System.SysUtils, IdGlobal, JdcGlobal, System.DateUtils, Winapi.Windows;
 
 const
   H_MAX_NUM_CHANNELS = 16;
@@ -111,8 +111,9 @@ type
     timeStamp: TDateTime;
     serialNumber: UInt64;
     constructor Create(AHeader: TPeaksHeader; AData: TIdBytes);
-    function GetChannelData(ANum: Integer): TArray<Double>;
-    function GetChannelNum(AIndex: Integer): Integer;
+    function GetChannelData(CH: Integer = 1): TArray<Double>;
+    function GetChannelNum(AIndex: Integer = 1): Integer;
+    function GetSensorCount(CH: Integer = 1): Integer;
   end;
 
 implementation
@@ -121,43 +122,38 @@ implementation
 
 constructor TPeaks.Create(AHeader: TPeaksHeader; AData: TIdBytes);
 var
-  I, J: Integer;
+  I: Integer;
   Index: Integer;
-  Stream: TStream;
-  tmp: Double;
 begin
   serialNumber := AHeader.serialNumber;
-  timeStamp := AHeader.timeStampInt + AHeader.timeStampFrac * 1E-9;
+  timeStamp := StrToDate('1970-01-01', DefaultFormatSettings);
+  timeStamp := IncSecond(timeStamp, AHeader.timeStampInt);
+  timeStamp := RecodeMilliSecond(timeStamp, Trunc(AHeader.timeStampFrac * 1E-6));
 
-  Stream := TBytesStream.Create();
-  Stream.WriteBuffer(AData[0], length(AData));
-  Stream.Position := 0;
-
+  // 0번 인덱스 사용 안함
   numPeaks := length(AData) div SizeOf(Double);
-  SetLength(peaks, numPeaks);
+  SetLength(peaks, numPeaks + 1);
+  peaks[0] := -1;
+
+  CopyMemory(@peaks[1], AData, length(AData));
 
   Index := 1;
   for I := Low(AHeader.peakCounts) to High(AHeader.peakCounts) do
   begin
     startInds[I] := Index;
-    for J := 1 to AHeader.peakCounts[I] do
-    begin
-      Stream.ReadData(tmp);
-      peaks[Index] := tmp;
-      Inc(Index);
-    end;
+    Index := Index + AHeader.peakCounts[I];
     endInds[I] := Index - 1;
   end;
 end;
 
-function TPeaks.GetChannelData(ANum: Integer): TArray<Double>;
+function TPeaks.GetChannelData(CH: Integer): TArray<Double>;
 var
   I: Integer;
 begin
-  SetLength(result, Self.endInds[ANum] - Self.startInds[ANum] + 1);
+  SetLength(result, GetSensorCount(CH));
   for I := Low(result) to High(result) do
   begin
-    result[I] := peaks[Self.startInds[ANum] + I];
+    result[I] := peaks[Self.startInds[CH] + I];
   end;
 end;
 
@@ -171,6 +167,11 @@ begin
     if (Self.startInds[I] <= AIndex) and (Self.endInds[I] >= AIndex) then
       result := I;
   end;
+end;
+
+function TPeaks.GetSensorCount(CH: Integer): Integer;
+begin
+  result := Self.endInds[CH] - Self.startInds[CH] + 1;
 end;
 
 end.
