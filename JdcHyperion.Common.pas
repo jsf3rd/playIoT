@@ -1,6 +1,6 @@
 // *******************************************************
 //
-// Micron Optics x55 Protocol Common Library
+// Micron Optics x55 Protocol Hyperion Common Library
 //
 // Copyright(c) 2019 playIoT.
 //
@@ -33,7 +33,7 @@ const
   REQUEST_OPT_COMPRESS = 4;
 
 type
-  TUInt16Array16 = array [1 .. H_MAX_NUM_CHANNELS] of UInt16;
+  TUInt16Array16 = array [0 .. H_MAX_NUM_CHANNELS - 1] of UInt16;
 
   {
     header that is written out before every command
@@ -106,10 +106,11 @@ type
     startInds: TUInt16Array16;
     endInds: TUInt16Array16;
 
-    peaks: TArray<Double>;
+    values: TArray<Double>;
     numPeaks: UInt16;
     timeStamp: TDateTime;
     serialNumber: UInt64;
+    ComTime: TDateTime;
     constructor Create(AHeader: TPeaksHeader; AData: TIdBytes);
     function GetChannelData(CH: Integer = 1): TArray<Double>;
     function GetChannelNum(AIndex: Integer = 1): Integer;
@@ -132,12 +133,10 @@ begin
 
   // 0번 인덱스 사용 안함
   numPeaks := length(AData) div SizeOf(Double);
-  SetLength(peaks, numPeaks + 1);
-  peaks[0] := -1;
+  SetLength(values, numPeaks);
+  CopyMemory(@values[0], AData, length(AData));
 
-  CopyMemory(@peaks[1], AData, length(AData));
-
-  Index := 1;
+  Index := 0;
   for I := Low(AHeader.peakCounts) to High(AHeader.peakCounts) do
   begin
     startInds[I] := Index;
@@ -153,7 +152,7 @@ begin
   SetLength(result, GetSensorCount(CH));
   for I := Low(result) to High(result) do
   begin
-    result[I] := peaks[Self.startInds[CH] + I];
+    result[I] := values[Self.startInds[CH] + I];
   end;
 end;
 
@@ -162,7 +161,7 @@ var
   I: Integer;
 begin
   result := -1;
-  for I := 1 to H_MAX_NUM_CHANNELS do
+  for I := 0 to H_MAX_NUM_CHANNELS - 1 do
   begin
     if (Self.startInds[I] <= AIndex) and (Self.endInds[I] >= AIndex) then
       result := I;
