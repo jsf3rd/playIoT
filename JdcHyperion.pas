@@ -26,7 +26,7 @@ type
     FComm: TIdTcpClient;
     FPeakStreamComm: TIdTcpClient;
     FUdpPeakServer: TIdUDPServer;
-    FHost: string;
+    FConnInfo: TConnInfo;
 
     FBuffer: TIdBytes;
     FData: TArray<Double>;
@@ -53,7 +53,7 @@ type
       ABinding: TIdSocketHandle);
 
   public
-    constructor Create(AHost: string; AOnLog: TLogProc);
+    constructor Create(AConnInfo: TConnInfo; AOnLog: TLogProc);
     destructor Destroy; override;
 
     function get_serial_number: string;
@@ -71,6 +71,8 @@ type
     function get_available_laser_scan_speeds: TArray<Integer>;
     procedure set_laser_scan_speed(sacnSpeed: Integer);
 
+    function Connected: boolean;
+
     property OnLog: TLogProc read FOnLog write FOnLog;
     property OnUdpPeaks: TOnUdpPeaks read FOnUdpPeaks write FOnUdpPeaks;
   end;
@@ -79,9 +81,14 @@ implementation
 
 { THyperion }
 
-constructor THyperion.Create(AHost: string; AOnLog: TLogProc);
+function THyperion.Connected: boolean;
 begin
-  FHost := AHost;
+  Result := FComm.Connected;
+end;
+
+constructor THyperion.Create(AConnInfo: TConnInfo; AOnLog: TLogProc);
+begin
+  FConnInfo := AConnInfo;
   FPeakStreamComm := nil;
   FUdpPeakServer := nil;
   FOnLog := AOnLog;
@@ -93,22 +100,26 @@ begin
     OnLog(msInfo, 'Hyperion', 'Comm.Connected');
   except
     on E: Exception do
-      OnLog(msError, 'Comm', Format('Host=%s,E=%s', [AHost, E.Message]));
+      OnLog(msError, 'Comm', Format('%s,E=%s', [AConnInfo.ToString, E.Message]));
   end;
 end;
 
 procedure THyperion.CreateComm;
 begin
   FComm := TIdTcpClient.Create(nil);
-  FComm.Host := FHost;
-  FComm.Port := H_CMD_PORT;
+  FComm.Host := FConnInfo.StringValue;
+  FComm.Port := FConnInfo.IntegerValue;
+  FComm.ConnectTimeout := 3000;
+  FComm.ReadTimeout := 3000;
 end;
 
 procedure THyperion.CreatePeakStreamComm;
 begin
   FPeakStreamComm := TIdTcpClient.Create(nil);
-  FPeakStreamComm.Host := FHost;
+  FPeakStreamComm.Host := FConnInfo.StringValue;
   FPeakStreamComm.Port := H_PEAK_STREAM_PORT;
+  FComm.ConnectTimeout := 3000;
+  FComm.ReadTimeout := 3000;
 end;
 
 procedure THyperion.CreateUdpPeakServer;
@@ -168,36 +179,21 @@ begin
     OnLog(msInfo, 'Hyperion', 'PeakStreamComm.Connected');
   except
     on E: Exception do
-      OnLog(msError, 'PeakStreamComm', Format('Host=%s,E=%s', [FHost, E.Message]));
+      OnLog(msError, 'PeakStreamComm', Format('%s,E=%s', [FConnInfo.ToString, E.Message]));
   end;
 end;
 
 function THyperion.enable_udp_peak_datagrams(AValue: TConnInfo;
   streamingDivider: Integer): TPeaks;
-const
-  a: TUInt16Array16 = (1, 13, 29, 41, 61, 81, 85, 91, 111, 131, 151, 171, 175, 181, 189, 193);
-  b: TUInt16Array16 = (12, 28, 40, 60, 80, 84, 90, 110, 130, 150, 170, 174, 180, 188,
-    192, 198);
 begin
+  set_peak_stream_divider(streamingDivider);
 
-  if AValue.StringValue = '127.0.0.1' then
-  begin
-    result.startInds := a;
-    result.endInds := b;
-    result.numPeaks := 198;
-    FComm.Tag := 1;
-  end
-  else
-  begin
-    set_peak_stream_divider(streamingDivider);
+  Result := get_peaks;
+  FNumPeaks := Result.numPeaks;
+  FComm.Tag := 0;
 
-    result := get_peaks;
-    FNumPeaks := result.numPeaks;
-    FComm.Tag := 0;
-
-    FLastResponse := execute_command('#EnableUdpPeakDatagrams',
-      Format('%s %d', [AValue.StringValue, AValue.IntegerValue]));
-  end;
+  FLastResponse := execute_command('#EnableUdpPeakDatagrams',
+    Format('%s %d', [AValue.StringValue, AValue.IntegerValue]));
 
   if not Assigned(FUdpPeakServer) then
     CreateUdpPeakServer;
@@ -215,7 +211,7 @@ end;
 function THyperion.execute_command(ACmd, AParam: string; requestOptions: UInt8): TResponse;
 begin
   write_command(ACmd, AParam, requestOptions);
-  result := read_response(FComm);
+  Result := read_response(FComm);
 end;
 
 function THyperion.GetPeaks(printLog: boolean): TPeaks;
@@ -242,15 +238,15 @@ begin
   Size := Size - SizeOf(TPeaksHeader);
   SetLength(buff, Size);
   CopyTIdBytes(FLastResponse.content, SizeOf(TPeaksHeader), buff, 0, Size);
-  result := TPeaks.Create(Header, buff);
+  Result := TPeaks.Create(Header, buff);
 
   if printLog then
   begin
     JSONObject := TJSONObject.Create;
-    JSONObject.AddPair('DateTime', result.timeStamp.ToISO8601);
-    for I := Low(result.startInds) to High(result.startInds) do
+    JSONObject.AddPair('DateTime', Result.timeStamp.ToISO8601);
+    for I := Low(Result.startInds) to High(Result.startInds) do
     begin
-      JSONObject.AddPair(Format('CH%0.2d-SN01', [I]), result.Peaks[result.startInds[I]]);
+      JSONObject.AddPair(Format('CH%0.2d-SN01', [I]), Result.values[Result.startInds[I]]);
     end;
     OnLog(msDebug, 'Peaks', JSONObject.ToString);
     JSONObject.Free;
@@ -263,28 +259,28 @@ var
 begin
   FLastResponse := execute_command('#GetAvailableLaserScanSpeeds');
   num := FLastResponse.contentLength div SizeOf(Integer);
-  SetLength(result, num);
-  CopyMemory(@result[0], @FLastResponse.content[0], FLastResponse.contentLength);
+  SetLength(Result, num);
+  CopyMemory(@Result[0], @FLastResponse.content[0], FLastResponse.contentLength);
 end;
 
 function THyperion.get_laser_scan_speed: Integer;
 begin
   FLastResponse := execute_command('#GetLaserScanSpeed');
-  result := BytesToInt32(FLastResponse.content);
-  OnLog(msDebug, 'ScanSpeed', result.ToString);
+  Result := BytesToInt32(FLastResponse.content);
+  OnLog(msDebug, 'ScanSpeed', Result.ToString);
 end;
 
 function THyperion.get_peaks: TPeaks;
 begin
   FLastResponse := execute_command('#GetPeaks', '', REQUEST_OPT_SUPPRESS_MSG);
-  result := GetPeaks(true);
+  Result := GetPeaks(true);
 end;
 
 function THyperion.get_serial_number: string;
 begin
   FLastResponse := execute_command('#GetSerialNumber');
-  result := BytesToString(FLastResponse.content, IndyTextEncoding_UTF8);
-  OnLog(msDebug, 'SerialNumber', result);
+  Result := BytesToString(FLastResponse.content, IndyTextEncoding_UTF8);
+  OnLog(msDebug, 'SerialNumber', Result);
 end;
 
 procedure THyperion.OnUDPRead(AThread: TIdUDPListenerThread; const AData: TIdBytes;
@@ -339,25 +335,25 @@ begin
     if printLog then
       OnLog(msDebug, 'ReadHeader', TJson.RecordToJsonString(Header));
 
-    result.contentLength := Header.contentLength;
-    result.messageLength := Header.messageLength;
+    Result.contentLength := Header.contentLength;
+    Result.messageLength := Header.messageLength;
 
     if Header.messageLength > 0 then
     begin
-      result.msg := AComm.IOHandler.ReadString(Header.messageLength, IndyTextEncoding_UTF8);
-      OnLog(msDebug, 'Message', result.msg);
+      Result.msg := AComm.IOHandler.ReadString(Header.messageLength, IndyTextEncoding_UTF8);
+      OnLog(msDebug, 'Message', Result.msg);
     end
     else
-      result.msg := '';
+      Result.msg := '';
 
-    SetLength(result.content, 0);
-    AComm.IOHandler.ReadBytes(result.content, Header.contentLength);
+    SetLength(Result.content, 0);
+    AComm.IOHandler.ReadBytes(Result.content, Header.contentLength);
     if printLog then
-      OnLog(msDebug, 'Content', IdBytesToHex(result.content));
+      OnLog(msDebug, 'Content', IdBytesToHex(Result.content));
 
     if Header.status <> H_SUCCESS then
       OnLog(msWarning, 'readResponse', Format('Status=%d,Msg=%s',
-        [Header.status, result.msg]));
+        [Header.status, Result.msg]));
   except
     on E: Exception do
       OnLog(msError, 'readResponse', Format('Port=%d,E=%s', [AComm.BoundPort, E.Message]));
@@ -377,7 +373,7 @@ end;
 function THyperion.stream_peaks: TPeaks;
 begin
   FLastResponse := read_response(FPeakStreamComm, false);
-  result := GetPeaks(false);
+  Result := GetPeaks(false);
 end;
 
 procedure THyperion.write_command(ACmd, AParam: string; requestOptions: UInt8);
