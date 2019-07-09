@@ -275,8 +275,11 @@ begin
 end;
 
 class function TJSONHelper.JsonToRecord<T>(AJson: String): T;
+var
+  tmp: string;
 begin
-  Result := TSuperRecord<T>.FromJSON(AJson);
+  tmp := AJson.Replace('NAN', '0', [rfReplaceAll, rfIgnoreCase]);
+  Result := TSuperRecord<T>.FromJSON(tmp);
 end;
 
 class function TJSONHelper.ObjectToJsonObjectEx(AObject: TObject): TJSONObject;
