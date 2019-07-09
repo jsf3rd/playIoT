@@ -3,11 +3,14 @@ unit Option;
 interface
 
 uses
-  Classes, SysUtils, JdcOption, Global;
+  Classes, SysUtils, JdcOption, Global, System.IniFiles;
 
 type
-  TOption = class(TOptionAbstract)
+  TOption = class
   private
+    FIniFile: TCustomIniFile;
+    constructor Create;
+
     function GetYear: Integer;
     procedure SetYear(const Value: Integer);
     function GetDay: Integer;
@@ -30,7 +33,7 @@ type
     procedure SetSubDir(const Value: boolean);
   public
     class function Obj: TOption;
-
+    destructor Destroy; override;
     property Year: Integer read GetYear write SetYear;
     property Month: Integer read GetMonth write SetMonth;
     property Day: Integer read GetDay write SetDay;
@@ -50,114 +53,138 @@ var
 
   { TOption }
 
+constructor TOption.Create;
+var
+  FileName: string;
+begin
+  // IniFile...
+  FileName := ChangeFileExt(TGlobal.Obj.ExeName, '.ini');
+  FIniFile := TIniFile.Create(FileName);
+
+  // FIniFile := TMemIniFile.Create(FileName);
+
+  // Registry...
+  // FileName := 'SOFTWARE\PlayIoT\' + PROJECT_CODE;
+  // FIniFile := TRegistryIniFile.Create(FileName);
+  // TRegistryIniFile(FIniFile).RegIniFile.RootKey := HKEY_LOCAL_MACHINE;
+  // TRegistryIniFile(FIniFile).RegIniFile.OpenKey(FIniFile.FileName, True);
+end;
+
+destructor TOption.Destroy;
+begin
+  if Assigned(FIniFile) then
+    FIniFile.Free;
+
+  inherited;
+end;
+
 function TOption.GetBackup: string;
 begin
-  Result := GetStringValue('Option', 'Backup', '');
+  Result := FIniFile.ReadString('Option', 'Backup', '');
 end;
 
 function TOption.GetDay: Integer;
 begin
-  Result := GetIntegerValue('Option', 'Day', 0);
+  Result := FIniFile.ReadInteger('Option', 'Day', 0);
 end;
 
 function TOption.GetDebug: boolean;
 begin
-  Result := GetBoolValue('Option', 'Debug', False);
+  Result := FIniFile.ReadBool('Option', 'Debug', False);
 end;
 
 function TOption.GetHour: Integer;
 begin
-  Result := GetIntegerValue('Option', 'Hour', 0);
+  Result := FIniFile.ReadInteger('Option', 'Hour', 0);
 end;
 
 function TOption.GetMonth: Integer;
 begin
-  Result := GetIntegerValue('Option', 'Month', 0);
+  Result := FIniFile.ReadInteger('Option', 'Month', 0);
 end;
 
 function TOption.GetSearchPattern: string;
 begin
-  Result := GetStringValue('Option', 'SearchOption', '*.dat');
+  Result := FIniFile.ReadString('Option', 'SearchOption', '*.dat');
 end;
 
 function TOption.GetSecond: Integer;
 begin
-  Result := GetIntegerValue('Option', 'Second', 0);
+  Result := FIniFile.ReadInteger('Option', 'Second', 0);
 end;
 
 function TOption.GetSubDir: boolean;
 begin
-  Result := GetBoolValue('Option', 'SubDir', True);
+  Result := FIniFile.ReadBool('Option', 'SubDir', True);
 end;
 
 function TOption.GetMinute: Integer;
 begin
-  Result := GetIntegerValue('Option', 'Minute', 0);
+  Result := FIniFile.ReadInteger('Option', 'Minute', 0);
 end;
 
 function TOption.GetYear: Integer;
 begin
-  Result := GetIntegerValue('Option', 'Year', 0);
+  Result := FIniFile.ReadInteger('Option', 'Year', 0);
 end;
 
 class function TOption.Obj: TOption;
 begin
   if MyObj = nil then
   begin
-    MyObj := TOption.Create(nil);
-    MyObj.FExeName := TGlobal.Obj.ExeName;
+    MyObj := TOption.Create;
   end;
   Result := MyObj;
 end;
 
 procedure TOption.SetBackup(const Value: string);
 begin
-  SetStringValue('Option', 'Backup', Value);
+  FIniFile.WriteString('Option', 'Backup', Value);
 end;
 
 procedure TOption.SetDay(const Value: Integer);
 begin
-  SetIntegerValue('Option', 'Day', Value);
+  FIniFile.WriteInteger('Option', 'Day', Value);
 end;
 
 procedure TOption.SetDebug(const Value: boolean);
 begin
-  SetBoolValue('Option', 'Debug', Value);
+  FIniFile.WriteBool('Option', 'Debug', Value);
 end;
 
 procedure TOption.SetHour(const Value: Integer);
 begin
-  SetIntegerValue('Option', 'Hour', Value);
+  FIniFile.WriteInteger('Option', 'Hour', Value);
 end;
 
 procedure TOption.SetMonth(const Value: Integer);
 begin
-  SetIntegerValue('Option', 'Month', Value);
+  FIniFile.WriteInteger('Option', 'Month', Value);
 end;
 
 procedure TOption.SetSearchPattern(const Value: string);
 begin
-  SetStringValue('Option', 'SearchOption', Value);
+  FIniFile.WriteString('Option', 'SearchOption', Value);
 end;
 
 procedure TOption.SetSecond(const Value: Integer);
 begin
-  SetIntegerValue('Option', 'Second', Value);
+  FIniFile.WriteInteger('Option', 'Second', Value);
 end;
 
 procedure TOption.SetSubDir(const Value: boolean);
 begin
-  SetBoolValue('Option', 'SubDir', Value);
+  FIniFile.WriteBool('Option', 'SubDir', Value);
 end;
 
 procedure TOption.SetMinute(const Value: Integer);
 begin
-  SetIntegerValue('Option', 'Minute', Value);
+  FIniFile.WriteInteger('Option', 'Minute', Value);
 end;
 
 procedure TOption.SetYear(const Value: Integer);
 begin
-  SetIntegerValue('Option', 'Year', Value);
+  FIniFile.WriteInteger('Option', 'Year', Value);
 end;
 
 end.
