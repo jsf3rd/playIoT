@@ -30,6 +30,7 @@ type
 
     function GetFirstPointer: Pointer;
     function GetNextPointer: Pointer;
+    function GetPreviousPointer: Pointer;
     function GetLastPointer: Pointer;
 
     property Sequence: Cardinal read FCurrentSequence;
@@ -85,6 +86,15 @@ begin
 
   PData := Ptr(Integer(PData) + SizeOf(Cardinal));
   result := PData;
+end;
+
+function TJdcSharedMemReader.GetPreviousPointer: Pointer;
+begin
+  FCurrentSequence := FCurrentSequence - 1;
+  result := GetPointer;
+
+  if not Assigned(result) then
+    FCurrentSequence := FDataInfo.LastSequence;
 end;
 
 function TJdcSharedMemReader.GetFirstPointer: Pointer;
