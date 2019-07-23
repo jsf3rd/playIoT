@@ -40,7 +40,7 @@ end;
 function TCircularQueue<T>.Dequeue: T;
 begin
   if FList.Count = 0 then
-    Exit(nil);
+    raise Exception.Create('TCircularQueue,NoItem');
 
   EnterCriticalSection(CritSect);
   try
