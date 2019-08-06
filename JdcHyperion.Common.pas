@@ -114,7 +114,7 @@ type
     constructor Create(AHeader: TPeaksHeader; AData: TIdBytes);
     function GetChannelData(CH: Integer = 1): TArray<Double>;
     function GetChannelNum(AIndex: Integer = 1): Integer;
-    function GetSensorCount(CH: Integer = 1): Integer;
+    function GetSensorCount(CH: Integer): Integer;
   end;
 
 implementation
