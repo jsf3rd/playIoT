@@ -718,6 +718,10 @@ type
     function _binsearch(min, max: Integer; const code: Word): Word;
     procedure _Conv_J2W(var Buf: AnsiString);
     procedure _Conv_W2J(var Buf: AnsiString);
+
+    function _Conv_W2J_Bytes(Buf:AnsiString):TBytes;
+
+
     function _DoAutoCheck(const Buf: AnsiString): THCStyle;
     function _DoConvert(const Flag: THCConvertFlags; var Buf: AnsiString): Boolean;
 
@@ -734,6 +738,9 @@ type
 
     function Conv_J2W(const Buf: AnsiString): AnsiString;
     function Conv_W2J(const Buf: AnsiString): AnsiString;
+
+    function Conv_W2J_Bytes(const Buf: AnsiString): TBytes;
+
     function DoAutoCheck: THCStyle;
     function DoConvert: Boolean;
     function ConvertFile(const Flag: THCConvertFlags; const SRC, DST: TFileName): Boolean;
@@ -962,6 +969,49 @@ begin
     FOnProcessStatus(Self, Len, Len);
 end;
 
+function THanConvert._Conv_W2J_Bytes(Buf: AnsiString): TBytes;
+var
+  I, Len: Integer;
+  PrePerc, DotPerc: Integer;
+  b1, b2: Byte;
+begin
+  Len := Length(Buf);
+  SetLength(Result,Len);
+  if Len < 2 then
+    Exit;
+  DotPerc := (Len div 200) + 1;
+  PrePerc := 0;
+  if Assigned(FOnProcessStatus) then
+    FOnProcessStatus(Self, 0, Len);
+
+  I := 1;
+  while I < Len do
+  begin
+    if Assigned(FOnProcessStatus) then
+      if I - PrePerc > DotPerc then
+      begin
+        FOnProcessStatus(Self, I, Len);
+        PrePerc := I;
+      end;
+    if FProcessMessage then
+      Application.ProcessMessages;
+    if (Byte(Buf[I]) and $80) = 0 then
+    begin
+      Inc(I);
+      Continue;
+    end;
+    b1 := Byte(Buf[I]);
+    b2 := Byte(Buf[I + 1]);
+    KS2KSC_C(b1, b2);
+    Result[I - 1] := b1;
+    Result[I] := b2;
+    Inc(I, 2);
+  end;
+
+  if Assigned(FOnProcessStatus) then
+    FOnProcessStatus(Self, Len, Len);
+end;
+
 function THanConvert.Conv_J2W(const Buf: AnsiString): AnsiString;
 begin
   Result := Buf;
@@ -972,6 +1022,11 @@ function THanConvert.Conv_W2J(const Buf: AnsiString): AnsiString;
 begin
   Result := Buf;
   _Conv_W2J(Result);
+end;
+
+function THanConvert.Conv_W2J_Bytes(const Buf: AnsiString): TBytes;
+begin
+  Result := _Conv_W2J_Bytes(Buf);
 end;
 
 function THanConvert._DoAutoCheck(const Buf: AnsiString): THCStyle;
