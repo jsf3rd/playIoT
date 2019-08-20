@@ -69,6 +69,9 @@ type
     class function DSProcToRecordArray<T: record >(AProc: TDSOpenProc): TArray<T>; overload;
     class function DSProcToRecordArray<T: record >(AProc: TDSOpenParamProc;
       AParam: TJSONObject): TArray<T>; overload;
+
+    // Init TFDQuery DataType
+    class procedure InitDataType(ASender: TComponent; AConn: TFDConnection);
   end;
 
   TFDDataSetHelper = class helper for TFDDataSet
@@ -355,6 +358,57 @@ end;
 class procedure TDSCommon.DSStreamToFDDataSet(AStream: TStream; ADataSet: TFDDataSet);
 begin
   ADataSet.LoadFromDSStream(AStream);
+end;
+
+class procedure TDSCommon.InitDataType(ASender: TComponent; AConn: TFDConnection);
+var
+  tmp: TFDQuery;
+  Query: TFDQuery;
+  MyField: TField;
+  MyParam: TFDParam;
+  I, J: Integer;
+begin
+  for I := 0 to ASender.ComponentCount - 1 do
+  begin
+    if not(ASender.Components[I] is TFDQuery) then
+      Continue;
+
+    Query := ASender.Components[I] as TFDQuery;
+    if Query.Params.Count = 0 then
+      Continue;
+
+    if Query.UpdateOptions.UpdateTableName = '' then
+    begin
+      for J := 0 to Query.Params.Count - 1 do
+      begin
+        if Query.Params.Items[J].DataType <> ftUnknown then
+          raise Exception.Create(Format('Unknown Type,Query=%s,Field=%s',
+            [Query.Name, Query.Params.Items[J].Name]));
+      end;
+      Continue;
+    end;
+
+    tmp := TFDQuery.Create(nil);
+    try
+      tmp.Connection := AConn;
+      tmp.Open('select * from ' + Query.UpdateOptions.UpdateTableName + ' where false ');
+
+      for J := 0 to Query.Params.Count - 1 do
+      begin
+        MyParam := Query.Params.Items[J];
+        if MyParam.DataType <> ftUnknown then
+          Continue;
+
+        MyField := tmp.FindField(MyParam.Name);
+        if MyField = nil then
+          raise Exception.Create(Format('Unknown Field,Query=%s,Table=%s,Field=%s',
+            [Query.Name, Query.UpdateOptions.UpdateTableName, MyParam.Name]));
+        MyParam.DataType := MyField.DataType;
+      end;
+    finally
+      tmp.Free;
+    end;
+  end;
 end;
 
 { TFDQueryHelper }
