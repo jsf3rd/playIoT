@@ -10,12 +10,10 @@ uses System.SysUtils, System.Classes, Datasnap.DSServer, Datasnap.DSAuth,
   FireDAC.Stan.Def, FireDAC.Stan.Pool, FireDAC.Stan.Async, FireDAC.Phys,
   FireDAC.Stan.Param, FireDAC.DatS, FireDAC.DApt.Intf, FireDAC.DApt,
   FireDAC.Comp.DataSet, FireDAC.Comp.Client,
-  Datasnap.DSProviderDataModuleAdapter, System.JSON, FireDAC.VCLUI.Wait;
+  Datasnap.DSProviderDataModuleAdapter, System.JSON, FireDAC.VCLUI.Wait, JdcGlobal.DSCommon;
 
 type
   TsmDataLoader = class(TDSServerModule)
-    FDConnection: TFDConnection;
-    FDQuery: TFDQuery;
     procedure DSServerModuleCreate(Sender: TObject);
     procedure DSServerModuleDestroy(Sender: TObject);
   private
@@ -27,24 +25,16 @@ implementation
 
 {$R *.dfm}
 
-uses System.StrUtils, _fmMain, MyGlobal, MyOption, JdcGlobal,
-  DBXCommon;
+uses System.StrUtils, _fmMain, MyGlobal, MyOption, JdcGlobal;
 
 procedure TsmDataLoader.DSServerModuleCreate(Sender: TObject);
 begin
-  FDConnection.Params.CommaText := TOption.Obj.DBInfo;
-
-  try
-    FDConnection.Connected := true;
-  except
-    on E: Exception do
-      TGlobal.Obj.ApplicationMessage(msError, 'Connect DB', E.Message);
-  end;
+  TDSCommon.InitDataType(Self, ServerContainer.GetIdleConnection);
 end;
 
 procedure TsmDataLoader.DSServerModuleDestroy(Sender: TObject);
 begin
-  FDConnection.Connected := False;
+  //
 end;
 
 procedure TsmDataLoader.Upload(AData: TJSONValue);

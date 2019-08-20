@@ -4,7 +4,7 @@ interface
 
 uses
   System.SysUtils, System.Classes, Datasnap.DSServer, Datasnap.DSAuth,
-  Data.DB, Datasnap.DBClient, Data.DBXDBReaders,
+  Data.DB, Datasnap.DBClient, JdcGlobal.DSCommon,
   Datasnap.Provider, Data.FMTBcd, Data.SqlExpr, System.IOUtils,
   Data.DBXJSONCommon, System.DateUtils, Data.SqlTimSt,
   Datasnap.DSProviderDataModuleAdapter, System.JSON;
@@ -30,6 +30,8 @@ uses ServerContainerUnit, MyOption, JdcGlobal, MyGlobal;
 procedure TsmDataProvider.DSServerModuleCreate(Sender: TObject);
 begin
   Randomize;
+
+  TDSCommon.InitDataType(Self, ServerContainer.GetIdleConnection);
 end;
 
 function TsmDataProvider.EchoString(AValue: string): string;

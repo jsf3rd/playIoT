@@ -33,7 +33,6 @@ type
 
     procedure InitCode;
     procedure ServiceEnd;
-    function GetExeName: String;
     procedure _RaiseException(Msg: String; E: Exception);
   protected
     function DoStop: Boolean; override;
@@ -193,23 +192,6 @@ end;
 procedure ServiceController(CtrlCode: DWord); stdcall;
 begin
   ServerContainer.Controller(CtrlCode);
-end;
-
-function TServerContainer.GetExeName: String;
-var
-  Reg: TRegistry;
-begin
-  Reg := TRegistry.Create(KEY_READ);
-  try
-    Reg.RootKey := HKEY_LOCAL_MACHINE;
-    if Reg.OpenKey('\SYSTEM\CurrentControlSet\Services\' + Name, false) then
-    begin
-      result := Reg.ReadString('ImagePath');
-      Reg.CloseKey;
-    end;
-  finally
-    Reg.Free;
-  end;
 end;
 
 function TServerContainer.GetIdleConnection: TFDConnection;
@@ -406,6 +388,7 @@ begin
     Reg.Free;
   end;
 
+  TGlobal.Obj.ExeName := ParamStr(0);
   TGlobal.Obj.ApplicationMessage(msWarning, 'Installed', SERVICE_NAME);
 end;
 
@@ -418,7 +401,7 @@ procedure TServerContainer.ServiceCreate(Sender: TObject);
 begin
   Self.Name := SERVICE_CODE;
   Self.DisplayName := SERVICE_NAME;
-  TGlobal.Obj.ExeName := GetExeName;
+  TGlobal.Obj.ExeName := ParamStr(0);
 end;
 
 procedure TServerContainer.ServiceEnd;
