@@ -302,6 +302,7 @@ type
     FNETDEV_GetLastError: TNETDEV_GetLastError;
     FCCTVInfo: TCCTVInfo;
     FTag: Cardinal;
+    FLastCapture: Cardinal;
 
     procedure FreeDLL;
     procedure LoadDLL(APath: string);
@@ -331,6 +332,7 @@ type
     property OnException: TOnException write SetOnException;
     property CCTVInfo: TCCTVInfo read FCCTVInfo write FCCTVInfo;
     property Tag: Cardinal read FTag write FTag;
+    property LastCapture: Cardinal read FLastCapture write FLastCapture;
   end;
 
 implementation
@@ -355,6 +357,7 @@ begin
   if FRealHandle = 0 then
     raise Exception.Create('StopRealPlay');
 
+  FLastCapture := GetTickCount;
   Name := AnsiString(szFileName);
   result := FNETDEV_CapturePicture(FRealHandle, PAnsiChar(Name), Int32(dwCaptureMode));
 end;
@@ -380,6 +383,7 @@ begin
   FRealHandle := 0;
 
   FTag := 0;
+  FLastCapture := 0;
 
   LoadDLL(ALibPath);
 
