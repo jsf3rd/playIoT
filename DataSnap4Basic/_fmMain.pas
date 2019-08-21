@@ -87,8 +87,7 @@ end;
 
 procedure TfmMain.FormCreate(Sender: TObject);
 begin
-  TGlobal.Obj.ExeName := Application.ExeName;
-
+  TGlobal.Obj.ExeName := ParamStr(0);
   TGlobal.Obj.Initialize;
 end;
 

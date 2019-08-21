@@ -61,8 +61,8 @@ uses JdcGlobal, MyGlobal, MyOption, MyCommon, JdcView, Core, System.UITypes;
 
 procedure TfmMain.actAboutExecute(Sender: TObject);
 begin
-  MessageDlg(APPLICATION_TITLE + ' ' + FileVersion(Application.ExeName) + ' ' + COPY_RIGHT_SIGN
-    + #13#10#13#10 + HOME_PAGE_URL, mtInformation, [mbOK], 0);
+  MessageDlg(APPLICATION_TITLE + ' ' + FileVersion(ParamStr(0)) + ' ' + COPY_RIGHT_SIGN +
+    #13#10#13#10 + HOME_PAGE_URL, mtInformation, [mbOK], 0);
 end;
 
 procedure TfmMain.actClearLogExecute(Sender: TObject);
@@ -115,7 +115,7 @@ end;
 
 procedure TfmMain.FormCreate(Sender: TObject);
 begin
-  TGlobal.Obj.ExeName := Application.ExeName;
+  TGlobal.Obj.ExeName := ParamStr(0);
   TView.Obj.Add(Self);
 end;
 
@@ -137,7 +137,7 @@ end;
 
 procedure TfmMain.rp_Init(APacket: TValueList);
 begin
-  Caption := TOption.Obj.AppName + ' ' + FileVersion(Application.ExeName);
+  Caption := TOption.Obj.AppName + ' ' + FileVersion(ParamStr(0));
   actDebug.Checked := TGlobal.Obj.UseDebug;
 end;
 
