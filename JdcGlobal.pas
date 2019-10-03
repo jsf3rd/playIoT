@@ -31,11 +31,9 @@ type
 
   TMessageType = (msDebug, msInfo, msError, msWarning, msUnknown);
 
-  TLogProc = procedure(const AType: TMessageType; const ATitle: String;
-    const AMessage: String = '') of object;
+  TLogProc = procedure(const AType: TMessageType; const ATitle: String; const AMessage: String = '') of object;
 
-  TOnMessageEvent = procedure(const Sender: TObject; const AName: string;
-    const AMessage: string = '') of object;
+  TOnMessageEvent = procedure(const Sender: TObject; const AName: string; const AMessage: string = '') of object;
 
   TMsgOutput = (moDebugView, moLogFile, moCloudMessage);
   TMsgOutputs = set of TMsgOutput;
@@ -77,9 +75,8 @@ type
     FLogServer: TConnInfo;
     procedure SetExeName(const Value: String); virtual; abstract;
 
-    procedure _ApplicationMessage(const AType: string; const ATitle: string;
-      const AMessage: String; const AOutputs: TMsgOutputs = [moDebugView, moLogFile,
-      moCloudMessage]); virtual;
+    procedure _ApplicationMessage(const AType: string; const ATitle: string; const AMessage: String;
+      const AOutputs: TMsgOutputs = [moDebugView, moLogFile, moCloudMessage]); virtual;
 
     function GetErrorLogName: string; virtual;
     function GetLogName: string; virtual;
@@ -90,10 +87,10 @@ type
     procedure Initialize; virtual;
     procedure Finalize; virtual;
 
-    procedure ApplicationMessage(const AType: TMessageType; const ATitle: String;
-      const AMessage: String = ''); overload; virtual;
-    procedure ApplicationMessage(const AType: TMessageType; const ATitle: String;
-      const AFormat: String; const Args: array of const); overload;
+    procedure ApplicationMessage(const AType: TMessageType; const ATitle: String; const AMessage: String = '');
+      overload; virtual;
+    procedure ApplicationMessage(const AType: TMessageType; const ATitle: String; const AFormat: String;
+      const Args: array of const); overload;
 
     property ExeName: String read FExeName write SetExeName;
     property LogName: string read GetLogName;
@@ -123,16 +120,14 @@ function TruncInt(Value: integer; Digit: integer): integer;
 
 function CurrentProcessMemory: Cardinal;
 function FileVersion(const FileName: String): String;
-procedure CloudMessage(const ProjectCode, AppCode, TypeCode, ATitle, AMessage,
-  AVersion: String; const AServer: TConnInfo);
+procedure CloudMessage(const ProjectCode, AppCode, TypeCode, ATitle, AMessage, AVersion: String;
+  const AServer: TConnInfo);
 
 // 데이터 압축..
-function CompressStream(Stream: TStream; OutStream: TStream; OnProgress: TNotifyEvent)
-  : boolean;
+function CompressStream(Stream: TStream; OutStream: TStream; OnProgress: TNotifyEvent): boolean;
 
 // 데이터 압축 해제..
-function DeCompressStream(Stream: TStream; OutStream: TStream;
-  OnProgress: TNotifyEvent): boolean;
+function DeCompressStream(Stream: TStream; OutStream: TStream; OnProgress: TNotifyEvent): boolean;
 
 // 응답 검사..
 function Contains(Contents: string; const str: array of const): boolean;
@@ -177,10 +172,8 @@ procedure FreeAndNilEx(var Obj; const AGlobal: TGlobalAbstract = nil);
 function GetPeerInfo(AContext: TIdContext): string;
 
 // 서비스 관리
-procedure StartService(const ServiceName: String; var OldStatus: TJclServiceState;
-  StartAction: TAction);
-procedure StopService(const ServiceName: String; var OldStatus: TJclServiceState;
-  StopAction: TAction; hnd: HWND);
+procedure StartService(const ServiceName: String; var OldStatus: TJclServiceState; StartAction: TAction);
+procedure StopService(const ServiceName: String; var OldStatus: TJclServiceState; StopAction: TAction; hnd: HWND);
 procedure UpdateServiceStatus(const ServiceName: String; var OldStatus: TJclServiceState;
   StartAction, StopAction: TAction; StatusEdit: TLabeledEdit);
 
@@ -219,14 +212,12 @@ begin
     on E: Exception do
     begin
       if Assigned(AGlobal) then
-        AGlobal.ApplicationMessage(msError, 'FreeAndNilEx - ' + TObject(Obj).ClassName,
-          E.Message);
+        AGlobal.ApplicationMessage(msError, 'FreeAndNilEx - ' + TObject(Obj).ClassName, E.Message);
     end;
   end;
 end;
 
-procedure StartService(const ServiceName: String; var OldStatus: TJclServiceState;
-  StartAction: TAction);
+procedure StartService(const ServiceName: String; var OldStatus: TJclServiceState; StartAction: TAction);
 begin
   OldStatus := ssUnknown;
 
@@ -238,18 +229,16 @@ begin
   StartAction.Enabled := true;
 end;
 
-procedure StopService(const ServiceName: String; var OldStatus: TJclServiceState;
-  StopAction: TAction; hnd: HWND);
+procedure StopService(const ServiceName: String; var OldStatus: TJclServiceState; StopAction: TAction; hnd: HWND);
 begin
   OldStatus := ssUnknown;
   StopAction.Enabled := False;
   if StopServiceByName(LOCAL_SERVER, ServiceName) then
     Exit;
 
-  if MessageDlg('알림 : 서비스를 중지하지 못했습니다.' + #13#10 + '강제로 중지하시겠습니까?', TMsgDlgType.mtConfirmation,
-    [mbYes, mbNo], 0) = mrYes then
-    ShellExecute(hnd, 'open', 'taskkill', PWideChar(' -f -im ' + ServiceName + '.exe'),
-      nil, SW_HIDE);
+  if MessageDlg('알림 : 서비스를 중지하지 못했습니다.' + #13#10 + '강제로 중지하시겠습니까?', TMsgDlgType.mtConfirmation, [mbYes, mbNo], 0) = mrYes
+  then
+    ShellExecute(hnd, 'open', 'taskkill', PWideChar(' -f -im ' + ServiceName + '.exe'), nil, SW_HIDE);
 end;
 
 procedure UpdateServiceStatus(const ServiceName: String; var OldStatus: TJclServiceState;
@@ -294,8 +283,7 @@ end;
 
 function GetPeerInfo(AContext: TIdContext): string;
 begin
-  Result := AContext.Connection.Socket.Binding.PeerIP + ':' +
-    AContext.Connection.Socket.Binding.PeerPort.ToString;
+  Result := AContext.Connection.Socket.Binding.PeerIP + ':' + AContext.Connection.Socket.Binding.PeerPort.ToString;
 end;
 
 procedure ThreadSafe(AMethod: TThreadMethod); overload;
@@ -308,10 +296,14 @@ end;
 
 procedure ThreadSafe(AThreadProc: TThreadProcedure); overload;
 begin
+{$IFDEF CONSOLE}
+  AThreadProc;
+{$ELSE}
   if TThread.CurrentThread.ThreadID = MainThreadID then
     AThreadProc
   else
     TThread.Queue(nil, AThreadProc);
+{$ENDIF}
 end;
 
 function DefaultFormatSettings: TFormatSettings;
@@ -391,8 +383,7 @@ begin
     if JclFileUtils.FileGetSize(FileName) > 1024 * 1024 * 5 then
     begin
       try
-        FileMove(AFile, ChangeFileExt(FileName, FormatDateTime('_YYYYMMDD_HHNNSS', Now) +
-          '.bak'), true);
+        FileMove(AFile, ChangeFileExt(FileName, FormatDateTime('_YYYYMMDD_HHNNSS', Now) + '.bak'), true);
       except
         on E: Exception do
           FileName := ChangeFileExt(FileName, FormatDateTime('_YYYYMMDD', Now) + '.tmp');
@@ -409,7 +400,7 @@ begin
           if AMessage.IsEmpty then
             Stream.WriteLine
           else
-            Stream.WriteLine(FormatDateTime('YYYY-MM-DD, HH:NN:SS.zzz, ', Now) + AMessage);
+            Stream.WriteLine(FormatDateTime('YYYY-MM-DD HH:NN:SS.zzz, ', Now) + AMessage);
         finally
           FreeAndNil(Stream);
         end;
@@ -488,8 +479,8 @@ begin
   end;
 end;
 
-procedure CloudMessage(const ProjectCode, AppCode, TypeCode, ATitle, AMessage,
-  AVersion: String; const AServer: TConnInfo);
+procedure CloudMessage(const ProjectCode, AppCode, TypeCode, ATitle, AMessage, AVersion: String;
+const AServer: TConnInfo);
 var
   UDPClient: TIdUDPClient;
   SysInfo, Msg, DiskInfo: String;
@@ -506,23 +497,19 @@ begin
   MBFactor := 1024 * 1024;
   GBFactor := MBFactor * 1024;
 
-  SysInfo :=
-    Format('OS=%s,MemUsage=%.2fMB,TotalMem=%.2fGB,FreeMem=%.2fGB,IPAddress=%s,Server=%s',
+  SysInfo := Format('OS=%s,MemUsage=%.2fMB,TotalMem=%.2fGB,FreeMem=%.2fGB,IPAddress=%s,Server=%s',
     [GetOSVersionString, CurrentProcessMemory / MBFactor, GetTotalPhysicalMemory / GBFactor,
-    GetFreePhysicalMemory / GBFactor, GetIPAddress(GetLocalComputerName),
-    AServer.StringValue]);
+    GetFreePhysicalMemory / GBFactor, GetIPAddress(GetLocalComputerName), AServer.StringValue]);
 
   DiskInfo := Format('C_Free=%.2fGB,C_Size=%.2fGB,D_Free=%.2fGB,D_Size=%.2fGB',
-    [DiskFree(3) / GBFactor, DiskSize(3) / GBFactor, DiskFree(4) / GBFactor,
-    DiskSize(4) / GBFactor]);
+    [DiskFree(3) / GBFactor, DiskSize(3) / GBFactor, DiskFree(4) / GBFactor, DiskSize(4) / GBFactor]);
 
   _Title := ATitle.Replace(' ', '_', [rfReplaceAll]);
 
   Msg := AMessage.Replace('"', '''');
   Msg := Format
     ('CloudLog,ProjectCode=%s,AppCode=%s,TypeCode=%s,ComputerName=%s,Title=%s Version="%s",LogMessage="%s",SysInfo="%s",DiskInfo="%s"',
-    [ProjectCode, AppCode, TypeCode, GetLocalComputerName, _Title, AVersion, Msg, SysInfo,
-    DiskInfo]);
+    [ProjectCode, AppCode, TypeCode, GetLocalComputerName, _Title, AVersion, Msg, SysInfo, DiskInfo]);
 
   Msg := Msg.Replace('\', '\\');
   Msg := Msg.Replace(#13, ', ');
@@ -536,8 +523,7 @@ begin
   try
     try
       UDPClient.Send(AServer.StringValue, AServer.IntegerValue, Msg, IndyTextEncoding_UTF8);
-      PrintDebug('CloudLog,<%s> [%s] %s=%s,Host=%s', [TypeCode, AppCode, _Title, Msg,
-        AServer.StringValue]);
+      PrintDebug('CloudLog,<%s> [%s] %s=%s,Host=%s', [TypeCode, AppCode, _Title, Msg, AServer.StringValue]);
     except
       on E: Exception do
         PrintDebug('CloudLog,E=' + E.Message);
@@ -547,8 +533,7 @@ begin
   end;
 end;
 
-function CompressStream(Stream: TStream; OutStream: TStream; OnProgress: TNotifyEvent)
-  : boolean;
+function CompressStream(Stream: TStream; OutStream: TStream; OnProgress: TNotifyEvent): boolean;
 var
   CS: TZCompressionStream;
 begin
@@ -596,8 +581,7 @@ begin
   end;
 end;
 
-function DeCompressStream(Stream: TStream; OutStream: TStream;
-OnProgress: TNotifyEvent): boolean;
+function DeCompressStream(Stream: TStream; OutStream: TStream; OnProgress: TNotifyEvent): boolean;
 const
   BuffSize = 65535; // 버퍼 사이즈
 var
@@ -731,7 +715,7 @@ begin
 
   j := 0;
   b := 0;
-  n := 0;
+  // n := 0;
 
   for I := AIndex to Length(str) do
   begin
@@ -762,14 +746,13 @@ begin
   end;
 
   if j <> 0 then
-    raise Exception.Create('Input contains an odd number of hexadecimal digits.[' + ASource +
-      '/' + IntToStr(AIndex) + ']');
+    raise Exception.Create('Input contains an odd number of hexadecimal digits.[' + ASource + '/' +
+      IntToStr(AIndex) + ']');
 end;
 
 { TGlobalAbstract }
 
-procedure TGlobalAbstract.ApplicationMessage(const AType: TMessageType; const ATitle: string;
-const AMessage: String);
+procedure TGlobalAbstract.ApplicationMessage(const AType: TMessageType; const ATitle: string; const AMessage: String);
 begin
   if FIsFinalized then
     Exit;
@@ -788,8 +771,8 @@ begin
   end;
 end;
 
-procedure TGlobalAbstract.ApplicationMessage(const AType: TMessageType; const ATitle: string;
-const AFormat: String; const Args: array of const);
+procedure TGlobalAbstract.ApplicationMessage(const AType: TMessageType; const ATitle: string; const AFormat: String;
+const Args: array of const);
 var
   str: string;
 begin
@@ -842,8 +825,8 @@ begin
   FUseDebug := Value;
 end;
 
-procedure TGlobalAbstract._ApplicationMessage(const AType: string; const ATitle: string;
-const AMessage: String; const AOutputs: TMsgOutputs);
+procedure TGlobalAbstract._ApplicationMessage(const AType: string; const ATitle: string; const AMessage: String;
+const AOutputs: TMsgOutputs);
 var
   splitter: string;
 begin
@@ -859,8 +842,7 @@ begin
     PrintLog(FLogName, Format('<%s> %s%s%s', [AType, ATitle, splitter, AMessage]));
 
   if (moCloudMessage in AOutputs) and FUseCloudLog then
-    CloudMessage(FProjectCode, FAppCode, AType, ATitle, AMessage, FileVersion(FExeName),
-      FLogServer);
+    CloudMessage(FProjectCode, FAppCode, AType, ATitle, AMessage, FileVersion(FExeName), FLogServer);
 end;
 
 { TConnInfo }
@@ -873,8 +855,7 @@ end;
 
 function TConnInfo.Equals(const ConnInfo: TConnInfo): boolean;
 begin
-  Result := Self.StringValue.Equals(ConnInfo.StringValue) and
-    (Self.IntegerValue = ConnInfo.IntegerValue);
+  Result := Self.StringValue.Equals(ConnInfo.StringValue) and (Self.IntegerValue = ConnInfo.IntegerValue);
 end;
 
 function TConnInfo.ToString: string;
