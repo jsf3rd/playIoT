@@ -7,7 +7,7 @@ uses System.SysUtils, System.Classes,
   Datasnap.DSTCPServerTransport,
   Datasnap.DSHTTPCommon, Datasnap.DSHTTP,
   Datasnap.DSServer, Datasnap.DSCommonServer,
-  Datasnap.DSAuth, IPPeerServer, Registry, Winapi.Windows, MyOption,
+  Datasnap.DSAuth, IPPeerServer, Registry, Winapi.Windows,
   JdcConnectionPool, FireDAC.Stan.Intf, FireDAC.Stan.Option, FireDAC.Stan.Error,
   FireDAC.UI.Intf, FireDAC.Phys.Intf, FireDAC.Stan.Def, FireDAC.Stan.Pool,
   FireDAC.Stan.Async, FireDAC.Phys, FireDAC.VCLUI.Wait, Data.DB,
@@ -19,8 +19,7 @@ type
     DSTCPServerTransport: TDSTCPServerTransport;
     DSHTTPService: TDSHTTPService;
     dscDataProvider: TDSServerClass;
-    procedure dscDataProviderGetClass(DSServerClass: TDSServerClass;
-      var PersistentClass: TPersistentClass);
+    procedure dscDataProviderGetClass(DSServerClass: TDSServerClass; var PersistentClass: TPersistentClass);
     procedure ServiceStart(Sender: TService; var Started: Boolean);
     procedure ServiceCreate(Sender: TObject);
     procedure ServiceExecute(Sender: TService);
@@ -45,26 +44,19 @@ type
     function GetServiceController: TServiceController; override;
 
     // OpenQuery
-    function OpenInstantQuery(AQuery: TFDQuery; AParams: TJSONObject;
-      AProcName: String = ''): TStream;
-    function OpenQuery(AQuery: TFDQuery; AParams: TJSONObject; AProcName: String = '')
-      : TStream;
+    function OpenInstantQuery(AQuery: TFDQuery; AParams: TJSONObject; AProcName: String = ''): TStream;
+    function OpenQuery(AQuery: TFDQuery; AParams: TJSONObject; AProcName: String = ''): TStream;
 
     // ExecQuery
-    function ExecInstantQuery(AQuery: TFDQuery; AParams: TJSONObject; AProcName: String = '')
-      : Boolean; overload;
-    function ExecQuery(AQuery: TFDQuery; AParams: TJSONObject; AProcName: String = '')
-      : Boolean; overload;
+    function ExecInstantQuery(AQuery: TFDQuery; AParams: TJSONObject; AProcName: String = ''): Boolean; overload;
+    function ExecQuery(AQuery: TFDQuery; AParams: TJSONObject; AProcName: String = ''): Boolean; overload;
 
     // Array DML
-    function ExecInstantQuery(AQuery: TFDQuery; AParams: TJSONArray; AProcName: String = '')
-      : Boolean; overload;
-    function ExecQuery(AQuery: TFDQuery; AParams: TJSONArray; AProcName: String = '')
-      : Boolean; overload;
+    function ExecInstantQuery(AQuery: TFDQuery; AParams: TJSONArray; AProcName: String = ''): Boolean; overload;
+    function ExecQuery(AQuery: TFDQuery; AParams: TJSONArray; AProcName: String = ''): Boolean; overload;
 
     // ApplyUpdate
-    function ApplyInstantUpdate(AQuery: TFDQuery; AStream: TStream;
-      AProcName: String = ''): Boolean;
+    function ApplyInstantUpdate(AQuery: TFDQuery; AStream: TStream; AProcName: String = ''): Boolean;
     function ApplyUpdate(AQuery: TFDQuery; AStream: TStream; AProcName: String = ''): Boolean;
   end;
 
@@ -75,7 +67,7 @@ implementation
 
 {$R *.dfm}
 
-uses _smDataProvider, JdcGlobal, MyGlobal, JdcGlobal.DSCommon;
+uses _smDataProvider, JdcGlobal, MyGlobal, MyOption, JdcGlobal.DSCommon;
 
 procedure TServerContainer.dscDataProviderGetClass(DSServerClass: TDSServerClass;
   var PersistentClass: TPersistentClass);
@@ -83,8 +75,7 @@ begin
   PersistentClass := _smDataProvider.TsmDataProvider;
 end;
 
-function TServerContainer.ExecInstantQuery(AQuery: TFDQuery; AParams: TJSONObject;
-  AProcName: String): Boolean;
+function TServerContainer.ExecInstantQuery(AQuery: TFDQuery; AParams: TJSONObject; AProcName: String): Boolean;
 var
   MyQuery: TFDQuery;
 begin
@@ -96,8 +87,7 @@ begin
   end;
 end;
 
-function TServerContainer.ExecInstantQuery(AQuery: TFDQuery; AParams: TJSONArray;
-  AProcName: String): Boolean;
+function TServerContainer.ExecInstantQuery(AQuery: TFDQuery; AParams: TJSONArray; AProcName: String): Boolean;
 var
   MyQuery: TFDQuery;
 begin
@@ -109,8 +99,7 @@ begin
   end;
 end;
 
-function TServerContainer.ExecQuery(AQuery: TFDQuery; AParams: TJSONArray;
-  AProcName: String): Boolean;
+function TServerContainer.ExecQuery(AQuery: TFDQuery; AParams: TJSONArray; AProcName: String): Boolean;
 var
   Conn: TFDConnection;
   ExecTime: TDateTime;
@@ -134,9 +123,8 @@ begin
       ExecTime := Now;
       AQuery.Execute(AParams.Count);
       TGlobal.Obj.ApplicationMessage(msInfo, StrDefault(AProcName, 'ExecQuery'),
-        'Query=%s,Requested=%d,RowsAffected=%d,ExecTime=%s',
-        [AQuery.Name, AParams.Count, AQuery.RowsAffected, FormatDateTime('NN:SS.zzz',
-        Now - ExecTime)]);
+        'Query=%s,Requested=%d,RowsAffected=%d,ExecTime=%s', [AQuery.Name, AParams.Count, AQuery.RowsAffected,
+        FormatDateTime('NN:SS.zzz', Now - ExecTime)]);
       result := AQuery.RowsAffected = AParams.Count;
 
       if result then
@@ -155,8 +143,7 @@ begin
   end;
 end;
 
-function TServerContainer.ExecQuery(AQuery: TFDQuery; AParams: TJSONObject;
-  AProcName: String): Boolean;
+function TServerContainer.ExecQuery(AQuery: TFDQuery; AParams: TJSONObject; AProcName: String): Boolean;
 var
   Conn: TFDConnection;
   ExecTime: TDateTime;
@@ -176,9 +163,8 @@ begin
 
       ExecTime := Now;
       AQuery.ExecSQL;
-      TGlobal.Obj.ApplicationMessage(msInfo, StrDefault(AProcName, 'ExecQuery'),
-        'Query=%s,RowsAffected=%d,ExecTime=%s', [AQuery.Name, AQuery.RowsAffected,
-        FormatDateTime('NN:SS.zzz', Now - ExecTime)]);
+      TGlobal.Obj.ApplicationMessage(msInfo, StrDefault(AProcName, 'ExecQuery'), 'Query=%s,RowsAffected=%d,ExecTime=%s',
+        [AQuery.Name, AQuery.RowsAffected, FormatDateTime('NN:SS.zzz', Now - ExecTime)]);
       result := true;
     except
       on E: Exception do
@@ -226,8 +212,7 @@ procedure TServerContainer.InitCode;
       AQuery.Close;
 
       AMemTab.Open;
-      TGlobal.Obj.ApplicationMessage(msInfo, AMemTab.Name + ' Record Count',
-        AMemTab.RecordCount.ToString);
+      TGlobal.Obj.ApplicationMessage(msInfo, AMemTab.Name + ' Record Count', AMemTab.RecordCount.ToString);
     finally
       Conn.Free;
     end;
@@ -237,8 +222,7 @@ begin
   // FDQueryToFDMemTab(qryLogger, mtLogger);
 end;
 
-function TServerContainer.ApplyInstantUpdate(AQuery: TFDQuery; AStream: TStream;
-  AProcName: String): Boolean;
+function TServerContainer.ApplyInstantUpdate(AQuery: TFDQuery; AStream: TStream; AProcName: String): Boolean;
 var
   MyQuery: TFDQuery;
 begin
@@ -250,8 +234,7 @@ begin
   end;
 end;
 
-function TServerContainer.ApplyUpdate(AQuery: TFDQuery; AStream: TStream;
-  AProcName: String): Boolean;
+function TServerContainer.ApplyUpdate(AQuery: TFDQuery; AStream: TStream; AProcName: String): Boolean;
 var
   Conn: TFDConnection;
   ExecTime: TDateTime;
@@ -266,8 +249,8 @@ begin
       ExecTime := Now;
       Errors := AQuery.ApplyUpdates;
       TGlobal.Obj.ApplicationMessage(msInfo, StrDefault(AProcName, 'ApplyUpdates'),
-        'Query=%s,ChangeCount=%d,Errors=%d,ExecTime=%s', [AQuery.Name, AQuery.ChangeCount,
-        Errors, FormatDateTime('NN:SS.zzz', Now - ExecTime)]);
+        'Query=%s,ChangeCount=%d,Errors=%d,ExecTime=%s', [AQuery.Name, AQuery.ChangeCount, Errors,
+        FormatDateTime('NN:SS.zzz', Now - ExecTime)]);
 
       result := Errors = 0;
     except
@@ -282,8 +265,7 @@ begin
   end;
 end;
 
-function TServerContainer.OpenInstantQuery(AQuery: TFDQuery; AParams: TJSONObject;
-  AProcName: String): TStream;
+function TServerContainer.OpenInstantQuery(AQuery: TFDQuery; AParams: TJSONObject; AProcName: String): TStream;
 var
   MyQuery: TFDQuery;
 begin
@@ -295,8 +277,7 @@ begin
   end;
 end;
 
-function TServerContainer.OpenQuery(AQuery: TFDQuery; AParams: TJSONObject;
-  AProcName: String): TStream;
+function TServerContainer.OpenQuery(AQuery: TFDQuery; AParams: TJSONObject; AProcName: String): TStream;
 var
   Conn: TFDConnection;
   ExecTime: TDateTime;
@@ -315,15 +296,11 @@ begin
 
       ExecTime := Now;
       result := AQuery.ToStream;
-      TGlobal.Obj.ApplicationMessage(msDebug, StrDefault(AProcName, 'OpenQuery'),
-        'Query=%s,RecordCount=%d,ExecTime=%s', [AQuery.Name, AQuery.RecordCount,
-        FormatDateTime('NN:SS.zzz', Now - ExecTime)]);
+      TGlobal.Obj.ApplicationMessage(msDebug, StrDefault(AProcName, 'OpenQuery'), 'Query=%s,RecordCount=%d,ExecTime=%s',
+        [AQuery.Name, AQuery.RecordCount, FormatDateTime('NN:SS.zzz', Now - ExecTime)]);
     except
       on E: Exception do
-      begin
-        result := TStream.Create;
         raise Exception.Create('OpenQuery - ' + AQuery.Name + ', ' + E.Message);
-      end;
     end;
   finally
     Conn.Free;
@@ -447,8 +424,7 @@ begin
     DSServer.Start;
   except
     on E: Exception do
-      _RaiseException(Format('TCP=%d,HTTP=%d,E=%s', [DSTCPServerTransport.Port,
-        DSHTTPService.HttpPort, E.Message]), E);
+      _RaiseException(Format('TCP=%d,HTTP=%d,E=%s', [DSTCPServerTransport.Port, DSHTTPService.HttpPort, E.Message]), E);
   end;
 
   TGlobal.Obj.ApplicationMessage(msInfo, 'DSServer', 'TCP=%d,HTTP=%d',

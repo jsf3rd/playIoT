@@ -23,7 +23,7 @@ implementation
 
 {$R *.dfm}
 
-uses ServerContainerUnit, MyOption, JdcGlobal, MyGlobal;
+uses ServerContainerUnit, JdcGlobal, MyGlobal, MyOption;
 
 { TsmDataProvider }
 

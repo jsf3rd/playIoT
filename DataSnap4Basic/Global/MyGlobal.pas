@@ -29,7 +29,6 @@ type
 
   public
     constructor Create; override;
-    destructor Destroy; override;
 
     class function Obj: TGlobal;
 
@@ -51,13 +50,6 @@ begin
   inherited;
 
   // TODO : after crete
-end;
-
-destructor TGlobal.Destroy;
-begin
-  // TODO : before Finalize
-
-  inherited;
 end;
 
 procedure TGlobal.Finalize;

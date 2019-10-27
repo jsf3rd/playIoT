@@ -29,7 +29,7 @@ implementation
 
 {$R *.dfm}
 
-uses JdcGlobal, MyOption, MyGlobal, Core;
+uses JdcGlobal, MyGlobal, MyOption, Core;
 
 procedure ServiceController(CtrlCode: DWord); stdcall;
 begin

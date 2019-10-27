@@ -9,7 +9,7 @@ uses System.SysUtils, System.Classes, Datasnap.DSServer, Datasnap.DSAuth,
   FireDAC.Stan.Option, FireDAC.Stan.Error, FireDAC.UI.Intf, FireDAC.Phys.Intf,
   FireDAC.Stan.Def, FireDAC.Stan.Pool, FireDAC.Stan.Async, FireDAC.Phys,
   FireDAC.Stan.Param, FireDAC.DatS, FireDAC.DApt.Intf, FireDAC.DApt,
-  FireDAC.Comp.DataSet, FireDAC.Comp.Client,
+  FireDAC.Comp.DataSet, FireDAC.Comp.Client, System.StrUtils,
   Datasnap.DSProviderDataModuleAdapter, System.JSON, FireDAC.VCLUI.Wait, JdcGlobal.DSCommon;
 
 type
@@ -25,7 +25,7 @@ implementation
 
 {$R *.dfm}
 
-uses System.StrUtils, _fmMain, MyGlobal, MyOption, JdcGlobal;
+uses MyGlobal, MyOption, JdcGlobal;
 
 procedure TsmDataLoader.DSServerModuleCreate(Sender: TObject);
 begin

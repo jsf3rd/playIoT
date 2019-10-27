@@ -19,12 +19,11 @@ type
     procedure SetUseDebug(const Value: boolean); override;
   public
     constructor Create; override;
-    destructor Destroy; override;
 
     class function Obj: TGlobal;
 
-    procedure ApplicationMessage(const AType: TMessageType; const ATitle: String;
-      const AMessage: String = ''); override;
+    procedure ApplicationMessage(const AType: TMessageType; const ATitle: String; const AMessage: String = '');
+      override;
 
     procedure Initialize; override;
     procedure Finalize; override;
@@ -39,8 +38,7 @@ var
 
   { TGlobal }
 
-procedure TGlobal.ApplicationMessage(const AType: TMessageType; const ATitle: String;
-  const AMessage: String);
+procedure TGlobal.ApplicationMessage(const AType: TMessageType; const ATitle: String; const AMessage: String);
 begin
   inherited;
 
@@ -61,14 +59,6 @@ begin
   // TOTO : after create
 end;
 
-destructor TGlobal.Destroy;
-begin
-
-  // TOTO : before Finalize
-
-  inherited;
-end;
-
 procedure TGlobal.Finalize;
 begin
   if FIsfinalized then
@@ -77,6 +67,7 @@ begin
   // Todo :
 
   ApplicationMessage(msDebug, 'Stop', 'StartTime=' + FStartTime.ToString);
+  StopLogging;
   FIsfinalized := true;
 end;
 
@@ -89,7 +80,7 @@ begin
   FIsInitialized := true;
 
   FStartTime := now;
-
+  StartLogging;
 {$IFDEF WIN32}
   ApplicationMessage(msDebug, 'Start', '(x86)' + FExeName);
 {$ENDIF}
@@ -97,6 +88,7 @@ begin
   ApplicationMessage(mtDebug, 'Start', '(x64)' + FxeName);
 {$ENDIF}
   FUseDebug := TOption.Obj.UseDebug;
+  ApplicationMessage(msDebug, 'UseDebug', BoolToStr(FUseDebug, true));
 end;
 
 class function TGlobal.Obj: TGlobal;
@@ -110,8 +102,7 @@ procedure TGlobal.SetExeName(const Value: String);
 begin
   FExeName := Value;
   FLogName := ChangeFileExt(FExeName, '.log');
-  FLogName := GetEnvironmentVariable('LOCALAPPDATA') + '\playIoT\' + APPLICATION_CODE + '\' +
-    ExtractFileName(FLogName);
+  FLogName := GetEnvironmentVariable('LOCALAPPDATA') + '\playIoT\' + APPLICATION_CODE + '\' + ExtractFileName(FLogName);
 
   if not TDirectory.Exists(ExtractFilePath(FLogName)) then
     TDirectory.CreateDirectory(ExtractFilePath(FLogName));

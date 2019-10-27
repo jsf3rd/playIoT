@@ -17,7 +17,6 @@ type
     procedure SetExeName(const Value: String); override;
   public
     constructor Create; override;
-    destructor Destroy; override;
 
     class function Obj: TGlobal;
 
@@ -39,13 +38,6 @@ begin
   inherited;
 
   // TODO : after Create
-end;
-
-destructor TGlobal.Destroy;
-begin
-  // TODO : before Finalize
-
-  inherited;
 end;
 
 procedure TGlobal.Finalize;
@@ -70,6 +62,7 @@ begin
   inherited;
 
   FUseDebug := TOption.Obj.UseDebug;
+  ApplicationMessage(msDebug, 'UseDebug', BoolToStr(FUseDebug, true));
 end;
 
 class function TGlobal.Obj: TGlobal;
@@ -82,8 +75,7 @@ end;
 procedure TGlobal.SetExeName(const Value: String);
 begin
   FExeName := Value;
-  FLogName := ExtractFilePath(FExeName) + 'logs\' +
-    ChangeFileExt(ExtractFileName(FExeName), '.log');
+  FLogName := ExtractFilePath(FExeName) + 'logs\' + ChangeFileExt(ExtractFileName(FExeName), '.log');
   // FLogName := GetEnvironmentVariable('LOCALAPPDATA') + '\playIoT\' + SERVICE_CODE + '\' +
   // ExtractFileName(FLogName);
 

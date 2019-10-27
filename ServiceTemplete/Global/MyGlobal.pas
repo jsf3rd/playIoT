@@ -17,7 +17,6 @@ type
     procedure SetExeName(const Value: String); override;
   public
     constructor Create; override;
-    destructor Destroy; override;
 
     class function Obj: TGlobal;
 
@@ -39,13 +38,6 @@ begin
   inherited;
 
   // TODO : after create
-end;
-
-destructor TGlobal.Destroy;
-begin
-  // TODO : before Finalize
-
-  inherited;
 end;
 
 procedure TGlobal.Finalize;
@@ -71,6 +63,7 @@ begin
   inherited;
 
   FUseDebug := TOption.Obj.UseDebug;
+  ApplicationMessage(msDebug, 'UseDebug', BoolToStr(FUseDebug, true));
 end;
 
 class function TGlobal.Obj: TGlobal;

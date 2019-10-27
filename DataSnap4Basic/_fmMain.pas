@@ -48,7 +48,7 @@ implementation
 
 {$R *.dfm}
 
-uses MyGlobal, JdcGlobal, _fmOption, MyOption, ServerContainerUnit;
+uses MyGlobal, MyOption, JdcGlobal, _fmOption, ServerContainerUnit;
 
 procedure TfmMain.actAboutExecute(Sender: TObject);
 begin
