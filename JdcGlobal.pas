@@ -59,9 +59,10 @@ type
   end;
 
   TJdcLog = record
+    LogName: string;
     Time: TDateTime;
     Msg: string;
-    constructor Create(AMsg: string);
+    constructor Create(AName: string; ATime: TDateTime; AMsg: string);
     function ToString: string;
   end;
 
@@ -69,7 +70,7 @@ type
   strict private
     FLogTask: TThread;
     FMsgQueue: TQueue<TJdcLog>;
-    procedure FlushLog(AFile: string);
+    procedure FlushLog;
   protected
     FProjectCode: string;
     FAppCode: string;
@@ -91,10 +92,12 @@ type
 
     function GetLogName: string; virtual;
     procedure SetUseDebug(const Value: boolean); virtual;
-    procedure AppendLog(const AMsg: string);
+    procedure AppendLog(const AName: string; const AMsg: string);
+
+    procedure StartLogging;
+    procedure StopLogging;
   public
     constructor Create; virtual;
-    destructor Destroy; override;
 
     procedure Initialize; virtual;
     procedure Finalize; virtual;
@@ -119,7 +122,7 @@ type
   end;
 
   // ·Î±× Âï±â..
-procedure PrintLog(const AFile: string; const AMessage: String; const ATime: TDateTime = 0); overload;
+procedure PrintLog(const AFile: string; const ATime: TDateTime; const AMessage: String); overload;
 procedure PrintLog(AMemo: TMemo; const AMsg: String); overload;
 
 procedure PrintDebug(const Format: string; const Args: array of const); overload;
@@ -398,7 +401,7 @@ begin
   end;
 end;
 
-procedure PrintLog(const AFile: string; const AMessage: String; const ATime: TDateTime);
+procedure PrintLog(const AFile: string; const ATime: TDateTime; const AMessage: String);
 var
   Stream: TStreamWriter;
   Time: TDateTime;
@@ -797,81 +800,61 @@ begin
   FIsFinalized := False;
   FUseCloudLog := False;
   FUseDebug := False;
-
-  FMsgQueue := TQueue<TJdcLog>.Create;
-  FLogTask := TThread.CreateAnonymousThread(
-    procedure
-    begin
-      while not TThread.CurrentThread.CheckTerminated do
-      begin
-        if FMsgQueue.Count = 0 then
-        begin
-          Sleep(997);
-          Continue;
-        end
-        else
-          Sleep(1);
-
-        FlushLog(GetLogName);
-      end;
-    end);
-  FLogTask.FreeOnTerminate := False;
-  FLogTask.Start;
-end;
-
-destructor TGlobalAbstract.Destroy;
-begin
-  if Assigned(FLogTask) then
-  begin
-    FLogTask.Terminate;
-    FLogTask.WaitFor;
-    FreeAndNil(FLogTask);
-  end;
-
-  FMsgQueue.Free;
 end;
 
 procedure TGlobalAbstract.Finalize;
 begin
   ApplicationMessage(msInfo, 'Stop', 'StartTime=' + FStartTime.ToString);
+  StopLogging;
 end;
 
-procedure TGlobalAbstract.FlushLog(AFile: string);
-var
-  Stream: TStreamWriter;
-  MyLog: TJdcLog;
-begin
-  if FLogName = '' then
-    Exit;
+procedure TGlobalAbstract.FlushLog;
 
-  BackupLogFile(AFile);
-  try
-    Stream := TFile.AppendText(AFile);
+  procedure _PrintLog(ALog: TJdcLog);
+  var
+    Stream: TStreamWriter;
+    LogName: string;
+  begin
+    LogName := ALog.LogName;
+    BackupLogFile(LogName);
     try
-      while FMsgQueue.Count > 0 do
-      begin
-        Sleep(1);
-        MyLog := FMsgQueue.Dequeue;
-        if MyLog.Msg.IsEmpty then
+      Stream := TFile.AppendText(LogName);
+      try
+        if ALog.Msg.IsEmpty then
           Stream.WriteLine
         else
-          Stream.WriteLine(MyLog.ToString);
+          Stream.WriteLine(ALog.ToString);
+
+        while FMsgQueue.Count > 0 do
+        begin
+          Sleep(1);
+          ALog := FMsgQueue.Dequeue;
+
+          if LogName <> ALog.LogName then
+          begin
+            _PrintLog(ALog);
+            Break;
+          end;
+
+          if ALog.Msg.IsEmpty then
+            Stream.WriteLine
+          else
+            Stream.WriteLine(ALog.ToString);
+        end;
+      finally
+        FreeAndNil(Stream);
       end;
-    finally
-      FreeAndNil(Stream);
-    end;
-  except
-    on E: Exception do
-    begin
-      if ExtractFileExt(AFile) = '.tmp' then
-      begin
-        PrintDebug(E.Message + ', ' + MyLog.ToString);
-        Exit;
-      end
-      else
-        PrintLog(AFile + '.tmp', MyLog.Msg, MyLog.Time);
+    except
+      on E: Exception do
+        PrintLog(LogName + '.tmp', ALog.Time, ALog.Msg);
     end;
   end;
+
+var
+  MyLog: TJdcLog;
+begin
+  MyLog := FMsgQueue.Dequeue;
+  _PrintLog(MyLog);
 end;
 
 function TGlobalAbstract.GetLogName: string;
@@ -885,6 +868,7 @@ end;
 procedure TGlobalAbstract.Initialize;
 begin
   FStartTime := Now;
+  StartLogging;
 {$IFDEF WIN32}
   ApplicationMessage(msInfo, 'Start', '(x86)' + FExeName);
 {$ENDIF}
@@ -893,14 +877,49 @@ begin
 {$ENDIF}
 end;
 
-procedure TGlobalAbstract.AppendLog(const AMsg: string);
+procedure TGlobalAbstract.AppendLog(const AName: string; const AMsg: string);
 begin
-  FMsgQueue.Enqueue(TJdcLog.Create(AMsg));
+  FMsgQueue.Enqueue(TJdcLog.Create(AName, Now, AMsg));
 end;
 
 procedure TGlobalAbstract.SetUseDebug(const Value: boolean);
 begin
   FUseDebug := Value;
+end;
+
+procedure TGlobalAbstract.StartLogging;
+begin
+  if FMsgQueue = nil then
+    FMsgQueue := TQueue<TJdcLog>.Create;
+
+  if FLogTask = nil then
+  begin
+    FLogTask := TThread.CreateAnonymousThread(
+      procedure
+      begin
+        while not TThread.CurrentThread.CheckTerminated do
+        begin
+          Sleep(507);
+          if FMsgQueue.Count = 0 then
+            Continue;
+
+          FlushLog;
+        end;
+      end);
+    FLogTask.FreeOnTerminate := False;
+    FLogTask.Start;
+  end;
+end;
+
+procedure TGlobalAbstract.StopLogging;
+begin
+  if Assigned(FLogTask) then
+  begin
+    FLogTask.Terminate;
+    FLogTask.WaitFor;
+    FreeAndNil(FLogTask);
+  end;
+  FreeAndNilEx(FMsgQueue);
 end;
 
 procedure TGlobalAbstract._ApplicationMessage(const AType: string; const ATitle: string; const AMessage: String;
@@ -917,7 +936,7 @@ begin
     PrintDebug('<%s> [%s] %s%s%s', [AType, FAppCode, ATitle, splitter, AMessage]);
 
   if moLogFile in AOutputs then
-    AppendLog(Format('<%s> %s%s%s', [AType, ATitle, splitter, AMessage]));
+    AppendLog(GetLogName, Format('<%s> %s%s%s', [AType, ATitle, splitter, AMessage]));
 
   if (moCloudMessage in AOutputs) and FUseCloudLog then
     CloudMessage(FProjectCode, FAppCode, AType, ATitle, AMessage, FileVersion(FExeName), FLogServer);
@@ -960,9 +979,10 @@ end;
 
 { TJdcLog }
 
-constructor TJdcLog.Create(AMsg: string);
+constructor TJdcLog.Create(AName: string; ATime: TDateTime; AMsg: string);
 begin
-  Self.Time := Now;
+  Self.LogName := AName;
+  Self.Time := ATime;
   Self.Msg := AMsg;
 end;
 
