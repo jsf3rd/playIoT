@@ -16,7 +16,7 @@ interface
 
 uses
   Classes, SysUtils, FireDAC.Comp.Client, FireDAC.Stan.Intf, Data.DBXPlatform,
-  FireDAC.Comp.DataSet, FireDAC.Stan.Param, REST.JSON, XSuperObject,
+  FireDAC.Comp.DataSet, FireDAC.Stan.Param, REST.JSON,
   System.Generics.Collections, System.DateUtils, Data.DB, Data.SqlTimSt,
   JdcGlobal
 {$IF CompilerVersion  > 26} // upper XE5
@@ -28,8 +28,7 @@ uses
 
 type
   TDSOpenProc = function(const ARequestFilter: string = ''): TStream of object;
-  TDSOpenParamProc = function(AParams: TJSONObject; const ARequestFilter: string = '')
-    : TStream of object;
+  TDSOpenParamProc = function(AParams: TJSONObject; const ARequestFilter: string = ''): TStream of object;
 
   TDSCommon = class
   private
@@ -40,35 +39,29 @@ type
     class procedure ClearJSONObject(AValue: TJSONArray); overload;
 
     // TDBXStream to TBytesStream
-    class function DSStreamToBytesStream(AStream: TStream): TBytesStream;
-      deprecated 'DBXStreamToMemoryStream';
+    class function DSStreamToBytesStream(AStream: TStream): TBytesStream; deprecated 'DBXStreamToMemoryStream';
 
     // TDBXStream to TMemoryStream
     class function DBXStreamToMemoryStream(AStream: TStream): TMemoryStream;
 
     // FDQuery to TSream
-    class function DataSetToStream(AQuery: TFDQuery): TStream; overload;
-      deprecated 'TFDQueryHelper.ToStream';
+    class function DataSetToStream(AQuery: TFDQuery): TStream; overload; deprecated 'TFDQueryHelper.ToStream';
 
     // FDMemTable to TStream
-    class function DataSetToStream(AMemTab: TFDMemTable): TStream; overload;
-      deprecated 'TFDMemTableHelper.ToStream';
+    class function DataSetToStream(AMemTab: TFDMemTable): TStream; overload; deprecated 'TFDMemTableHelper.ToStream';
 
     // DataSnap TStream to TFDDataSet
     class procedure DSStreamToFDDataSet(AStream: TStream; ADataSet: TFDDataSet); static;
       deprecated 'TFDDataSetHelper.LoadFromDSStream';
 
-    class procedure AddJSONValue<T: record >(var AObject: TJSONObject; ARecord: T;
-      APreFix: string = '');
+    class procedure AddJSONValue<T: record >(var AObject: TJSONObject; ARecord: T; APreFix: string = '');
     class procedure AddJSONArray<T: record >(var AObject: TJSONObject; ARecord: T);
 
     class function DSProcToRecord<T: record >(AProc: TDSOpenProc): T; overload;
-    class function DSProcToRecord<T: record >(AProc: TDSOpenParamProc; AParam: TJSONObject)
-      : T; overload;
+    class function DSProcToRecord<T: record >(AProc: TDSOpenParamProc; AParam: TJSONObject): T; overload;
 
     class function DSProcToRecordArray<T: record >(AProc: TDSOpenProc): TArray<T>; overload;
-    class function DSProcToRecordArray<T: record >(AProc: TDSOpenParamProc;
-      AParam: TJSONObject): TArray<T>; overload;
+    class function DSProcToRecordArray<T: record >(AProc: TDSOpenParamProc; AParam: TJSONObject): TArray<T>; overload;
 
     // Init TFDQuery DataType
     class procedure InitDataType(ASender: TComponent; AConn: TFDConnection);
@@ -81,10 +74,8 @@ type
     function GetJSONObject(AValue: TJSONObject; AName: String): TJSONObject;
     function GetJSONArray(AValue: TJSONArray; AName: String): TJSONArray;
 
-    procedure FieldByJsonValue(AField: TField; AValue: TJSONValue;
-      AProc: TLogProc = nil); overload;
-    procedure FieldByJsonValue(AValue: TJSONValue; AName: String;
-      AProc: TLogProc = nil); overload;
+    procedure FieldByJsonValue(AField: TField; AValue: TJSONValue; AProc: TLogProc = nil); overload;
+    procedure FieldByJsonValue(AValue: TJSONValue; AName: String; AProc: TLogProc = nil); overload;
     procedure FieldByJSONArray(AValue: TJSONArray; AName: String; AProc: TLogProc = nil);
   public
     procedure LoadFromDSStream(AStream: TStream);
@@ -99,10 +90,8 @@ type
 
   TFDQueryHelper = class helper for TFDQuery
   private
-    procedure ParamByJsonValue(AParam: TFDParam; AValue: TJSONValue;
-      AProc: TLogProc = nil); overload;
-    procedure ParamByJsonValue(AValue: TJSONValue; AName: String;
-      AProc: TLogProc = nil); overload;
+    procedure ParamByJsonValue(AParam: TFDParam; AValue: TJSONValue; AProc: TLogProc = nil); overload;
+    procedure ParamByJsonValue(AValue: TJSONValue; AName: String; AProc: TLogProc = nil); overload;
     procedure ParamByJSONArray(AValue: TJSONArray; AName: String; AProc: TLogProc = nil);
   public
     function Clone: TFDQuery;
@@ -191,8 +180,7 @@ begin
   tmp.Free;
 end;
 
-class procedure TDSCommon.AddJSONValue<T>(var AObject: TJSONObject; ARecord: T;
-  APreFix: string);
+class procedure TDSCommon.AddJSONValue<T>(var AObject: TJSONObject; ARecord: T; APreFix: string);
 var
   tmp: TJSONObject;
   MyPair: TJSONPair;
@@ -289,8 +277,7 @@ begin
   end;
 end;
 
-class function TDSCommon.DSProcToRecordArray<T>(AProc: TDSOpenParamProc; AParam: TJSONObject)
-  : TArray<T>;
+class function TDSCommon.DSProcToRecordArray<T>(AProc: TDSOpenParamProc; AParam: TJSONObject): TArray<T>;
 var
   MemTab: TFDMemTable;
 begin
@@ -382,8 +369,7 @@ begin
       for J := 0 to Query.Params.Count - 1 do
       begin
         if Query.Params.Items[J].DataType <> ftUnknown then
-          raise Exception.Create(Format('Unknown Type,Query=%s,Field=%s',
-            [Query.Name, Query.Params.Items[J].Name]));
+          raise Exception.Create(Format('Unknown Type,Query=%s,Field=%s', [Query.Name, Query.Params.Items[J].Name]));
       end;
       Continue;
     end;
@@ -446,8 +432,7 @@ begin
   TFDDataSet(Self).LoadFromDSStream(AStream);
 end;
 
-procedure TFDQueryHelper.ParamByJsonValue(AParam: TFDParam; AValue: TJSONValue;
-  AProc: TLogProc);
+procedure TFDQueryHelper.ParamByJsonValue(AParam: TFDParam; AValue: TJSONValue; AProc: TLogProc);
 var
   Msg: String;
 begin
@@ -463,8 +448,7 @@ begin
 
   case AParam.DataType of
     ftUnknown:
-      raise Exception.Create(Format('DataSet=%s,ParamName=%s,Unknown DataType',
-        [Self.Name, AParam.Name]));
+      raise Exception.Create(Format('DataSet=%s,ParamName=%s,Unknown DataType', [Self.Name, AParam.Name]));
 
     ftString, ftWideString:
       if Self.Params.ArraySize = 1 then
@@ -489,15 +473,13 @@ begin
       if Self.Params.ArraySize = 1 then
         AParam.AsDate := StrToDate((AValue as TJSONString).Value, DefaultFormatSettings)
       else
-        AParam.AsDates[Self.Tag] := StrToDate((AValue as TJSONString).Value,
-          DefaultFormatSettings);
+        AParam.AsDates[Self.Tag] := StrToDate((AValue as TJSONString).Value, DefaultFormatSettings);
 
     ftTime:
       if Self.Params.ArraySize = 1 then
         AParam.AsTime := StrToTime((AValue as TJSONString).Value, DefaultFormatSettings)
       else
-        AParam.AsTimes[Self.Tag] := StrToTime((AValue as TJSONString).Value,
-          DefaultFormatSettings);
+        AParam.AsTimes[Self.Tag] := StrToTime((AValue as TJSONString).Value, DefaultFormatSettings);
 
     ftDateTime:
       if Self.Params.ArraySize = 1 then
@@ -507,11 +489,9 @@ begin
 
     ftTimeStamp:
       if Self.Params.ArraySize = 1 then
-        AParam.AsSQLTimeStamp := DateTimeToSQLTimeStamp
-          (ISO8601ToDate((AValue as TJSONString).Value))
+        AParam.AsSQLTimeStamp := DateTimeToSQLTimeStamp(ISO8601ToDate((AValue as TJSONString).Value))
       else
-        AParam.AsSQLTimeStamps[Self.Tag] :=
-          DateTimeToSQLTimeStamp(ISO8601ToDate((AValue as TJSONString).Value));
+        AParam.AsSQLTimeStamps[Self.Tag] := DateTimeToSQLTimeStamp(ISO8601ToDate((AValue as TJSONString).Value));
 {$ELSE}
     ftBoolean:
       if Self.Params.ArraySize = 1 then
@@ -698,8 +678,7 @@ end;
 
 { TFDDataSetHelper }
 
-procedure TFDDataSetHelper.FieldByJsonValue(AField: TField; AValue: TJSONValue;
-  AProc: TLogProc);
+procedure TFDDataSetHelper.FieldByJsonValue(AField: TField; AValue: TJSONValue; AProc: TLogProc);
 var
   Msg: String;
 begin
@@ -715,8 +694,7 @@ begin
 
   case AField.DataType of
     ftUnknown:
-      raise Exception.Create(Format('DataSet=%s,ParamName=%s,Unknown DataType',
-        [Self.Name, AField.Name]));
+      raise Exception.Create(Format('DataSet=%s,ParamName=%s,Unknown DataType', [Self.Name, AField.Name]));
 
     ftString, ftWideString:
       AField.AsString := (AValue as TJSONString).Value;
@@ -732,8 +710,7 @@ begin
       AField.AsDateTime := ISO8601ToDate((AValue as TJSONString).Value);
 
     ftTimeStamp:
-      AField.AsSQLTimeStamp := DateTimeToSQLTimeStamp
-        (ISO8601ToDate((AValue as TJSONString).Value));
+      AField.AsSQLTimeStamp := DateTimeToSQLTimeStamp(ISO8601ToDate((AValue as TJSONString).Value));
 
 {$ELSE}
     ftBoolean:
@@ -768,8 +745,7 @@ begin
   end;
 end;
 
-procedure TFDDataSetHelper.FieldByJsonValue(AValue: TJSONValue; AName: String;
-  AProc: TLogProc);
+procedure TFDDataSetHelper.FieldByJsonValue(AValue: TJSONValue; AName: String; AProc: TLogProc);
 begin
   if AValue is TJSONObject then
     FieldByJSONObject(AValue as TJSONObject, AProc)
@@ -788,8 +764,7 @@ begin
 
   case AField.DataType of
     ftUnknown:
-      raise Exception.Create(Format('DataSet=%s,FieldName=%s,Unknown DataType',
-        [Self.Name, AField.FieldName]));
+      raise Exception.Create(Format('DataSet=%s,FieldName=%s,Unknown DataType', [Self.Name, AField.FieldName]));
     ftString, ftWideString:
       result := TJSONString.Create(AField.AsString);
     ftSmallint, ftInteger, ftWord, ftShortint, ftAutoInc:
@@ -830,16 +805,15 @@ begin
     ftSingle:
       result := TJSONNumber.Create(AField.AsSingle);
   else
-    raise Exception.Create(Format('DataSet=%s,FieldName=%s,UnsurportDataType=%s',
-      [Self.Name, AField.FieldName, GetFieldTypeName(AField.DataType)]));
+    raise Exception.Create(Format('DataSet=%s,FieldName=%s,UnsurportDataType=%s', [Self.Name, AField.FieldName,
+      GetFieldTypeName(AField.DataType)]));
   end;
 
   PrintDebug('DataSet=%s,FieldName=%s,DataType=%s,Value=%s',
     [Self.Name, AField.FieldName, GetFieldTypeName(AField.DataType), result.Value]);
 end;
 
-procedure TFDDataSetHelper.FieldByJSONArray(AValue: TJSONArray; AName: String;
-  AProc: TLogProc);
+procedure TFDDataSetHelper.FieldByJSONArray(AValue: TJSONArray; AName: String; AProc: TLogProc);
 var
   MyElem: TJSONValue;
   Index: Integer;
