@@ -129,7 +129,7 @@ begin
     Result := JSONValue as TJSONArray;
   except
     on E: Exception do
-      raise Exception.Create(Format('JSON name [%s] can not cast to TJSONArray. \n %s',
+      raise Exception.Create(SysUtils.Format('JSON name [%s] can not cast to TJSONArray. \n %s',
         [Name, JSONValue.ToString]));
   end;
 end;
@@ -144,7 +144,7 @@ begin
     Result := JSONValue as TJSONObject;
   except
     on E: Exception do
-      raise Exception.Create(Format('JSON name [%s] can not cast to TJSONObject. \n %s',
+      raise Exception.Create(SysUtils.Format('JSON name [%s] can not cast to TJSONObject. \n %s',
         [Name, JSONValue.ToString]));
   end;
 end;
@@ -171,7 +171,7 @@ begin
     Result := (JSONValue as TJSONNumber).AsDouble;
   except
     on E: Exception do
-      raise Exception.Create(Format('JSON name [%s] can not cast to TJSONNumber. \n %s',
+      raise Exception.Create(SysUtils.Format('JSON name [%s] can not cast to TJSONNumber. \n %s',
         [Name, JSONValue.ToString]));
   end;
 end;
@@ -186,7 +186,7 @@ begin
     Result := (JSONValue as TJSONNumber).AsInt;
   except
     on E: Exception do
-      raise Exception.Create(Format('JSON name [%s] can not cast to TJSONNumber. \n %s',
+      raise Exception.Create(SysUtils.Format('JSON name [%s] can not cast to TJSONNumber. \n %s',
         [Name, JSONValue.ToString]));
   end;
 end;
@@ -210,7 +210,7 @@ begin
   for MyElem in Self do
     Names := Names + MyElem.JsonString.Value + ', ';
 
-  raise Exception.Create(Format('JSON name [%s] is not exist. Other name list [%s]',
+  raise Exception.Create(SysUtils.Format('JSON name [%s] is not exist. Other name list [%s]',
     [Name, Names]));
 end;
 
