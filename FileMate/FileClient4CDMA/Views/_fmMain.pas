@@ -3,7 +3,7 @@ unit _fmMain;
 interface
 
 uses
-  ValueList,
+  JsonData,
   Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
   Dialogs, Vcl.ActnList, Vcl.ExtCtrls, Vcl.StdCtrls, Vcl.Grids, Vcl.DBGrids,
   Vcl.ComCtrls, IniFiles, Data.DB, Datasnap.DBClient, DBXJSON, Vcl.Menus,
@@ -76,27 +76,27 @@ type
     procedure FileTimerTimer(Sender: TObject);
   private
     procedure ShowLog(AMsg: String);
-    procedure ShowError(APacket: TValueList);
+    procedure ShowError(APacket: TJsonData);
 
     procedure AddNewLine;
     procedure AddSpliter;
     procedure SetCDMAInfo;
   public
   published
-    procedure rp_Terminate(APacket: TValueList);
+    procedure rp_Terminate(APacket: TJsonData);
 
-    procedure rp_Init(APacket: TValueList);
+    procedure rp_Init(APacket: TJsonData);
 
-    procedure rp_ShowMessage(APacket: TValueList);
-    procedure rp_ErrorMessage(APacket: TValueList);
+    procedure rp_ShowMessage(APacket: TJsonData);
+    procedure rp_ErrorMessage(APacket: TJsonData);
 
-    procedure rp_CDMALog(APacket: TValueList);
-    procedure rp_PrepareSendFile(APacket: TValueList);
-    procedure rp_BeginSendFile(APacket: TValueList);
-    procedure rp_erSendFile(APacket: TValueList);
-    procedure rp_okSendFile(APacket: TValueList);
-    procedure rp_endSendFile(APacket: TValueList);
-    procedure rp_SendingFile(APacket: TValueList);
+    procedure rp_CDMALog(APacket: TJsonData);
+    procedure rp_PrepareSendFile(APacket: TJsonData);
+    procedure rp_BeginSendFile(APacket: TJsonData);
+    procedure rp_erSendFile(APacket: TJsonData);
+    procedure rp_okSendFile(APacket: TJsonData);
+    procedure rp_endSendFile(APacket: TJsonData);
+    procedure rp_SendingFile(APacket: TJsonData);
 
   end;
 
@@ -208,7 +208,7 @@ begin
   AddNewLine;
 end;
 
-procedure TfmMain.rp_BeginSendFile(APacket: TValueList);
+procedure TfmMain.rp_BeginSendFile(APacket: TJsonData);
 begin
   ShowLog('파일 전송... ' + APacket.Values['Msg']);
 {$IFDEF DEBUG}
@@ -216,14 +216,14 @@ begin
 {$ENDIF}
 end;
 
-procedure TfmMain.rp_endSendFile(APacket: TValueList);
+procedure TfmMain.rp_endSendFile(APacket: TJsonData);
 begin
   StatusBar.Panels[2].Text := '';
   ShowLog('파일 전송 완료. ');
   AddSpliter;
 end;
 
-procedure TfmMain.rp_erSendFile(APacket: TValueList);
+procedure TfmMain.rp_erSendFile(APacket: TJsonData);
 begin
   StatusBar.Panels[2].Text := '';
   AddSpliter;
@@ -275,22 +275,22 @@ begin
   actInit.Execute;
 end;
 
-procedure TfmMain.rp_ErrorMessage(APacket: TValueList);
+procedure TfmMain.rp_ErrorMessage(APacket: TJsonData);
 begin
   ShowError(APacket);
 end;
 
-procedure TfmMain.rp_Init(APacket: TValueList);
+procedure TfmMain.rp_Init(APacket: TJsonData);
 begin
   actStartFileMan.Execute;
 end;
 
-procedure TfmMain.rp_PrepareSendFile(APacket: TValueList);
+procedure TfmMain.rp_PrepareSendFile(APacket: TJsonData);
 begin
   StatusBar.Panels[2].Text := '파일 전송 준비 중..';
 end;
 
-procedure TfmMain.rp_CDMALog(APacket: TValueList);
+procedure TfmMain.rp_CDMALog(APacket: TJsonData);
 begin
   if TOption.Obj.ShowCDMALog then
     ShowLog('<C> ' + APacket.Values['Msg']);
@@ -301,23 +301,23 @@ begin
 {$ENDIF}
 end;
 
-procedure TfmMain.rp_Terminate(APacket: TValueList);
+procedure TfmMain.rp_Terminate(APacket: TJsonData);
 begin
   Application.Terminate;
 end;
 
-procedure TfmMain.rp_SendingFile(APacket: TValueList);
+procedure TfmMain.rp_SendingFile(APacket: TJsonData);
 begin
   StatusBar.Panels[2].Text := '파일 전송 중... ' +
     FloatToStr(round(APacket.Doubles['Msg'] * 1000) / 10) + '%';
 end;
 
-procedure TfmMain.rp_ShowMessage(APacket: TValueList);
+procedure TfmMain.rp_ShowMessage(APacket: TJsonData);
 begin
   ShowLog(APacket.Values['Msg']);
 end;
 
-procedure TfmMain.rp_okSendFile(APacket: TValueList);
+procedure TfmMain.rp_okSendFile(APacket: TJsonData);
 begin
   StatusBar.Panels[2].Text := '';
 end;
@@ -328,7 +328,7 @@ begin
   TOption.Obj.ShowCDMALog := ShowCDMALog1.Checked;
 end;
 
-procedure TfmMain.ShowError(APacket: TValueList);
+procedure TfmMain.ShowError(APacket: TJsonData);
 begin
   ShowLog('<E> ' + APacket.Values['Msg']);
   PrintLog(ChangeFileExt(TGlobal.Obj.ExeName, '.log'), APacket.Values['Msg']);

@@ -5,7 +5,7 @@ interface
 uses Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants,
   System.Classes, Vcl.Graphics, Vcl.Controls, Vcl.Forms, Vcl.Dialogs,
   Vcl.StdCtrls, Vcl.Mask, JvExMask, JvToolEdit, JvCombobox, JvExStdCtrls,
-  JvDBCombobox, ValueList, Vcl.ActnList, Vcl.ComCtrls, Vcl.ExtCtrls,
+  JvDBCombobox, JsonData, Vcl.ActnList, Vcl.ComCtrls, Vcl.ExtCtrls,
   JvTextListBox, Vcl.Menus, DBXJSON, System.Actions, System.UITypes,
   Vcl.AppEvnts;
 

@@ -8,7 +8,7 @@ unit JdcView2.ObserverListEx;
 interface
 
 uses
-  ValueList, HandleComponent,
+  JsonData, HandleComponent,
   Windows, Messages, Classes, SysUtils, SyncObjs, Types, JdcGlobal;
 
 const
@@ -27,7 +27,7 @@ type
   private
     FList: TList;
     FActive: boolean;
-    procedure do_Notify(Observer: TObject; Packet: TValueList);
+    procedure do_Notify(Observer: TObject; Packet: TJsonData);
     procedure do_RemoveItems;
   private
     FLockCount: integer;
@@ -46,12 +46,12 @@ type
     procedure Remove(Observer: TObject);
     /// Unregister an observer.
 
-    procedure BroadCast(APacket: TValueList); overload;
+    procedure BroadCast(APacket: TJsonData); overload;
     /// Send synchronous message.
     procedure BroadCast(AText: string); overload;
     /// Send synchronous message.
 
-    procedure AsyncBroadcast(APacket: TValueList); overload;
+    procedure AsyncBroadcast(APacket: TJsonData); overload;
     /// Send asynchronous message.
     procedure AsyncBroadcast(AText: string); overload;
     /// Send asynchronous message.
@@ -77,12 +77,12 @@ begin
     end);
 end;
 
-procedure TObserverListEx.BroadCast(APacket: TValueList);
+procedure TObserverListEx.BroadCast(APacket: TJsonData);
 begin
   BroadCast(APacket.Text);
 end;
 
-procedure TObserverListEx.AsyncBroadcast(APacket: TValueList);
+procedure TObserverListEx.AsyncBroadcast(APacket: TJsonData);
 begin
   AsyncBroadcast(APacket.Text);
 end;
@@ -147,9 +147,9 @@ begin
   inherited;
 end;
 
-procedure TObserverListEx.do_Notify(Observer: TObject; Packet: TValueList);
+procedure TObserverListEx.do_Notify(Observer: TObject; Packet: TJsonData);
 var
-  Proc: procedure(Packet: TValueList) of object;
+  Proc: procedure(Packet: TJsonData) of object;
 begin
   // Notify 도중에 다시 Notify가 중복되지 않도록 조심, 재귀호출
   // 해당 Observer가 이미 삭제되었는데도, Remove 되지 않는 경우 조심
@@ -180,10 +180,10 @@ end;
 
 procedure TObserverListEx.SendMessage(PacketText: string);
 var
-  Packet: TValueList;
+  Packet: TJsonData;
   Loop: integer;
 begin
-  Packet := TValueList.Create;
+  Packet := TJsonData.Create;
   try
     Packet.Text := PacketText;
     for Loop := FList.Count - 1 downto 0 do

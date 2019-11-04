@@ -3,7 +3,7 @@ unit JdcView2;
 interface
 
 uses
-  JdcView2.ObserverListEx, ValueList, Classes, SysUtils;
+  JdcView2.ObserverListEx, JsonData, Classes, SysUtils;
 
 type
   TView = class(TObserverListEx)
@@ -52,28 +52,28 @@ end;
 
 procedure TView.sp_AsyncMessage(const ACode: String; AMsg: String = '');
 var
-  ValueList: TValueList;
+  JsonData: TJsonData;
 begin
-  ValueList := TValueList.Create;
+  JsonData := TJsonData.Create;
   try
-    ValueList.Values['Code'] := ACode;
-    ValueList.Values['Msg'] := AMsg;
-    AsyncBroadcast(ValueList);
+    JsonData.Values['Code'] := ACode;
+    JsonData.Values['Msg'] := AMsg;
+    AsyncBroadcast(JsonData);
   finally
-    ValueList.Free;
+    JsonData.Free;
   end;
 end;
 
 procedure TView.sp_ASyncPacket(const APacket: String);
 var
-  ValueList: TValueList;
+  JsonData: TJsonData;
 begin
-  ValueList := TValueList.Create;
+  JsonData := TJsonData.Create;
   try
-    ValueList.Text := APacket;
-    AsyncBroadcast(ValueList);
+    JsonData.Text := APacket;
+    AsyncBroadcast(JsonData);
   finally
-    ValueList.Free;
+    JsonData.Free;
   end;
 end;
 
@@ -86,33 +86,33 @@ end;
 procedure TView.sp_ErrorMessage(const ErrorName: string;
   const ErrorMsg: String = '');
 var
-  ValueList: TValueList;
+  JsonData: TJsonData;
 begin
-  ValueList := TValueList.Create;
+  JsonData := TJsonData.Create;
   try
-    ValueList.Values['Code'] := 'ErrorMessage';
-    ValueList.Values['Msg'] := ErrorName + ', ' + ErrorMsg; // old version.
-    ValueList.Values['ErrorName'] := ErrorName;
-    ValueList.Values['ErrorMsg'] := ErrorMsg;
-    Broadcast(ValueList);
+    JsonData.Values['Code'] := 'ErrorMessage';
+    JsonData.Values['Msg'] := ErrorName + ', ' + ErrorMsg; // old version.
+    JsonData.Values['ErrorName'] := ErrorName;
+    JsonData.Values['ErrorMsg'] := ErrorMsg;
+    Broadcast(JsonData);
   finally
-    ValueList.Free;
+    JsonData.Free;
   end;
 end;
 
 procedure TView.sp_LogMessage(const LogName: String; const LogMsg: string = '');
 var
-  ValueList: TValueList;
+  JsonData: TJsonData;
 begin
-  ValueList := TValueList.Create;
+  JsonData := TJsonData.Create;
   try
-    ValueList.Values['Code'] := 'LogMessage';
-    ValueList.Values['Msg'] := LogName + ', ' + LogMsg; // old version.
-    ValueList.Values['LogName'] := LogName;
-    ValueList.Values['LogMsg'] := LogMsg;
-    Broadcast(ValueList);
+    JsonData.Values['Code'] := 'LogMessage';
+    JsonData.Values['Msg'] := LogName + ', ' + LogMsg; // old version.
+    JsonData.Values['LogName'] := LogName;
+    JsonData.Values['LogMsg'] := LogMsg;
+    Broadcast(JsonData);
   finally
-    ValueList.Free;
+    JsonData.Free;
   end;
 end;
 
@@ -123,29 +123,29 @@ end;
 
 procedure TView.sp_SyncPacket(const APacket: String);
 var
-  ValueList: TValueList;
+  JsonData: TJsonData;
 begin
-  ValueList := TValueList.Create;
+  JsonData := TJsonData.Create;
   try
-    ValueList.Text := APacket;
-    Broadcast(ValueList);
+    JsonData.Text := APacket;
+    Broadcast(JsonData);
   finally
-    ValueList.Free;
+    JsonData.Free;
   end;
 end;
 
 procedure TView.sp_SyncMessage(const ACode: String; AMsg: String = '');
 var
-  ValueList: TValueList;
+  JsonData: TJsonData;
 begin
-  ValueList := TValueList.Create;
+  JsonData := TJsonData.Create;
   try
-    ValueList.Values['Code'] := ACode;
-    ValueList.Values['Msg'] := AMsg;
+    JsonData.Values['Code'] := ACode;
+    JsonData.Values['Msg'] := AMsg;
 
-    Broadcast(ValueList);
+    Broadcast(JsonData);
   finally
-    ValueList.Free;
+    JsonData.Free;
   end;
 end;
 

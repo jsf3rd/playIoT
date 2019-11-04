@@ -2,16 +2,11 @@ unit _ServerContainer;
 
 interface
 
-uses System.SysUtils, System.Classes,
-  Vcl.SvcMgr,
-  Datasnap.DSTCPServerTransport,
-  Datasnap.DSHTTPCommon, Datasnap.DSHTTP,
-  Datasnap.DSServer, Datasnap.DSCommonServer,
-  Datasnap.DSAuth, IPPeerServer, Registry, Winapi.Windows,
-  JdcConnectionPool, FireDAC.Stan.Intf, FireDAC.Stan.Option, FireDAC.Stan.Error,
-  FireDAC.UI.Intf, FireDAC.Phys.Intf, FireDAC.Stan.Def, FireDAC.Stan.Pool,
-  FireDAC.Stan.Async, FireDAC.Phys, FireDAC.VCLUI.Wait, Data.DB,
-  FireDAC.Comp.Client, System.JSON, FireDAC.Stan.Param, System.StrUtils;
+uses System.SysUtils, System.Classes, Vcl.SvcMgr, Datasnap.DSTCPServerTransport, Datasnap.DSHTTPCommon, Datasnap.DSHTTP,
+  Datasnap.DSServer, Datasnap.DSCommonServer, Datasnap.DSAuth, IPPeerServer, Registry, Winapi.Windows,
+  JdcConnectionPool, FireDAC.Stan.Intf, FireDAC.Stan.Option, FireDAC.Stan.Error, FireDAC.UI.Intf, FireDAC.Phys.Intf,
+  FireDAC.Stan.Def, FireDAC.Stan.Pool, FireDAC.Stan.Async, FireDAC.Phys, FireDAC.VCLUI.Wait, Data.DB,
+  FireDAC.Comp.Client, System.JSON, FireDAC.Stan.Param, System.StrUtils, System.Generics.Collections;
 
 type
   TServerContainer = class(TService)

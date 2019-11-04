@@ -5,7 +5,7 @@ interface
 uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants,
   System.Classes, Vcl.Graphics, Winapi.Shellapi,
-  Vcl.Controls, Vcl.Forms, Vcl.ActnList, ValueList, Vcl.Dialogs, System.Actions,
+  Vcl.Controls, Vcl.Forms, Vcl.ActnList, JsonData, Vcl.Dialogs, System.Actions,
   Vcl.Menus, Vcl.AppEvnts, Vcl.ExtCtrls, Vcl.StdCtrls;
 
 type
@@ -43,11 +43,11 @@ type
     procedure FormShow(Sender: TObject);
     procedure actDebugExecute(Sender: TObject);
   published
-    procedure rp_Terminate(APacket: TValueList);
-    procedure rp_Init(APacket: TValueList);
+    procedure rp_Terminate(APacket: TJsonData);
+    procedure rp_Init(APacket: TJsonData);
 
-    procedure rp_ErrorMessage(APacket: TValueList);
-    procedure rp_LogMessage(APacket: TValueList);
+    procedure rp_ErrorMessage(APacket: TJsonData);
+    procedure rp_LogMessage(APacket: TJsonData);
   end;
 
 var
@@ -129,25 +129,25 @@ begin
   TCore.Obj.Initialize;
 end;
 
-procedure TfmMain.rp_ErrorMessage(APacket: TValueList);
+procedure TfmMain.rp_ErrorMessage(APacket: TJsonData);
 begin
   MessageDlg('오류 : ' + APacket.Values['Name'] + #13#10 + APacket.Values['Msg'],
     TMsgDlgType.mtError, [mbOK], 0);
 end;
 
-procedure TfmMain.rp_Init(APacket: TValueList);
+procedure TfmMain.rp_Init(APacket: TJsonData);
 begin
   Caption := TOption.Obj.AppName + ' ' + FileVersion(ParamStr(0));
   actDebug.Checked := TGlobal.Obj.UseDebug;
 end;
 
-procedure TfmMain.rp_LogMessage(APacket: TValueList);
+procedure TfmMain.rp_LogMessage(APacket: TJsonData);
 begin
   MessageDlg('알림 : ' + APacket.Values['Name'] + #13#10 + APacket.Values['Msg'],
     TMsgDlgType.mtInformation, [mbOK], 0);
 end;
 
-procedure TfmMain.rp_Terminate(APacket: TValueList);
+procedure TfmMain.rp_Terminate(APacket: TJsonData);
 begin
   Application.Terminate;
 end;

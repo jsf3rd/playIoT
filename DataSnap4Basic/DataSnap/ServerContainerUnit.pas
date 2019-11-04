@@ -260,7 +260,6 @@ begin
     except
       on E: Exception do
       begin
-        result := TStream.Create;
         raise Exception.Create('OpenQuery - ' + AQuery.Name + ', ' + E.Message);
       end;
     end;

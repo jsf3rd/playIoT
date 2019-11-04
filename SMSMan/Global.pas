@@ -4,7 +4,7 @@ interface
 
 uses
   Classes, SysUtils, JdcView2, Vcl.Imaging.jpeg, Data.DBXJSON, JdcOption,
-  System.Types, ValueList, System.IOUtils;
+  System.Types, JsonData, System.IOUtils;
 
 const
   COPY_RIGHT_QUEENANT = 'playIoTApp v1.0 - ⓒ 2012 playIoT';

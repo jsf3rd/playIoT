@@ -5,7 +5,7 @@ interface
 uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants,
   System.Classes, Vcl.Graphics,
-  Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Option, Global, ValueList,
+  Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Option, Global, JsonData,
   JdcGlobal, System.MaskUtils, System.AnsiStrings, math;
 
 function SendSMS(ID, Pass, AFrom, ATo, AMsg: PChar; var ErrMsg: PChar): Boolean; stdcall;

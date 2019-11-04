@@ -5,7 +5,7 @@ interface
 uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants,
   System.Classes, Vcl.Graphics, Winapi.Shellapi,
-  Vcl.Controls, Vcl.Forms, Vcl.ActnList, ValueList, Vcl.Dialogs, System.Actions,
+  Vcl.Controls, Vcl.Forms, Vcl.ActnList, JsonData, Vcl.Dialogs, System.Actions,
   Vcl.Menus, Vcl.AppEvnts, Vcl.ExtCtrls, Vcl.StdCtrls, VclTee.TeeGDIPlus,
   IdBaseComponent, IdComponent, IdUDPBase, IdUDPServer, Vcl.ComCtrls,
   VclTee.TeEngine, VclTee.Series, VclTee.TeeProcs, VclTee.Chart, IdGlobal,
