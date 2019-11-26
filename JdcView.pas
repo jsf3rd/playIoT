@@ -17,6 +17,7 @@ type
     procedure sp_ASyncPacket(const APacket: String);
 
     procedure sp_ErrorMessage(const AName: String; AMsg: String = '');
+    procedure sp_WarnMessage(const AName: String; AMsg: String = '');
     procedure sp_LogMessage(const AName: String; AMsg: String = '');
     procedure sp_DebugMessage(const AName: String; AMsg: String = '');
 
@@ -151,6 +152,22 @@ end;
 procedure TView.sp_Terminate(const Msg: string);
 begin
   sp_SyncMessage('Terminate', Msg);
+end;
+
+procedure TView.sp_WarnMessage(const AName: String; AMsg: String);
+var
+  JsonData: TJsonData;
+begin
+  JsonData := TJsonData.Create;
+  try
+    JsonData.Values['Code'] := 'WarnMessage';
+    JsonData.Values['Name'] := AName;
+    JsonData.Values['Msg'] := AMsg;
+
+    AsyncBroadcast(JsonData);
+  finally
+    JsonData.Free;
+  end;
 end;
 
 class function TView.Obj: TView;
