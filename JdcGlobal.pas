@@ -15,7 +15,7 @@ interface
 
 uses
   Classes, SysUtils, Windows, ZLib, IdGlobal, IOUtils, JclFileUtils, Vcl.ExtCtrls,
-  IdUDPClient, JclSysInfo, psAPI, IdContext, Vcl.StdCtrls, JclSvcCtrl, Vcl.ActnList,
+  IdUDPClient, JclSysInfo, psAPI, IdContext, IdExceptionCore, Vcl.StdCtrls, JclSvcCtrl, Vcl.ActnList,
   Vcl.Dialogs, WinApi.Shellapi, UITypes, System.Generics.Collections;
 
 type
@@ -31,17 +31,19 @@ type
 
   TMessageType = (msDebug, msInfo, msError, msWarning, msUnknown);
 
-  TLogProc = procedure(const AType: TMessageType; const ATitle: String; const AMessage: String = '') of object;
+  TLogProc = //
+    procedure(const AType: TMessageType; const ATitle: String; const AMessage: String = '') of object;
 
-  TOnMessageEvent = procedure(const Sender: TObject; const AName: string; const AMessage: string = '') of object;
+  TOnMessageEvent = //
+    procedure(const Sender: TObject; const AName: string; const AMessage: string = '') of object;
 
   TMsgOutput = (moDebugView, moLogFile, moCloudMessage);
   TMsgOutputs = set of TMsgOutput;
 
   TConnInfo = record
     StringValue: string;
-    IntegerValue: integer;
-    constructor Create(AString: string; AInteger: integer);
+    IntegerValue: Integer;
+    constructor Create(AString: string; AInteger: Integer);
     function ToString: string;
     function Equals(const ConnInfo: TConnInfo): boolean;
   end;
@@ -102,8 +104,8 @@ type
     procedure Initialize; virtual;
     procedure Finalize; virtual;
 
-    procedure ApplicationMessage(const AType: TMessageType; const ATitle: String; const AMessage: String = '');
-      overload; virtual;
+    procedure ApplicationMessage(const AType: TMessageType; const ATitle: String;
+      const AMessage: String = ''); overload; virtual;
     procedure ApplicationMessage(const AType: TMessageType; const ATitle: String; const AFormat: String;
       const Args: array of const); overload;
 
@@ -130,7 +132,7 @@ procedure PrintDebug(const str: string); overload;
 
 // 특정 자리수 이하 0 만들기
 // Value : 값, Digit : 자리수
-function TruncInt(Value: integer; Digit: integer): integer;
+function TruncInt(Value: Integer; Digit: Integer): Integer;
 
 function CurrentProcessMemory: Cardinal;
 function FileVersion(const FileName: String): String;
@@ -163,15 +165,15 @@ function WordToBytes(AValue: WORD): TIdBytes;
 function DWordToBytes(AValue: DWORD): TIdBytes;
 
 // little endian
-function HexStrToWord(const ASource: string; const AIndex: integer = 1): WORD;
+function HexStrToWord(const ASource: string; const AIndex: Integer = 1): WORD;
 
-function HexStrToByte(const ASource: String; const AIndex: integer = 1): Byte;
-function HexStrToBytes(const ASource: string; const AIndex: integer = 1): TIdBytes;
+function HexStrToByte(const ASource: String; const AIndex: Integer = 1): Byte;
+function HexStrToBytes(const ASource: string; const AIndex: Integer = 1): TIdBytes;
 
 function IdBytesToHex(const AValue: TIdBytes; const ASpliter: String = ' '): String;
 function BytesToHex(const AValue: TBytes; const ASpliter: String = ' '): String;
 
-function IdBytesPos(const SubIdBytes, IdBytes: TIdBytes; const AIndex: integer = 0): integer;
+function IdBytesPos(const SubIdBytes, IdBytes: TIdBytes; const AIndex: Integer = 0): Integer;
 
 function DefaultFormatSettings: TFormatSettings;
 
@@ -183,15 +185,14 @@ procedure ThreadSafe(AThreadProc: TThreadProcedure); overload;
 
 procedure FreeAndNilEx(var Obj; const AGlobal: TGlobalAbstract = nil);
 
-function GetPeerInfo(AContext: TIdContext): string;
-
 // 서비스 관리
 procedure StartService(const ServiceName: String; var OldStatus: TJclServiceState; StartAction: TAction);
-procedure StopService(const ServiceName: String; var OldStatus: TJclServiceState; StopAction: TAction; hnd: HWND);
+procedure StopService(const ServiceName: String; var OldStatus: TJclServiceState; StopAction: TAction;
+  hnd: HWND);
 procedure UpdateServiceStatus(const ServiceName: String; var OldStatus: TJclServiceState;
   StartAction, StopAction: TAction; StatusEdit: TLabeledEdit);
 
-function IntToBin(Value: Cardinal; Digits: integer): String;
+function IntToBin(Value: Cardinal; Digits: Integer): String;
 
 const
   LOCAL_SERVER = '\\localhost';
@@ -200,7 +201,7 @@ implementation
 
 uses JdcGlobal.ClassHelper;
 
-function IntToBin(Value: Cardinal; Digits: integer): String;
+function IntToBin(Value: Cardinal; Digits: Integer): String;
 var
   S: String;
 begin
@@ -243,15 +244,16 @@ begin
   StartAction.Enabled := true;
 end;
 
-procedure StopService(const ServiceName: String; var OldStatus: TJclServiceState; StopAction: TAction; hnd: HWND);
+procedure StopService(const ServiceName: String; var OldStatus: TJclServiceState; StopAction: TAction;
+  hnd: HWND);
 begin
   OldStatus := ssUnknown;
   StopAction.Enabled := False;
   if StopServiceByName(LOCAL_SERVER, ServiceName) then
     Exit;
 
-  if MessageDlg('알림 : 서비스를 중지하지 못했습니다.' + #13#10 + '강제로 중지하시겠습니까?', TMsgDlgType.mtConfirmation, [mbYes, mbNo], 0) = mrYes
-  then
+  if MessageDlg('알림 : 서비스를 중지하지 못했습니다.' + #13#10 + '강제로 중지하시겠습니까?', TMsgDlgType.mtConfirmation, [mbYes, mbNo],
+    0) = mrYes then
     ShellExecute(hnd, 'open', 'taskkill', PWideChar(' -f -im ' + ServiceName + '.exe'), nil, SW_HIDE);
 end;
 
@@ -295,11 +297,6 @@ begin
 
 end;
 
-function GetPeerInfo(AContext: TIdContext): string;
-begin
-  Result := AContext.Connection.Socket.Binding.PeerIP + ':' + AContext.Connection.Socket.Binding.PeerPort.ToString;
-end;
-
 procedure ThreadSafe(AMethod: TThreadMethod); overload;
 begin
   if TThread.CurrentThread.ThreadID = MainThreadID then
@@ -333,10 +330,10 @@ begin
   Result.TimeSeparator := ':';
 end;
 
-function IdBytesPos(const SubIdBytes, IdBytes: TIdBytes; const AIndex: integer = 0): integer;
+function IdBytesPos(const SubIdBytes, IdBytes: TIdBytes; const AIndex: Integer = 0): Integer;
 var
-  Index: integer;
-  I: integer;
+  Index: Integer;
+  I: Integer;
 begin
   Index := ByteIndex(SubIdBytes[0], IdBytes, AIndex);
   if Index = -1 then
@@ -352,7 +349,7 @@ end;
 
 function IdBytesToHex(const AValue: TIdBytes; const ASpliter: String): String;
 var
-  I: integer;
+  I: Integer;
 begin
   Result := '';
   for I := 0 to Length(AValue) - 1 do
@@ -363,7 +360,7 @@ end;
 
 function BytesToHex(const AValue: TBytes; const ASpliter: String): String;
 var
-  I: integer;
+  I: Integer;
 begin
   Result := '';
   for I := 0 to Length(AValue) - 1 do
@@ -385,7 +382,7 @@ begin
   end;
 end;
 
-procedure BackupLogFile(AName: string; AMaxSize: integer = 1024 * 1024 * 5);
+procedure BackupLogFile(AName: string; AMaxSize: Integer = 1024 * 1024 * 5);
 begin
   if FileExists(AName) then
   begin
@@ -441,7 +438,7 @@ begin
   OutputDebugString(PChar('[JDC] ' + str));
 end;
 
-function TruncInt(Value: integer; Digit: integer): integer;
+function TruncInt(Value: Integer; Digit: Integer): Integer;
 begin
   Result := Trunc(Value / Digit);
   Result := Trunc(Result * Digit);
@@ -562,7 +559,7 @@ end;
 
 function Contains(Contents: string; const str: array of const): boolean;
 var
-  I: integer;
+  I: Integer;
 begin
   Result := False;
 
@@ -594,8 +591,8 @@ const
   BuffSize = 65535; // 버퍼 사이즈
 var
   DS: TZDeCompressionStream;
-  Buff: PChar; // 임시 버퍼
-  ReadSize: integer; // 읽은 크기
+  buff: PChar; // 임시 버퍼
+  ReadSize: Integer; // 읽은 크기
 begin
   if Stream = OutStream then
     // 입력 스트림과 출력스트림이 같으면 문제가 발생한다
@@ -608,20 +605,20 @@ begin
   try
     if Assigned(OnProgress) then
       DS.OnProgress := OnProgress;
-    GetMem(Buff, BuffSize);
+    GetMem(buff, BuffSize);
     try
       // 버퍼 사이즈만큼 읽어온다. Read함수를 부르면 압축이 풀리게 된다.
       repeat
-        ReadSize := DS.Read(Buff^, BuffSize);
+        ReadSize := DS.Read(buff^, BuffSize);
         if ReadSize <> 0 then
-          OutStream.Write(Buff^, ReadSize);
+          OutStream.Write(buff^, ReadSize);
       until ReadSize < BuffSize;
       if Assigned(OnProgress) then
         OnProgress(DS);
       // Compress와 같은이유
       Result := true;
     finally
-      FreeMem(Buff)
+      FreeMem(buff)
     end;
   finally
     DS.Free;
@@ -658,7 +655,7 @@ begin
     Result := '0' + ASource;
 end;
 
-function HexStrToByte(const ASource: String; const AIndex: integer): Byte;
+function HexStrToByte(const ASource: String; const AIndex: Integer): Byte;
 var
   str: String;
   tmp: TIdBytes;
@@ -686,7 +683,7 @@ begin
   Result := ToBytes(Rev4Bytes(AValue));
 end;
 
-function HexStrToWord(const ASource: string; const AIndex: integer): WORD;
+function HexStrToWord(const ASource: string; const AIndex: Integer): WORD;
 var
   str: string;
 begin
@@ -710,9 +707,9 @@ begin
 {$ENDIF}
 end;
 
-function HexStrToBytes(const ASource: string; const AIndex: integer): TIdBytes;
+function HexStrToBytes(const ASource: string; const AIndex: Integer): TIdBytes;
 var
-  I, j, n: integer;
+  I, j, n: Integer;
   c: char;
   b: Byte;
   str: string;
@@ -760,7 +757,8 @@ end;
 
 { TGlobalAbstract }
 
-procedure TGlobalAbstract.ApplicationMessage(const AType: TMessageType; const ATitle: string; const AMessage: String);
+procedure TGlobalAbstract.ApplicationMessage(const AType: TMessageType; const ATitle: string;
+  const AMessage: String);
 begin
   if FIsFinalized then
     Exit;
@@ -779,8 +777,8 @@ begin
   end;
 end;
 
-procedure TGlobalAbstract.ApplicationMessage(const AType: TMessageType; const ATitle: string; const AFormat: String;
-  const Args: array of const);
+procedure TGlobalAbstract.ApplicationMessage(const AType: TMessageType; const ATitle: string;
+  const AFormat: String; const Args: array of const);
 var
   str: string;
 begin
@@ -833,7 +831,7 @@ procedure TGlobalAbstract.FlushLog;
           if LogName <> ALog.LogName then
           begin
             _PrintLog(ALog);
-            Break;
+            break;
           end;
 
           if ALog.Msg.IsEmpty then
@@ -922,8 +920,8 @@ begin
   FreeAndNilEx(FMsgQueue);
 end;
 
-procedure TGlobalAbstract._ApplicationMessage(const AType: string; const ATitle: string; const AMessage: String;
-const AOutputs: TMsgOutputs);
+procedure TGlobalAbstract._ApplicationMessage(const AType: string; const ATitle: string;
+const AMessage: String; const AOutputs: TMsgOutputs);
 var
   splitter: string;
 begin
@@ -944,7 +942,7 @@ end;
 
 { TConnInfo }
 
-constructor TConnInfo.Create(AString: string; AInteger: integer);
+constructor TConnInfo.Create(AString: string; AInteger: Integer);
 begin
   Self.StringValue := AString;
   Self.IntegerValue := AInteger;
