@@ -16,7 +16,7 @@ interface
 uses
   Classes, SysUtils, REST.JSON,
   XSuperObject, System.IOUtils, System.Generics.Collections, System.DateUtils, Data.SqlTimSt,
-  IdContext
+  IdContext, JdcGlobal, IdGlobal, IdExceptionCore, IdIOHandler
 
 {$IF CompilerVersion  > 26} // upper XE5
     , System.JSON
@@ -37,10 +37,22 @@ type
 {$ENDIF}
 
   TIdContextHelper = class helper for TIdContext
+  private
+    function GetReadTimeout: Integer;
+    procedure SetReadTimeout(const Value: Integer);
   public
+    function IOHandler: TIdIOHandler;
+    function ReadByte: Byte;
+    procedure ReadBytes(var VBuffer: TIdBytes; AByteCount: Integer; AAppend: Boolean = True);
+    procedure Write(const ABuffer: TIdBytes; const ALength: Integer = -1; const AOffset: Integer = 0);
+
     function PeerIP: string;
     function PeerPort: word;
     function PeerInfo: string;
+
+    procedure FlushBuffer(ALogProc: TLogProc);
+
+    property ReadTimeout: Integer read GetReadTimeout write SetReadTimeout;
   end;
 
   TJSONObjectHelper = class helper for TJSONObject
@@ -100,14 +112,14 @@ implementation
 
 {$IFDEF MSWINDOWS}
 
-uses JdcGlobal, JdcGlobal.DSCommon;
+uses JdcGlobal.DSCommon;
 
 { TTimerHelper }
 
 procedure TTimerHelper.Reset;
 begin
   Self.Enabled := False;
-  Self.Enabled := true;
+  Self.Enabled := True;
 end;
 {$ENDIF}
 
@@ -210,8 +222,7 @@ begin
   for MyElem in Self do
     Names := Names + MyElem.JsonString.Value + ', ';
 
-  raise Exception.Create(SysUtils.Format('JSON name [%s] is not exist. Other name list [%s]',
-    [Name, Names]));
+  raise Exception.Create(SysUtils.Format('JSON name [%s] is not exist. Other name list [%s]', [Name, Names]));
 end;
 
 class function TJSONObjectHelper.ParseFile(FileName: String): TJSONValue;
@@ -366,6 +377,52 @@ end;
 
 { TIdContextHelper }
 
+procedure TIdContextHelper.FlushBuffer(ALogProc: TLogProc);
+var
+  buff: TIdBytes;
+  OldTimeout: Integer;
+begin
+  OldTimeout := Self.Connection.IOHandler.ReadTimeout;
+
+  SetLength(buff, 0);
+  Self.Connection.IOHandler.ReadTimeout := 10;
+  try
+    try
+      while True do
+      begin
+        AppendByte(buff, Self.Connection.IOHandler.ReadByte);
+        if Length(buff) > 1000 then
+          break;
+      end;
+    except
+      // Ignore timeout.
+      on E: EIdReadTimeout do;
+
+      on E: Exception do
+        raise;
+    end;
+
+    if Length(buff) = 0 then
+      Exit;
+
+    if Assigned(ALogProc) then
+      ALogProc(msDebug, 'FlushBuffer', Format('Port=%d,Len=%d,Msg=%s', [Self.PeerPort, Length(buff),
+        IdBytesToHex(buff)]));
+  finally
+    Self.Connection.IOHandler.ReadTimeout := OldTimeout;
+  end;
+end;
+
+function TIdContextHelper.GetReadTimeout: Integer;
+begin
+  Result := IOHandler.ReadTimeout;
+end;
+
+function TIdContextHelper.IOHandler: TIdIOHandler;
+begin
+  Result := Self.Connection.IOHandler;
+end;
+
 function TIdContextHelper.PeerInfo: string;
 begin
   Result := Format('IP=%s,Port=%d', [Self.PeerIP, Self.PeerPort]);
@@ -379,6 +436,26 @@ end;
 function TIdContextHelper.PeerPort: word;
 begin
   Result := Self.Connection.Socket.Binding.PeerPort;
+end;
+
+function TIdContextHelper.ReadByte: Byte;
+begin
+  Result := IOHandler.ReadByte;
+end;
+
+procedure TIdContextHelper.ReadBytes(var VBuffer: TIdBytes; AByteCount: Integer; AAppend: Boolean);
+begin
+  IOHandler.ReadBytes(VBuffer, AByteCount, AAppend);
+end;
+
+procedure TIdContextHelper.SetReadTimeout(const Value: Integer);
+begin
+  IOHandler.ReadTimeout := Value;
+end;
+
+procedure TIdContextHelper.Write(const ABuffer: TIdBytes; const ALength, AOffset: Integer);
+begin
+  IOHandler.Write(ABuffer, ALength, AOffset);
 end;
 
 { TTimeHelper }
