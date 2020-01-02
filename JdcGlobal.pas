@@ -851,6 +851,9 @@ procedure TGlobalAbstract.FlushLog;
 var
   MyLog: TJdcLog;
 begin
+  if FMsgQueue.Count = 0 then
+    Exit;
+
   MyLog := FMsgQueue.Dequeue;
   _PrintLog(MyLog);
 end;
@@ -898,9 +901,6 @@ begin
         while not TThread.CurrentThread.CheckTerminated do
         begin
           Sleep(507);
-          if FMsgQueue.Count = 0 then
-            Continue;
-
           FlushLog;
         end;
       end);
