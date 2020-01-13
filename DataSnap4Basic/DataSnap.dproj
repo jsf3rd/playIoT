@@ -60,8 +60,8 @@
     </PropertyGroup>
     <PropertyGroup Condition="'$(Base_Win32)'!=''">
         <AppEnableRuntimeThemes>true</AppEnableRuntimeThemes>
-        <DCC_ExeOutput>..\bin\$(Config)</DCC_ExeOutput>
-        <DCC_DcuOutput>.DCUs</DCC_DcuOutput>
+        <DCC_ExeOutput>..\__bin\$(Config)</DCC_ExeOutput>
+        <DCC_DcuOutput>.\__dcu\$(Config)</DCC_DcuOutput>
         <DCC_UsePackage>RaizeComponentsXE2;JvGlobus;JvMM;JvManagedThreads;ZComponent;SerialNGCmp_XE2;JvDlgs;JvCrypt;TeeUI916;Tee916;Rave100VCL;vclib;inetdbbde;RyuCommand;TeePro916;JvNet;FMITeeLanguage916;JvDotNetCtrls;DBXSybaseASEDriver;vclimg;fmi;JvXPCtrls;vcldb;vcldsnap;DBXDb2Driver;Intraweb_120_160;JvCore;vclribbon;frxe16;vcl;CloudService;DBXMSSQLDriver;JvAppFrm;JvDB;JvRuntimeDesign;webdsnap;TeeDB916;JclDeveloperTools;JvDocking;adortl;JvWizards;TeeLanguage916;JvHMI;TeeImage916;JvBands;vcldbx;ZDbc;frx16;ZPlain;JvPluginSystem;TeeWorld916;FMITee916;JclContainers;DBXOdbcDriver;JvCmp;JvSystem;svnui;JvTimeFramework;JvControls;FMITeeDB916;intrawebdb_120_160;frxDB16;TeeGL916;fs16;vclactnband;JvJans;JvPrintPreview;JvPageComps;bindcompvcl;JvStdCtrls;JvCustom;Jcl;vclie;FMITeePro916;ZCore;vcltouch;websnap;VclSmp;fsDB16;TeeTree2D16Tee9;DataSnapConnectors;dsnapcon;JclVcl;JvPascalInterpreter;ZParseSql;vclx;FmiTeeUI916;svn;bdertl;JvBDE;$(DCC_UsePackage)</DCC_UsePackage>
         <VerInfo_IncludeVerInfo>true</VerInfo_IncludeVerInfo>
         <DCC_Namespace>Winapi;System.Win;Data.Win;Datasnap.Win;Web.Win;Soap.Win;Xml.Win;Bde;$(DCC_Namespace)</DCC_Namespace>
@@ -84,13 +84,14 @@
         <DCC_RemoteDebug>true</DCC_RemoteDebug>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Cfg_1_Win32)'!=''">
-        <VerInfo_Keys>CompanyName=;FileVersion=1.0.0.0;InternalName=;LegalCopyright=(c)playIoT 2016.;LegalTrademarks=;OriginalFilename=;ProductName=DataSnap Server Application.;ProductVersion=1.0.0.0;Comments=DataSnap Server Application.;ProgramID=com.embarcadero.$(MSBuildProjectName);FileDescription=$(MSBuildProjectName)</VerInfo_Keys>
+        <VerInfo_Keys>CompanyName=DACO.;FileVersion=1.0.0.0;InternalName=;LegalCopyright=;LegalTrademarks=;OriginalFilename=;ProductName=DataSnap Server Application.;ProductVersion=1.0.0.0;Comments=DataSnap Server Application.;ProgramID=com.embarcadero.$(MSBuildProjectName);FileDescription=$(MSBuildProjectName)</VerInfo_Keys>
         <AppEnableRuntimeThemes>true</AppEnableRuntimeThemes>
         <DCC_DcuOutput>.\__dcu\$(Config)</DCC_DcuOutput>
         <VerInfo_IncludeVerInfo>true</VerInfo_IncludeVerInfo>
         <VerInfo_Locale>1033</VerInfo_Locale>
         <DCC_RemoteDebug>false</DCC_RemoteDebug>
         <BT_BuildType>Debug</BT_BuildType>
+        <DCC_ExeOutput>..\__bin\$(Config)</DCC_ExeOutput>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Cfg_2)'!=''">
         <DCC_LocalDebugSymbols>false</DCC_LocalDebugSymbols>
@@ -101,9 +102,10 @@
     <PropertyGroup Condition="'$(Cfg_2_Win32)'!=''">
         <AppEnableRuntimeThemes>true</AppEnableRuntimeThemes>
         <DCC_DcuOutput>.\__dcu\$(Config)</DCC_DcuOutput>
-        <VerInfo_Keys>CompanyName=playIoT;FileDescription=DataSnap for Basic.;FileVersion=1.0.0.0;InternalName=DataSnap;LegalCopyright=(c)playIoT.;LegalTrademarks=;OriginalFilename=;ProductName=DataSnap4Basic;ProductVersion=1.0.0.0;Comments=DB Server Application.;ProgramID=com.embarcadero.$(MSBuildProjectName)</VerInfo_Keys>
+        <VerInfo_Keys>CompanyName=DACO;FileDescription=DataSnap for Basic.;FileVersion=1.0.0.0;InternalName=DataSnap;LegalCopyright=ⓒ2019 DACO.;LegalTrademarks=;OriginalFilename=;ProductName=DataSnap4Basic;ProductVersion=1.0.0.0;Comments=DB Server Application.;ProgramID=com.embarcadero.$(MSBuildProjectName)</VerInfo_Keys>
         <VerInfo_Locale>1033</VerInfo_Locale>
         <VerInfo_IncludeVerInfo>true</VerInfo_IncludeVerInfo>
+        <DCC_ExeOutput>..\__bin\$(Config)</DCC_ExeOutput>
     </PropertyGroup>
     <ItemGroup>
         <DelphiCompile Include="$(MainSource)">

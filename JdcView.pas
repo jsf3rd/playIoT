@@ -19,6 +19,7 @@ type
     procedure sp_ErrorMessage(const AName: String; AMsg: String = '');
     procedure sp_WarnMessage(const AName: String; AMsg: String = '');
     procedure sp_LogMessage(const AName: String; AMsg: String = '');
+    procedure sp_InfoMessage(const AName: String; AMsg: String = '');
     procedure sp_DebugMessage(const AName: String; AMsg: String = '');
 
     procedure sp_SyncMessage(const ACode: String; AMsg: String = '');
@@ -95,6 +96,22 @@ begin
   JsonData := TJsonData.Create;
   try
     JsonData.Values['Code'] := 'ErrorMessage';
+    JsonData.Values['Name'] := AName;
+    JsonData.Values['Msg'] := AMsg;
+
+    AsyncBroadcast(JsonData);
+  finally
+    JsonData.Free;
+  end;
+end;
+
+procedure TView.sp_InfoMessage(const AName: String; AMsg: String);
+var
+  JsonData: TJsonData;
+begin
+  JsonData := TJsonData.Create;
+  try
+    JsonData.Values['Code'] := 'InfoMessage';
     JsonData.Values['Name'] := AName;
     JsonData.Values['Msg'] := AMsg;
 
