@@ -39,7 +39,8 @@ type
     class procedure ClearJSONObject(AValue: TJSONArray); overload;
 
     // TDBXStream to TBytesStream
-    class function DSStreamToBytesStream(AStream: TStream): TBytesStream; deprecated 'DBXStreamToMemoryStream';
+    class function DSStreamToBytesStream(AStream: TStream): TBytesStream;
+      deprecated 'DBXStreamToMemoryStream';
 
     // TDBXStream to TMemoryStream
     class function DBXStreamToMemoryStream(AStream: TStream): TMemoryStream;
@@ -48,7 +49,8 @@ type
     class function DataSetToStream(AQuery: TFDQuery): TStream; overload; deprecated 'TFDQueryHelper.ToStream';
 
     // FDMemTable to TStream
-    class function DataSetToStream(AMemTab: TFDMemTable): TStream; overload; deprecated 'TFDMemTableHelper.ToStream';
+    class function DataSetToStream(AMemTab: TFDMemTable): TStream; overload;
+      deprecated 'TFDMemTableHelper.ToStream';
 
     // DataSnap TStream to TFDDataSet
     class procedure DSStreamToFDDataSet(AStream: TStream; ADataSet: TFDDataSet); static;
@@ -61,7 +63,8 @@ type
     class function DSProcToRecord<T: record >(AProc: TDSOpenParamProc; AParam: TJSONObject): T; overload;
 
     class function DSProcToRecordArray<T: record >(AProc: TDSOpenProc): TArray<T>; overload;
-    class function DSProcToRecordArray<T: record >(AProc: TDSOpenParamProc; AParam: TJSONObject): TArray<T>; overload;
+    class function DSProcToRecordArray<T: record >(AProc: TDSOpenParamProc; AParam: TJSONObject)
+      : TArray<T>; overload;
 
     // Init TFDQuery DataType
     class procedure InitDataType(ASender: TComponent; AConn: TFDConnection);
@@ -183,30 +186,19 @@ end;
 class procedure TDSCommon.AddJSONValue<T>(var AObject: TJSONObject; ARecord: T; APreFix: string);
 var
   tmp: TJSONObject;
-  MyPair: TJSONPair;
+  MyPair, NewPair: TJSONPair;
   NewKey: string;
 begin
   tmp := REST.JSON.TJson.RecordToJsonObject<T>(ARecord);
-
-  if not APreFix.IsEmpty then
-  begin
-    for MyPair in tmp do
-    begin
-      NewKey := APreFix + MyPair.JsonString.Value;
-      MyPair.JsonString.Free;
-      MyPair.JsonString := TJSONString.Create(NewKey);
-    end;
-  end;
-
   try
     for MyPair in tmp do
     begin
-      AObject.AddPair(MyPair.Clone as TJSONPair);
+      NewKey := APreFix + MyPair.JsonString.Value;
+      AObject.AddPair(NewKey, MyPair.JsonValue.Clone as TJSONValue);
     end;
   finally
     tmp.Free;
   end;
-
 end;
 
 class procedure TDSCommon.ClearJSONObject(AValue: TJSONArray);
@@ -369,7 +361,8 @@ begin
       for J := 0 to Query.Params.Count - 1 do
       begin
         if Query.Params.Items[J].DataType <> ftUnknown then
-          raise Exception.Create(Format('Unknown Type,Query=%s,Field=%s', [Query.Name, Query.Params.Items[J].Name]));
+          raise Exception.Create(Format('Unknown Type,Query=%s,Field=%s',
+            [Query.Name, Query.Params.Items[J].Name]));
       end;
       Continue;
     end;
@@ -491,7 +484,8 @@ begin
       if Self.Params.ArraySize = 1 then
         AParam.AsSQLTimeStamp := DateTimeToSQLTimeStamp(ISO8601ToDate((AValue as TJSONString).Value))
       else
-        AParam.AsSQLTimeStamps[Self.Tag] := DateTimeToSQLTimeStamp(ISO8601ToDate((AValue as TJSONString).Value));
+        AParam.AsSQLTimeStamps[Self.Tag] :=
+          DateTimeToSQLTimeStamp(ISO8601ToDate((AValue as TJSONString).Value));
 {$ELSE}
     ftBoolean:
       if Self.Params.ArraySize = 1 then
@@ -764,7 +758,8 @@ begin
 
   case AField.DataType of
     ftUnknown:
-      raise Exception.Create(Format('DataSet=%s,FieldName=%s,Unknown DataType', [Self.Name, AField.FieldName]));
+      raise Exception.Create(Format('DataSet=%s,FieldName=%s,Unknown DataType',
+        [Self.Name, AField.FieldName]));
     ftString, ftWideString:
       result := TJSONString.Create(AField.AsString);
     ftSmallint, ftInteger, ftWord, ftShortint, ftAutoInc:
@@ -805,8 +800,8 @@ begin
     ftSingle:
       result := TJSONNumber.Create(AField.AsSingle);
   else
-    raise Exception.Create(Format('DataSet=%s,FieldName=%s,UnsurportDataType=%s', [Self.Name, AField.FieldName,
-      GetFieldTypeName(AField.DataType)]));
+    raise Exception.Create(Format('DataSet=%s,FieldName=%s,UnsurportDataType=%s',
+      [Self.Name, AField.FieldName, GetFieldTypeName(AField.DataType)]));
   end;
 
   PrintDebug('DataSet=%s,FieldName=%s,DataType=%s,Value=%s',
