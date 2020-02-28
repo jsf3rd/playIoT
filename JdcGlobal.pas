@@ -16,7 +16,7 @@ interface
 uses
   Classes, SysUtils, Windows, ZLib, IdGlobal, IOUtils, JclFileUtils, Vcl.ExtCtrls,
   IdUDPClient, JclSysInfo, psAPI, IdContext, IdExceptionCore, Vcl.StdCtrls, JclSvcCtrl, Vcl.ActnList,
-  Vcl.Dialogs, WinApi.Shellapi, UITypes, System.Generics.Collections;
+  Vcl.Dialogs, WinApi.Shellapi, UITypes, System.Generics.Collections, System.Json, REST.Json;
 
 type
   IExecuteFunc<T> = Interface
@@ -149,6 +149,9 @@ function DeCompressStream(Stream: TStream; OutStream: TStream; OnProgress: TNoti
 function Contains(Contents: string; const str: array of const): boolean;
 function IsGoodResponse(Text, Command: string; Response: array of const): boolean;
 
+// 매 Word 마다 Reverse
+procedure RevEveryWord(APointer: Pointer; ASize: Integer);
+
 // Reverse 2Btyes..
 function Rev2Bytes(w: WORD): WORD;
 
@@ -192,7 +195,11 @@ procedure StopService(const ServiceName: String; var OldStatus: TJclServiceState
 procedure UpdateServiceStatus(const ServiceName: String; var OldStatus: TJclServiceState;
   StartAction, StopAction: TAction; StatusEdit: TLabeledEdit);
 
+// Integer To Bit String
 function IntToBin(Value: Cardinal; Digits: Integer): String;
+
+// JsonValue에서 JsonObject의 Value 값만 추출
+procedure ExtractValues(var AList: TStrings; AValue: TJSONValue);
 
 const
   LOCAL_SERVER = '\\localhost';
@@ -200,6 +207,46 @@ const
 implementation
 
 uses JdcGlobal.ClassHelper;
+
+procedure ExtractValues(var AList: TStrings; AValue: TJSONValue);
+var
+  MyPair: TJSONPair;
+  MyValue: TJSONValue;
+begin
+  if AValue is TJSONNumber then
+    AList.Add(Format('%f', [TJSONNumber(AValue).AsDouble]))
+  else if AValue is TJSONObject then
+  begin
+    for MyPair in (AValue as TJSONObject) do
+      ExtractValues(AList, MyPair.JsonValue);
+  end
+  else if AValue is TJSONArray then
+  begin
+    for MyValue in (AValue as TJSONArray) do
+      ExtractValues(AList, MyValue);
+  end
+  else
+    raise Exception.Create('ExtractValues,' + AValue.ToString);
+end;
+
+procedure RevEveryWord(APointer: Pointer; ASize: Integer);
+var
+  src: TIdBytes;
+  tmp: Byte;
+  I: Integer;
+  Index: Integer;
+begin
+  SetLength(src, ASize);
+  CopyMemory(@src[0], APointer, ASize);
+  for I := 0 to (ASize div 2) - 1 do
+  begin
+    Index := I * 2;
+    tmp := src[Index];
+    src[Index] := src[Index + 1];
+    src[Index + 1] := tmp;
+  end;
+  CopyMemory(APointer, @src[0], ASize);
+end;
 
 function IntToBin(Value: Cardinal; Digits: Integer): String;
 var
@@ -798,6 +845,8 @@ begin
   FIsFinalized := False;
   FUseCloudLog := False;
   FUseDebug := False;
+
+  FMsgQueue := nil;
 end;
 
 procedure TGlobalAbstract.Finalize;
@@ -814,6 +863,10 @@ procedure TGlobalAbstract.FlushLog;
     LogName: string;
   begin
     LogName := ALog.LogName;
+
+    if LogName.IsEmpty then
+      Exit;
+
     BackupLogFile(LogName);
     try
       Stream := TFile.AppendText(LogName);
@@ -880,7 +933,8 @@ end;
 
 procedure TGlobalAbstract.AppendLog(const AName: string; const AMsg: string);
 begin
-  FMsgQueue.Enqueue(TJdcLog.Create(AName, Now, AMsg));
+  if Assigned(FMsgQueue) then
+    FMsgQueue.Enqueue(TJdcLog.Create(AName, Now, AMsg));
 end;
 
 procedure TGlobalAbstract.SetUseDebug(const Value: boolean);
