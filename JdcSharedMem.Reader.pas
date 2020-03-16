@@ -14,7 +14,7 @@ unit JdcSharedMem.Reader;
 
 interface
 
-uses System.Classes, System.SysUtils, JdcSharedMem.Common, Winapi.Windows;
+uses System.Classes, System.SysUtils, JdcSharedMem.Common, Winapi.Windows, JdcLogging;
 
 type
   TJdcSharedMemReader = class
@@ -38,7 +38,7 @@ type
 
 implementation
 
-uses SharedMMFMem, JdcGlobal;
+uses SharedMMFMem;
 
 { TSharedMemoryReader }
 
@@ -79,8 +79,7 @@ begin
 
   if FCurrentSequence <> Sequence then
   begin
-    PrintDebug('[SeqError] CodeName=%s,CurSeq=%u,DataSeq=%u',
-      [FCodeName, FCurrentSequence, Sequence]);
+    PrintDebug('[SeqError] CodeName=%s,CurSeq=%u,DataSeq=%u', [FCodeName, FCurrentSequence, Sequence]);
     Exit(nil);
   end;
 

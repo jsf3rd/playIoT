@@ -26,7 +26,7 @@ unit SharedMMFMem;
 interface
 
 uses
-  Windows, SysUtils, JdcGlobal;
+  Windows, SysUtils, JdcLogging;
 
 type
   ESharedMemError = class(Exception);
@@ -54,14 +54,13 @@ function SharedFreeMem(var p { : Pointer } ): Boolean;
   SharedGetMem or SharedAllocMem. Otherwise it return False.
   Throws ESharedMemError if the Name is invalid. }
 
-function SharedOpenMem(var p { : Pointer }; const Name: string;
-  DesiredAccess: Cardinal = FILE_MAP_ALL_ACCESS): Boolean; overload;
+function SharedOpenMem(var p { : Pointer }; const Name: string; DesiredAccess: Cardinal = FILE_MAP_ALL_ACCESS)
+  : Boolean; overload;
 
 { SharedOpenMem return nil if the shared memory was not already allocated
   by SharedGetMem or SharedAllocMem.
   Throws ESharedMemError if the Name is invalid. }
-function SharedOpenMem(const Name: string;
-  DesiredAccess: Cardinal = FILE_MAP_ALL_ACCESS): Pointer; overload;
+function SharedOpenMem(const Name: string; DesiredAccess: Cardinal = FILE_MAP_ALL_ACCESS): Pointer; overload;
 
 { SharedCloseMem releases the shared memory if it was the last reference. }
 function SharedCloseMem(var p { : Pointer } ): Boolean;
@@ -95,8 +94,7 @@ begin
   Result := 0;
   Pointer(p) := nil;
 
-  if (Win32Platform = VER_PLATFORM_WIN32_WINDOWS) or (Win32MajorVersion < 5)
-  then
+  if (Win32Platform = VER_PLATFORM_WIN32_WINDOWS) or (Win32MajorVersion < 5) then
     if (Name = '') or (Pos('\', Name) > 0) then
       raise ESharedMemError.CreateFmt(SInvalidMMFName, [Name]);
 
@@ -122,12 +120,10 @@ begin
     if Size = 0 then
       Exit; // nur ?fnen, nicht erzeugen
     Protect := PAGE_READWRITE;
-    if (Win32Platform = VER_PLATFORM_WIN32_WINDOWS) and
-      (DesiredAccess = FILE_MAP_COPY) then
+    if (Win32Platform = VER_PLATFORM_WIN32_WINDOWS) and (DesiredAccess = FILE_MAP_COPY) then
       Protect := PAGE_WRITECOPY;
 
-    h := CreateFileMapping(INVALID_HANDLE_VALUE, nil, Protect, 0, Size,
-      PChar(Name));
+    h := CreateFileMapping(INVALID_HANDLE_VALUE, nil, Protect, 0, Size, PChar(Name));
     PrintDebug('[CreateMMF] Name=%s,Size=%u,Protect=%u', [Name, Size, Protect]);
   end
   else
@@ -186,10 +182,8 @@ end;
 function SharedAllocMem(const Name: string; Size: Cardinal;
   DesiredAccess: Cardinal = FILE_MAP_ALL_ACCESS): Pointer;
 begin
-  if SharedGetMem(Result, Name, Size, DesiredAccess) <> ERROR_ALREADY_EXISTS
-  then
-    if ((DesiredAccess and (FILE_MAP_WRITE or FILE_MAP_COPY)) <> 0) and
-      (Size > 0) and (Result <> nil) then
+  if SharedGetMem(Result, Name, Size, DesiredAccess) <> ERROR_ALREADY_EXISTS then
+    if ((DesiredAccess and (FILE_MAP_WRITE or FILE_MAP_COPY)) <> 0) and (Size > 0) and (Result <> nil) then
       FillChar(Pointer(Result)^, Size, 0);
 end;
 
@@ -211,8 +205,7 @@ begin
           Dec(Iterate^.References);
           Pointer(p) := nil;
           Result := True;
-          PrintDebug('[DecRef] Name=%s,Ref=%d',
-            [Iterate^.Name, Iterate^.References]);
+          PrintDebug('[DecRef] Name=%s,Ref=%d', [Iterate^.Name, Iterate^.References]);
           Exit;
         end;
 
@@ -245,8 +238,7 @@ begin
   Result := SharedGetMem(p, Name, 0, DesiredAccess) = ERROR_ALREADY_EXISTS;
 end;
 
-function SharedOpenMem(const Name: string;
-  DesiredAccess: Cardinal = FILE_MAP_ALL_ACCESS): Pointer;
+function SharedOpenMem(const Name: string; DesiredAccess: Cardinal = FILE_MAP_ALL_ACCESS): Pointer;
 begin
   SharedGetMem(Result, Name, 0, DesiredAccess);
 end;
