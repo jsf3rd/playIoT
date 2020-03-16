@@ -15,44 +15,18 @@ type
     dscDataLoader: TDSServerClass;
     dscDataProvier: TDSServerClass;
     DSHTTPService: TDSHTTPService;
-    procedure dscDataLoaderGetClass(DSServerClass: TDSServerClass;
-      var PersistentClass: TPersistentClass);
-    procedure dscDataProvierGetClass(DSServerClass: TDSServerClass;
-      var PersistentClass: TPersistentClass);
+    procedure dscDataLoaderGetClass(DSServerClass: TDSServerClass; var PersistentClass: TPersistentClass);
+    procedure dscDataProvierGetClass(DSServerClass: TDSServerClass; var PersistentClass: TPersistentClass);
     procedure DataModuleCreate(Sender: TObject);
     procedure DataModuleDestroy(Sender: TObject);
     procedure DSServerConnect(DSConnectEventObject: TDSConnectEventObject);
   private
     FConnectionPool: TJdcConnectionPool;
-    procedure OnChannelStateChanged(Sender: TObject;
-      const EventItem: TDSCallbackTunnelEventItem);
+    procedure OnChannelStateChanged(Sender: TObject; const EventItem: TDSCallbackTunnelEventItem);
     procedure CreateDBPool;
     procedure _RaiseException(Msg: String; E: Exception);
   public
     function GetIdleConnection: TFDConnection;
-
-    // OpenQuery
-    function OpenInstantQuery(AQuery: TFDQuery; AParams: TJSONObject;
-      AProcName: String = ''): TStream;
-    function OpenQuery(AQuery: TFDQuery; AParams: TJSONObject; AProcName: String = '')
-      : TStream;
-
-    // ExecQuery
-    function ExecInstantQuery(AQuery: TFDQuery; AParams: TJSONObject; AProcName: String = '')
-      : Boolean; overload;
-    function ExecQuery(AQuery: TFDQuery; AParams: TJSONObject; AProcName: String = '')
-      : Boolean; overload;
-
-    // Array DML
-    function ExecInstantQuery(AQuery: TFDQuery; AParams: TJSONArray; AProcName: String = '')
-      : Boolean; overload;
-    function ExecQuery(AQuery: TFDQuery; AParams: TJSONArray; AProcName: String = '')
-      : Boolean; overload;
-
-    // ApplyUpdate
-    function ApplyInstantUpdate(AQuery: TFDQuery; AStream: TStream;
-      AProcName: String = ''): Boolean;
-    function ApplyUpdate(AQuery: TFDQuery; AStream: TStream; AProcName: String = ''): Boolean;
   end;
 
 var
@@ -149,8 +123,7 @@ begin
   SessionID := IntToStr(TDSSessionManager.Instance.GetThreadSession.Id);
   TDSSessionManager.Instance.GetThreadSession.PutData('IP', UserIP);
 
-  TGlobal.Obj.ApplicationMessage(msInfo, 'UserConnect', 'IP:%s,SessionID:%s',
-    [UserIP, SessionID]);
+  TGlobal.Obj.ApplicationMessage(msInfo, 'UserConnect', 'IP:%s,SessionID:%s', [UserIP, SessionID]);
 end;
 
 function TServerContainer.GetIdleConnection: TFDConnection;
@@ -176,208 +149,9 @@ begin
     [DSServer.GetAllChannelClientId(CHANNEL_DEFAULT).Count]);
 end;
 
-function TServerContainer.ApplyInstantUpdate(AQuery: TFDQuery; AStream: TStream;
-  AProcName: String): Boolean;
-var
-  MyQuery: TFDQuery;
-begin
-  MyQuery := AQuery.Clone;
-  try
-    result := ServerContainer.ApplyUpdate(MyQuery, AStream, AProcName);
-  finally
-    MyQuery.Free;
-  end;
-end;
-
-function TServerContainer.ApplyUpdate(AQuery: TFDQuery; AStream: TStream;
-  AProcName: String): Boolean;
-var
-  Conn: TFDConnection;
-  ExecTime: TDateTime;
-  Errors: integer;
-begin
-  Conn := GetIdleConnection;
-  try
-    try
-      AQuery.Connection := Conn;
-      AQuery.LoadFromDSStream(AStream);
-
-      ExecTime := Now;
-      Errors := AQuery.ApplyUpdates;
-      TGlobal.Obj.ApplicationMessage(msInfo, StrDefault(AProcName, 'ApplyUpdates'),
-        'Query=%s,ChangeCount=%d,Errors=%d,ExecTime=%s', [AQuery.Name, AQuery.ChangeCount,
-        Errors, FormatDateTime('NN:SS.zzz', Now - ExecTime)]);
-
-      result := Errors = 0;
-    except
-      on E: Exception do
-      begin
-        TGlobal.Obj.ApplicationMessage(msError, AQuery.Name, E.Message);
-        result := false;
-      end;
-    end;
-  finally
-    Conn.Free;
-  end;
-end;
-
-function TServerContainer.OpenInstantQuery(AQuery: TFDQuery; AParams: TJSONObject;
-  AProcName: String): TStream;
-var
-  MyQuery: TFDQuery;
-begin
-  MyQuery := AQuery.Clone;
-  try
-    result := ServerContainer.OpenQuery(MyQuery, AParams, AProcName);
-  finally
-    MyQuery.Free;
-  end;
-end;
-
-function TServerContainer.OpenQuery(AQuery: TFDQuery; AParams: TJSONObject;
-  AProcName: String): TStream;
-var
-  Conn: TFDConnection;
-  ExecTime: TDateTime;
-begin
-  Conn := GetIdleConnection;
-  try
-    AQuery.Connection := Conn;
-    try
-      if Assigned(AParams) then
-      begin
-        if TGlobal.Obj.UseDebug then
-          AQuery.ParamByJSONObject(AParams, TGlobal.Obj.ApplicationMessage)
-        else
-          AQuery.ParamByJSONObject(AParams);
-      end;
-
-      ExecTime := Now;
-      result := AQuery.ToStream;
-      TGlobal.Obj.ApplicationMessage(msDebug, StrDefault(AProcName, 'OpenQuery'),
-        'Query=%s,RecordCount=%d,ExecTime=%s', [AQuery.Name, AQuery.RecordCount,
-        FormatDateTime('NN:SS.zzz', Now - ExecTime)]);
-    except
-      on E: Exception do
-      begin
-        raise Exception.Create('OpenQuery - ' + AQuery.Name + ', ' + E.Message);
-      end;
-    end;
-  finally
-    Conn.Free;
-  end;
-end;
-
-function TServerContainer.ExecInstantQuery(AQuery: TFDQuery; AParams: TJSONObject;
-  AProcName: String): Boolean;
-var
-  MyQuery: TFDQuery;
-begin
-  MyQuery := AQuery.Clone;
-  try
-    result := ServerContainer.ExecQuery(MyQuery, AParams, AProcName);
-  finally
-    MyQuery.Free;
-  end;
-end;
-
-function TServerContainer.ExecInstantQuery(AQuery: TFDQuery; AParams: TJSONArray;
-  AProcName: String): Boolean;
-var
-  MyQuery: TFDQuery;
-begin
-  MyQuery := AQuery.Clone;
-  try
-    result := ServerContainer.ExecQuery(MyQuery, AParams, AProcName);
-  finally
-    MyQuery.Free;
-  end;
-end;
-
-function TServerContainer.ExecQuery(AQuery: TFDQuery; AParams: TJSONArray;
-  AProcName: String): Boolean;
-var
-  Conn: TFDConnection;
-  ExecTime: TDateTime;
-  I: integer;
-  Params: TJSONObject;
-begin
-  result := false;
-  Conn := GetIdleConnection;
-  Conn.StartTransaction;
-  try
-    AQuery.Connection := Conn;
-    try
-      AQuery.Params.ArraySize := AParams.Count;
-      for I := 0 to AParams.Count - 1 do
-      begin
-        Params := AParams.Items[I] as TJSONObject;
-        AQuery.Tag := I;
-        AQuery.ParamByJSONObject(Params);
-      end;
-
-      ExecTime := Now;
-      AQuery.Execute(AParams.Count);
-      TGlobal.Obj.ApplicationMessage(msInfo, StrDefault(AProcName, 'ExecQuery'),
-        'Query=%s,Requested=%d,RowsAffected=%d,ExecTime=%s',
-        [AQuery.Name, AParams.Count, AQuery.RowsAffected, FormatDateTime('NN:SS.zzz',
-        Now - ExecTime)]);
-      result := AQuery.RowsAffected = AParams.Count;
-
-      if result then
-        Conn.Commit
-      else
-        Conn.Rollback;
-    except
-      on E: Exception do
-      begin
-        Conn.Rollback;
-        TGlobal.Obj.ApplicationMessage(msError, AProcName, E.Message);
-      end;
-    end;
-  finally
-    Conn.Free;
-  end;
-end;
-
-function TServerContainer.ExecQuery(AQuery: TFDQuery; AParams: TJSONObject;
-  AProcName: String): Boolean;
-var
-  Conn: TFDConnection;
-  ExecTime: TDateTime;
-begin
-  result := false;
-  Conn := GetIdleConnection;
-  try
-    AQuery.Connection := Conn;
-    try
-      if Assigned(AParams) then
-      begin
-        if TGlobal.Obj.UseDebug then
-          AQuery.ParamByJSONObject(AParams, TGlobal.Obj.ApplicationMessage)
-        else
-          AQuery.ParamByJSONObject(AParams);
-      end;
-
-      ExecTime := Now;
-      AQuery.ExecSQL;
-      TGlobal.Obj.ApplicationMessage(msInfo, StrDefault(AProcName, 'ExecQuery'),
-        'Query=%s,RowsAffected=%d,ExecTime=%s', [AQuery.Name, AQuery.RowsAffected,
-        FormatDateTime('NN:SS.zzz', Now - ExecTime)]);
-      result := true;
-    except
-      on E: Exception do
-        TGlobal.Obj.ApplicationMessage(msError, AProcName, E.Message);
-    end;
-  finally
-    Conn.Free;
-  end;
-end;
-
 initialization
 
-SessionEvent :=
-    procedure(Sender: TObject; const EventType: TDSSessionEventType; const Session: TDSSession)
+SessionEvent := procedure(Sender: TObject; const EventType: TDSSessionEventType; const Session: TDSSession)
   var
     UserIP, SessionID: string;
   begin
@@ -393,8 +167,7 @@ SessionEvent :=
         ;
       SessionClose:
         begin
-          TGlobal.Obj.ApplicationMessage(msInfo, 'UserDisconnect', 'IP:%s,SessionID:%s',
-            [UserIP, SessionID]);
+          TGlobal.Obj.ApplicationMessage(msInfo, 'UserDisconnect', 'IP:%s,SessionID:%s', [UserIP, SessionID]);
         end;
     end;
 
