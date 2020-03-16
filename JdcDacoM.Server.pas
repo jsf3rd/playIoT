@@ -1,3 +1,13 @@
+// *******************************************************
+//
+// DACO-M 1000P TCP Server
+//
+// Copyright(c) 2020 DACO.
+//
+// jsf3rd@e-daco.net
+//
+// *******************************************************
+
 unit JdcDacoM.Server;
 
 interface
@@ -10,30 +20,36 @@ uses System.SysUtils, System.Classes, JdcDacoM.Protocol, JdcDacoM.Common, IdCont
 type
   TMySession = class;
 
-  TOnData = procedure(ASession: TMySession; AID: Integer; const APower: TPowerModule) of object;
+  TOnPowerData = procedure(ATime: TDateTime; AMac: string; AData: TPowerData) of object; // Power 데이터 수신 이벤트
+  TOnModuleData = procedure(ASession: TMySession; AID: Integer) of object; // 분기모듈 데이터 수신 이벤트
+  TOnMeterData = procedure(ASession: TMySession) of object; // 모든 모듈 데이터 수집 완료 이벤트
   TOnRequest = procedure(AContext: TIdContext; const AParam: TRequestParam) of object;
 
   TMySession = class
   strict private
-    FSessionTime: TDateTime; // 작업 시간
+    FMeasuringTime: TDateTime; // 작업 시간
     FRequestTime: TDateTime; // TCP 요청시간
 
     FModule: TModuleArray;
+    FModuleCount: Integer;
+    FPowerData: TPowerData;
+
     FIDList: TIDArray40;
     FCurIndex: Integer;
     FMacAddress: string;
 
-    FOnData: TOnData;
+    FOnPowerData: TOnPowerData;
+    FOnModuleData: TOnModuleData;
+    FOnMeterData: TOnMeterData;
+
     FOnRequest: TOnRequest;
     FContext: TIdContext;
-    FOnLog: TLogProc;
-    FUseDebug: Boolean;
 
-    function GetFirst(AIndex: Integer): TModuleFirst;
-    procedure SetFirst(AIndex: Integer; const Value: TModuleFirst);
-    function GetSecond(AIndex: Integer): TModuleSecond;
-    procedure SetSecond(AIndex: Integer; const Value: TModuleSecond);
-    function GetModule(AIndex: Integer): TModule;
+    function GetPart1(AIndex: Integer): TDataPart1;
+    procedure SetPart1(AIndex: Integer; const Value: TDataPart1);
+    function GetPart2(AIndex: Integer): TDataPart2;
+    procedure SetPart2(AIndex: Integer; const Value: TDataPart2);
+    function GetModule(AIndex: Integer): TModuleData;
 
   public
     constructor Create(AContext: TIdContext);
@@ -43,41 +59,46 @@ type
     function GetNextID: Integer;
 
     procedure OnIDTable(ABuff: TIdBytes);
-    procedure OnModuleFirst(ABuff: TIdBytes);
-    procedure OnModuleSecond(ABuff: TIdBytes);
+    procedure OnModulePart1(ABuff: TIdBytes);
+    procedure OnModulePart2(ABuff: TIdBytes);
     procedure OnPowerModule(ABuff: TIdBytes);
     procedure OnError(ABuff: TIdBytes);
 
     procedure RequestModule(AID: Integer; AOffSet, ALen: UInt16);
     procedure RequestNextModule;
+
     procedure RequestPower;
+
     procedure RequestIDTable;
 
-    procedure Clear;
+    procedure RequestFromPowerData; // Power 데이터를 시작으로 모든데이터 요청
+    procedure RequestPowerDataOnly; // Power 데이터 만 요청하기
 
     property RequestTime: TDateTime read FRequestTime write FRequestTime;
     property IDList: TIDArray40 read FIDList write FIDList;
-    property First[AIndex: Integer]: TModuleFirst read GetFirst write SetFirst;
-    property Second[AIndex: Integer]: TModuleSecond read GetSecond write SetSecond;
-    property Module[AIndex: Integer]: TModule read GetModule;
+    property ModuleCount: Integer read FModuleCount;
+    property Part1[AIndex: Integer]: TDataPart1 read GetPart1 write SetPart1;
+    property Part2[AIndex: Integer]: TDataPart2 read GetPart2 write SetPart2;
+    property Module[AIndex: Integer]: TModuleData read GetModule;
+    property PowerData: TPowerData read FPowerData write FPowerData;
 
     property CurIndex: Integer read FCurIndex write FCurIndex;
     property MacAddress: string read FMacAddress write FMacAddress;
-    property SessionTime: TDateTime read FSessionTime write FSessionTime;
+    property MeasuringTime: TDateTime read FMeasuringTime write FMeasuringTime;
 
     property OnRequest: TOnRequest read FOnRequest write FOnRequest;
-    property OnData: TOnData read FOnData write FOnData;
-    property OnLog: TLogProc read FOnLog write FOnLog;
-    property UseDebug: Boolean read FUseDebug write FUseDebug;
+    property OnPowerData: TOnPowerData read FOnPowerData write FOnPowerData;
+    property OnModuleData: TOnModuleData read FOnModuleData write FOnModuleData;
+    property OnMeterData: TOnMeterData read FOnMeterData write FOnMeterData;
   end;
 
   TDacoMServer = class
   strict private
     FTCPServer: TIdTCPServer;
-    FOnLog: TLogProc;
-    FUseDebug: Boolean;
 
-    FSubList: TList<TOnData>;
+    FPowerSub: TList<TOnPowerData>;
+    FModuleSub: TList<TOnModuleData>;
+    FMeterSub: TList<TOnMeterData>;
 
     constructor Create;
     procedure TCPServerConnect(AContext: TIdContext);
@@ -87,19 +108,19 @@ type
 
     procedure _RequestData(ATime: TDateTime);
     procedure OnRequest(AContext: TIdContext; const AParam: TRequestParam);
-    procedure OnData(ASession: TMySession; AID: Integer; const APower: TPowerModule);
+    procedure OnModuleData(ASession: TMySession; AID: Integer);
+    procedure OnMeterData(ASession: TMySession);
+    procedure OnPowerData(ATime: TDateTime; AMac: string; AData: TPowerData);
     procedure ParsePacket(ASession: TMySession; const ABuff: TIdBytes);
-
-    procedure PrintLog(const AType: TMessageType; const ATitle: String; const AMessage: String = '');
-      overload;
-    procedure PrintLog(const AType: TMessageType; const ATitle: String; const AFormat: String;
-      const Args: array of const); overload;
-
   public
     class function Obj: TDacoMServer;
 
-    procedure Add(AProc: TOnData);
-    procedure Remove(AProc: TOnData);
+    procedure Add(AProc: TOnPowerData); overload;
+    procedure Remove(AProc: TOnPowerData); overload;
+    procedure Add(AProc: TOnModuleData); overload;
+    procedure Remove(AProc: TOnModuleData); overload;
+    procedure Add(AProc: TOnMeterData); overload;
+    procedure Remove(AProc: TOnMeterData); overload;
 
     procedure Start(APort: Integer = 8900);
     procedure Stop;
@@ -110,12 +131,11 @@ type
 
     procedure RequestData(ATime: TDateTime);
     function Started: Boolean;
-
-    property OnLog: TLogProc read FOnLog write FOnLog;
-    property UseDebug: Boolean read FUseDebug write FUseDebug;
   end;
 
 implementation
+
+uses JdcLogging;
 
 var
   MyObj: TDacoMServer = nil;
@@ -125,9 +145,19 @@ const
 
   { TDacoMServer }
 
-procedure TDacoMServer.Add(AProc: TOnData);
+procedure TDacoMServer.Add(AProc: TOnModuleData);
 begin
-  FSubList.Add(AProc);
+  FModuleSub.Add(AProc);
+end;
+
+procedure TDacoMServer.Add(AProc: TOnMeterData);
+begin
+  FMeterSub.Add(AProc);
+end;
+
+procedure TDacoMServer.Add(AProc: TOnPowerData);
+begin
+  FPowerSub.Add(AProc);
 end;
 
 function TDacoMServer.ClientCount: Integer;
@@ -137,19 +167,22 @@ end;
 
 constructor TDacoMServer.Create;
 begin
-  FUseDebug := False;
   FTCPServer := TIdTCPServer.Create(nil);
   FTCPServer.OnExecute := TCPServerExecute;
   FTCPServer.OnConnect := TCPServerConnect;
   FTCPServer.OnDisconnect := TCPServerDisconnect;
   FTCPServer.OnException := TCPServerException;
 
-  FSubList := TList<TOnData>.Create;
+  FPowerSub := TList<TOnPowerData>.Create;
+  FModuleSub := TList<TOnModuleData>.Create;
+  FMeterSub := TList<TOnMeterData>.Create;
 end;
 
 destructor TDacoMServer.Destroy;
 begin
-  FreeAndNil(FSubList);
+  FreeAndNil(FPowerSub);
+  FreeAndNil(FModuleSub);
+  FreeAndNil(FMeterSub);
   FreeAndNil(FTCPServer);
   inherited;
 end;
@@ -161,18 +194,28 @@ begin
   result := MyObj;
 end;
 
-procedure TDacoMServer.OnData(ASession: TMySession; AID: Integer; const APower: TPowerModule);
+procedure TDacoMServer.OnMeterData(ASession: TMySession);
 var
-  MyEvent: TOnData;
+  MyEvent: TOnMeterData;
 begin
-  if ASession.MacAddress = '' then
-  begin
-    PrintLog(msWarning, 'NoMac');
-    Exit;
-  end;
+  for MyEvent in FMeterSub do
+    MyEvent(ASession);
+end;
 
-  for MyEvent in FSubList do
-    MyEvent(ASession, AID, APower);
+procedure TDacoMServer.OnModuleData(ASession: TMySession; AID: Integer);
+var
+  MyEvent: TOnModuleData;
+begin
+  for MyEvent in FModuleSub do
+    MyEvent(ASession, AID);
+end;
+
+procedure TDacoMServer.OnPowerData(ATime: TDateTime; AMac: string; AData: TPowerData);
+var
+  MyEvent: TOnPowerData;
+begin
+  for MyEvent in FPowerSub do
+    MyEvent(ATime, AMac, AData);
 end;
 
 procedure TDacoMServer.OnRequest(AContext: TIdContext; const AParam: TRequestParam);
@@ -186,10 +229,12 @@ begin
     AContext.Write(buff);
     Session := TMySession(AContext.Data);
     Session.RequestTime := Now;
-    PrintLog(msDebug, 'SEND', 'Port=%d,Msg=%s', [AContext.PeerPort, IdBytesToHex(buff)]);
+    TJdcLogging.Obj.ApplicationMessage(msSystem, 'SEND', 'Port=%d,Msg=%s',
+      [AContext.PeerPort, IdBytesToHex(buff)]);
   except
     on E: Exception do
-      PrintLog(msError, 'SEND', 'IP=%s,buff=%s,E=%s', [AContext.PeerIP, IdBytesToHex(buff), E.Message]);
+      TJdcLogging.Obj.ApplicationMessage(msError, 'SEND', 'IP=%s,buff=%s,E=%s',
+        [AContext.PeerIP, IdBytesToHex(buff), E.Message]);
   end;
 end;
 
@@ -198,28 +243,32 @@ begin
   case TModbus.GetProtocolType(ABuff) of
     ptIDTable:
       ASession.OnIDTable(ABuff);
-    ptModuleFirst:
-      ASession.OnModuleFirst(ABuff);
-    ptModuleSecond:
-      ASession.OnModuleSecond(ABuff);
+    ptModulePart1:
+      ASession.OnModulePart1(ABuff);
+    ptModulePart2:
+      ASession.OnModulePart2(ABuff);
     ptPowerModule:
       ASession.OnPowerModule(ABuff);
     ptError:
       ASession.OnError(ABuff);
   else
-    PrintLog(msWarning, 'WrongProtocol');
+    TJdcLogging.Obj.ApplicationMessage(msWarning, 'WrongProtocol', IdBytesToHex(ABuff));
   end;
 end;
 
-procedure TDacoMServer.PrintLog(const AType: TMessageType; const ATitle, AFormat: String;
-  const Args: array of const);
+procedure TDacoMServer.Remove(AProc: TOnModuleData);
 begin
-  PrintLog(AType, ATitle, Format(AFormat, Args));
+  FModuleSub.Remove(AProc);
 end;
 
-procedure TDacoMServer.Remove(AProc: TOnData);
+procedure TDacoMServer.Remove(AProc: TOnMeterData);
 begin
-  FSubList.Remove(AProc);
+  FMeterSub.Remove(AProc);
+end;
+
+procedure TDacoMServer.Remove(AProc: TOnPowerData);
+begin
+  FPowerSub.Remove(AProc);
 end;
 
 procedure TDacoMServer.RequestData(ATime: TDateTime);
@@ -228,19 +277,8 @@ begin
     _RequestData(ATime);
   except
     on E: Exception do
-      PrintLog(msError, 'RequestData', E.Message);
+      TJdcLogging.Obj.ApplicationMessage(msError, 'RequestData', E.Message);
   end;
-end;
-
-procedure TDacoMServer.PrintLog(const AType: TMessageType; const ATitle, AMessage: String);
-begin
-  if not Assigned(FOnLog) then
-    Exit;
-
-  if (AType = msDebug) and (FUseDebug = False) then
-    Exit;
-
-  FOnLog(AType, ATitle, AMessage);
 end;
 
 procedure TDacoMServer.Start(APort: Integer);
@@ -250,7 +288,8 @@ begin
 
   FTCPServer.DefaultPort := APort;
   FTCPServer.Active := True;
-  OnLog(msInfo, 'OpenDacoMServer', Format('Port=%d', [FTCPServer.DefaultPort]));
+  TJdcLogging.Obj.ApplicationMessage(msInfo, 'DacoMServer',
+    Format('Opened,Port=%d', [FTCPServer.DefaultPort]));
 end;
 
 function TDacoMServer.Started: Boolean;
@@ -264,26 +303,26 @@ begin
     Exit;
 
   FTCPServer.Active := False;
-  OnLog(msInfo, 'CloseDacoMServer');
+  TJdcLogging.Obj.ApplicationMessage(msInfo, 'DacoMServer', 'Closed');
 end;
 
 procedure TDacoMServer.TCPServerConnect(AContext: TIdContext);
 var
   MySession: TMySession;
 begin
-  PrintLog(msInfo, 'Connected', AContext.PeerInfo);
+  TJdcLogging.Obj.ApplicationMessage(msInfo, 'Connected', AContext.PeerInfo);
 
   MySession := TMySession.Create(AContext);
   MySession.OnRequest := OnRequest;
-  MySession.OnData := OnData;
-  MySession.OnLog := PrintLog;
-  MySession.UseDebug := FUseDebug;
+  MySession.OnPowerData := OnPowerData;
+  MySession.OnModuleData := OnModuleData;
+  MySession.OnMeterData := OnMeterData;
 
   AContext.Data := MySession;
   AContext.ReadTimeout := READ_TIME_OUT;
 
   // for MacAddress
-  MySession.RequestPower;
+  MySession.RequestPowerDataOnly;
 end;
 
 procedure TDacoMServer.TCPServerDisconnect(AContext: TIdContext);
@@ -291,7 +330,7 @@ begin
   if Assigned(AContext.Data) and (AContext.Data is TMySession) then
     AContext.Data.Free;
 
-  PrintLog(msInfo, 'Disconnected', AContext.PeerInfo);
+  TJdcLogging.Obj.ApplicationMessage(msInfo, 'Disconnected', AContext.PeerInfo);
   AContext.Data := nil;
 end;
 
@@ -299,7 +338,7 @@ procedure TDacoMServer.TCPServerException(AContext: TIdContext; AException: Exce
 begin
   if AException is EIdReadTimeout then
   begin
-    PrintLog(msWarning, 'ReadTimeout', 'NoResponse.');
+    TJdcLogging.Obj.ApplicationMessage(msDebug, 'ReadTimeout', 'NoResponse.');
     Exit;
   end;
 
@@ -315,7 +354,8 @@ begin
   if AException is EIdSocketError then
     Exit;
 
-  PrintLog(msError, 'TCPException', 'E=%S,EClass=%s', [AException.Message, AException.ClassName]);
+  TJdcLogging.Obj.ApplicationMessage(msError, 'TCPException', 'E=%S,EClass=%s',
+    [AException.Message, AException.ClassName]);
 end;
 
 procedure TDacoMServer.TCPServerExecute(AContext: TIdContext);
@@ -346,7 +386,7 @@ begin
         if tmp < 10 then
           raise;
 
-        PrintLog(msInfo, 'ExtraWait', 'Port=%d,%dms', [AContext.PeerPort, tmp]);
+        TJdcLogging.Obj.ApplicationMessage(msInfo, 'ExtraWait', 'Port=%d,%dms', [AContext.PeerPort, tmp]);
         AContext.ReadTimeout := Min(tmp, READ_TIME_OUT - 1);
         Exit;
       end;
@@ -358,17 +398,18 @@ begin
       raise;
   end;
 
-  PrintLog(msDebug, 'RECV', 'Port=%d,Len=%d,Msg=%s', [AContext.PeerPort, Length(buff), IdBytesToHex(buff)]);
+  TJdcLogging.Obj.ApplicationMessage(msSystem, 'RECV', 'Port=%d,Len=%d,Msg=%s',
+    [AContext.PeerPort, Length(buff), IdBytesToHex(buff)]);
 
   CopyMemory(@Header, @buff[0], SizeOf(Header));
   Header.Reverse;
 
-  PrintLog(msDebug, 'HEADER', TJson.RecordToJsonString(Header));
+  TJdcLogging.Obj.ApplicationMessage(msSystem, 'HEADER', TJson.RecordToJsonString(Header));
 
   DataLen := Header.Length;
   if TModbus.InvalidDataLen(DataLen) then
   begin
-    AContext.FlushBuffer(PrintLog);
+    AContext.FlushBuffer;
     Exit;
   end;
 
@@ -377,7 +418,8 @@ begin
   AContext.ReadBytes(buff, DataLen);
   MySession.RequestTime := 0;
 
-  PrintLog(msDebug, 'RECV', 'Port=%d,Len=%d,Msg=%s', [AContext.PeerPort, Length(buff), IdBytesToHex(buff)]);
+  TJdcLogging.Obj.ApplicationMessage(msSystem, 'RECV', 'Port=%d,Len=%d,Msg=%s',
+    [AContext.PeerPort, Length(buff), IdBytesToHex(buff)]);
   ParsePacket(MySession, buff);
 end;
 
@@ -402,9 +444,8 @@ begin
         Continue;
 
       MySession := TMySession(Context.Data);
-      MySession.Clear;
-      MySession.SessionTime := ATime;
-      MySession.RequestNextModule;
+      MySession.MeasuringTime := ATime;
+      MySession.RequestFromPowerData;
     end;
   finally
     FTCPServer.Contexts.UnlockList;
@@ -418,9 +459,10 @@ var
   I: Integer;
 begin
   FContext := AContext;
-  FUseDebug := False;
+  FModuleCount := 0;
   FCurIndex := 0;
   FRequestTime := 0;
+  FMeasuringTime := Now;
   FMacAddress := '';
 
   for I := Low(FIDList) to High(FIDList) do
@@ -440,22 +482,31 @@ var
   ErrorCode: TErrorCode;
 begin
   CopyMemory(@ErrorCode, @ABuff[0], SizeOf(TErrorCode));
-  OnLog(msDebug, 'Error', TJson.RecordToJsonString(ErrorCode));
+  TJdcLogging.Obj.ApplicationMessage(msDebug, 'Error', TJson.RecordToJsonString(ErrorCode));
 end;
 
-function TMySession.GetModule(AIndex: Integer): TModule;
+function TMySession.GetModule(AIndex: Integer): TModuleData;
 begin
+  if (AIndex < Low(FModule)) or (AIndex > High(FModule)) then
+    raise Exception.Create('out of index GetModule, ' + AIndex.ToString);
+
   result := FModule[AIndex];
 end;
 
-function TMySession.GetFirst(AIndex: Integer): TModuleFirst;
+function TMySession.GetPart1(AIndex: Integer): TDataPart1;
 begin
-  result := FModule[AIndex].First;
+  if (AIndex < Low(FModule)) or (AIndex > High(FModule)) then
+    raise Exception.Create('out of index GetPart1, ' + AIndex.ToString);
+
+  result := FModule[AIndex].Part1;
 end;
 
-function TMySession.GetSecond(AIndex: Integer): TModuleSecond;
+function TMySession.GetPart2(AIndex: Integer): TDataPart2;
 begin
-  result := FModule[AIndex].Second;
+  if (AIndex < Low(FModule)) or (AIndex > High(FModule)) then
+    raise Exception.Create('out of index GetPart2, ' + AIndex.ToString);
+
+  result := FModule[AIndex].Part2;
 end;
 
 procedure TMySession.OnIDTable(ABuff: TIdBytes);
@@ -463,62 +514,56 @@ var
   IDTable: TIDTable;
 begin
   CopyMemory(@IDTable, @ABuff[0], SizeOf(TIDTable));
-  if FUseDebug then
-    OnLog(msDebug, 'IDTable', TJson.RecordToJsonString(IDTable));
+  TJdcLogging.Obj.ApplicationMessage(msSystem, 'IDTable', TJson.RecordToJsonString(IDTable));
 
   CopyMemory(@Self.IDList[0], @IDTable.ID[0], SizeOf(TIDArray40));
-  OnLog(msDebug, 'ModuleList', Self.ModuleList);
+  FModuleCount := Length(Self.ModuleList.Split([',']));
+  TJdcLogging.Obj.ApplicationMessage(msInfo, 'ModuleList', Format('Port=%d,Count=%d,List=%s',
+    [FContext.PeerPort, FModuleCount, ModuleList]));
 end;
 
-procedure TMySession.OnModuleFirst(ABuff: TIdBytes);
+procedure TMySession.OnModulePart1(ABuff: TIdBytes);
 var
-  ModuleFirst: TModuleFirst;
+  FirstModule: TModulePart1;
 begin
-  CopyMemory(@ModuleFirst, @ABuff[0], SizeOf(TModuleFirst));
-  ModuleFirst.Data.Reverse;
-  Self.First[ModuleFirst.UnitID] := ModuleFirst;
+  CopyMemory(@FirstModule, @ABuff[0], SizeOf(TModulePart1));
+  FirstModule.Data.Reverse;
+  Self.Part1[FirstModule.UnitID] := FirstModule.Data;
 
-  if FUseDebug then
-    OnLog(msDebug, 'First', TJson.RecordToJsonString(ModuleFirst));
-
-  RequestModule(ModuleFirst.UnitID, TModbus.WORD_COUNT_FIRST, TModbus.WORD_COUNT_SECOND);
+  TJdcLogging.Obj.ApplicationMessage(msSystem, 'First', TJson.RecordToJsonString(FirstModule));
+  RequestModule(FirstModule.UnitID, TModbus.WORD_COUNT_PART1, TModbus.WORD_COUNT_PART2);
 end;
 
 function TMySession.ModuleList: String;
 var
   I: Integer;
+  str: TStringList;
 begin
-  result := '';
+  str := TStringList.Create;
   for I := Low(FIDList) to High(FIDList) do
   begin
     if FIDList[I].Hi > 0 then
-      result := Format('%s%d,', [result, FIDList[I].Hi]);
+      str.Add(Format('%d(%x)', [FIDList[I].Hi, FIDList[I].Hi]));
   end;
+
+  result := str.CommaText;
+  str.Free;
 end;
 
-procedure TMySession.OnModuleSecond(ABuff: TIdBytes);
+procedure TMySession.OnModulePart2(ABuff: TIdBytes);
 var
-  PM: TPowerModule;
-  ModuleSecond: TModuleSecond;
+  SecondModule: TModulePart2;
 begin
-  CopyMemory(@ModuleSecond, @ABuff[0], SizeOf(TModuleSecond));
-  ModuleSecond.Data.Reverse;
-  Self.Second[ModuleSecond.UnitID] := ModuleSecond;
+  CopyMemory(@SecondModule, @ABuff[0], SizeOf(TModulePart2));
+  SecondModule.Data.Reverse;
+  Self.Part2[SecondModule.UnitID] := SecondModule.Data;
 
-  if FUseDebug then
-    OnLog(msDebug, 'Second', TJson.RecordToJsonString(ModuleSecond));
+  TJdcLogging.Obj.ApplicationMessage(msSystem, 'Second', TJson.RecordToJsonString(SecondModule));
+  if Assigned(FOnModuleData) then
+    FOnModuleData(Self, SecondModule.UnitID);
 
-  if ModuleSecond.UnitID = TModbus.MAIN_UNIT_ID then
-    RequestPower
-  else
-  begin
-    // 분기모듈
-    PM.Header.UnitID := 0; // null object
-    FOnData(Self, ModuleSecond.UnitID, PM);
-
-    // Next 데이터 요청
-    RequestNextModule;
-  end;
+  // Next 데이터 요청
+  RequestNextModule;
 end;
 
 procedure TMySession.OnPowerModule(ABuff: TIdBytes);
@@ -528,20 +573,20 @@ begin
   CopyMemory(@PowerModule, @ABuff[0], SizeOf(TPowerModule));
   PowerModule.Data.Reverse;
 
-  if FUseDebug then
-    OnLog(msDebug, 'Power', TJson.RecordToJsonString(PowerModule));
-
+  TJdcLogging.Obj.ApplicationMessage(msSystem, 'Power', TJson.RecordToJsonString(PowerModule));
   if FMacAddress = '' then
   begin
     FMacAddress := ToHex(ToBytes(PowerModule.Data.EthernetMac1_1)) + '-' +
       ToHex(ToBytes(PowerModule.Data.EthernetMac1_2));
-    OnLog(msDebug, 'MacAddress', FMacAddress);
+    TJdcLogging.Obj.ApplicationMessage(msInfo, 'AddMeter',
+      Format('Port=%d,Mac=%s', [Self.FContext.PeerPort, FMacAddress]));
     RequestIDTable;
-    Exit;
   end;
 
-  // 전력미터
-  FOnData(Self, TModbus.MAIN_UNIT_ID, PowerModule);
+  if Assigned(FOnPowerData) then
+    FOnPowerData(FRequestTime, MacAddress, PowerModule.Data);
+
+  Self.PowerData := PowerModule.Data;
   RequestNextModule;
 end;
 
@@ -559,8 +604,12 @@ begin
   if AID <= 0 then
   begin
     MySession := FContext.Data as TMySession;
-    if MinuteOf(MySession.SessionTime) = 0 then
-      RequestIDTable;
+    if MinuteOf(MySession.MeasuringTime) = 0 then
+      RequestIDTable; // 1시간에 한번씩 IDTable Update
+
+    // 다음 모듈 없음 - 모든 모듈 데이터 수집 완료
+    if Assigned(FOnMeterData) and (FModuleCount > 0) then
+      FOnMeterData(Self);
     Exit;
   end;
 
@@ -570,7 +619,7 @@ end;
 
 procedure TMySession.RequestNextModule;
 begin
-  RequestModule(GetNextID, 0, TModbus.WORD_COUNT_FIRST);
+  RequestModule(GetNextID, 0, TModbus.WORD_COUNT_PART1);
 end;
 
 procedure TMySession.RequestPower;
@@ -579,10 +628,22 @@ begin
     TModbus.WORD_COUNT_POWER));
 end;
 
-procedure TMySession.Clear;
+procedure TMySession.RequestPowerDataOnly;
 begin
+  FCurIndex := Length(FIDList);
+  RequestPower;
+end;
+
+procedure TMySession.RequestFromPowerData;
+begin
+
+  // 미터 요청 파라미터를 초기화 한다.
   FCurIndex := -1;
   FillChar(FModule, SizeOf(FModule), #0);
+  FillChar(FPowerData, SizeOf(FPowerData), #0);
+
+  // 먼저 파워 데이터를 요청한다.
+  RequestPower;
 end;
 
 function TMySession.GetNextID: Integer;
@@ -603,14 +664,21 @@ begin
   result := -1;
 end;
 
-procedure TMySession.SetFirst(AIndex: Integer; const Value: TModuleFirst);
+procedure TMySession.SetPart1(AIndex: Integer; const Value: TDataPart1);
 begin
-  FModule[AIndex].First := Value;
+  if (AIndex < Low(FModule)) or (AIndex > High(FModule)) then
+    raise Exception.Create('out of index SetPart1, ' + AIndex.ToString);
+
+  FModule[AIndex].Part1 := Value;
 end;
 
-procedure TMySession.SetSecond(AIndex: Integer; const Value: TModuleSecond);
+procedure TMySession.SetPart2(AIndex: Integer; const Value: TDataPart2);
 begin
-  FModule[AIndex].Second := Value;
+  if (AIndex < Low(FModule)) or (AIndex > High(FModule)) then
+    raise Exception.Create('out of index SetPart2, ' + AIndex.ToString);
+
+  FModule[AIndex].Part2 := Value;
+  FModule[AIndex].UnitID := AIndex;
 end;
 
 end.

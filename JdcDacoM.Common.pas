@@ -1,3 +1,13 @@
+// *******************************************************
+//
+// DACO-M 1000P TCP Common
+//
+// Copyright(c) 2020 DACO.
+//
+// jsf3rd@e-daco.net
+//
+// *******************************************************
+
 unit JdcDacoM.Common;
 
 interface
@@ -17,7 +27,7 @@ type
 
   TIDArray40 = array [0 .. MODULE_COUNT] of TID;
 
-  TProtocolType = (ptIDTable, ptPowerModule, ptModuleFirst, ptModuleSecond, ptError, ptCheck, ptUnknown);
+  TProtocolType = (ptIDTable, ptPowerModule, ptModulePart1, ptModulePart2, ptError, ptCheck, ptUnknown);
 
   TDacoM = class
   const

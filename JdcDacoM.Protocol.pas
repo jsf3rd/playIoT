@@ -1,9 +1,19 @@
+// *******************************************************
+//
+// DACO-M 1000P Modbus TCP Protocol
+//
+// Copyright(c) 2020 DACO.
+//
+// jsf3rd@e-daco.net
+//
+// *******************************************************
+
 unit JdcDacoM.Protocol;
 
 interface
 
 uses SysUtils, Classes, JdcGlobal, JdcGlobal.ClassHelper, IdGlobal, Winapi.Windows, Math,
-  System.DateUtils, JdcCRC, REST.JSON, System.JSON, JdcDacoM.Common;
+  System.DateUtils, JdcCRC, REST.JSON, System.JSON, JdcDacoM.Common, JdcLogging;
 
 type
   TMBAP = packed record
@@ -140,7 +150,7 @@ type
     Data: TPowerData;
   end;
 
-  TDataFirst = packed record
+  TDataPart1 = packed record
     VoltLN: T3Phase; // 전압
     FrequencyLN: T3Phase; // 주파수
     Current: T3PhaseEx; // 전류
@@ -166,13 +176,13 @@ type
     procedure Reverse;
   end;
 
-  TModuleFirst = packed record
+  TModulePart1 = packed record
     Header: TMBHeader;
-    Data: TDataFirst;
+    Data: TDataPart1;
     function UnitId: Byte;
   end;
 
-  TDataSecond = packed record
+  TDataPart2 = packed record
     DemandKW: T3PhaseEx; // 유효전력 디맨드
     DemandKWTotalPrediction: Single; // 유효전력 디맨드 예측값
     DemandCurrent: T3PhaseEx; // 전류 디맨드
@@ -205,19 +215,20 @@ type
     procedure Reverse;
   end;
 
-  TModuleSecond = packed record
+  TModulePart2 = packed record
     Header: TMBHeader;
-    Data: TDataSecond;
+    Data: TDataPart2;
     function UnitId: Byte;
   end;
 
-  TModule = record
-    First: TModuleFirst;
-    Second: TModuleSecond;
+  TModuleData = packed record
+    UnitId: Integer;
+    Part1: TDataPart1;
+    Part2: TDataPart2;
     function ToStrings: TStrings;
   end;
 
-  TModuleArray = array [1 .. MAX_UNIT_ID] of TModule;
+  TModuleArray = array [1 .. MAX_UNIT_ID] of TModuleData;
 
   TIDTable = packed record
     Header: TMBHeader;
@@ -252,8 +263,8 @@ type
     READ_REGISTER = $03;
 
     WORD_COUNT_POWER = SizeOf(TPowerData) div 2;
-    WORD_COUNT_FIRST = SizeOf(TDataFirst) div 2;
-    WORD_COUNT_SECOND = SizeOf(TDataSecond) div 2;
+    WORD_COUNT_PART1 = SizeOf(TDataPart1) div 2;
+    WORD_COUNT_PART2 = SizeOf(TDataPart2) div 2;
     WORD_COUNT_IDTABLE = SizeOf(TIDArray40) div 2;
   public
     // DACO-M 1000(A,P,S) 주소 계산
@@ -264,21 +275,21 @@ type
     class function SerialCommand(const AParam: TRequestParam): TIdBytes;
 
     class function GetProtocolType(const ABuff: TIdBytes): TProtocolType;
-    class function CheckCRC(const ABuff: TIdBytes; AProc: TLogProc): Boolean;
+    class function CheckCRC(const ABuff: TIdBytes): Boolean;
   end;
 
 implementation
 
-{ TModuleFirst }
+{ TModulePart1 }
 
-function TModuleFirst.UnitId: Byte;
+function TModulePart1.UnitId: Byte;
 begin
   result := Self.Header.UnitId;
 end;
 
-{ TModuleSecond }
+{ TModulePart2 }
 
-function TModuleSecond.UnitId: Byte;
+function TModulePart2.UnitId: Byte;
 begin
   result := Self.Header.UnitId;
 end;
@@ -364,23 +375,23 @@ end;
 
 { TModule }
 
-function TModule.ToStrings: TStrings;
+function TModuleData.ToStrings: TStrings;
 var
   JsonObject: TJSONObject;
 begin
   result := TStringList.Create;
-  JsonObject := TJson.RecordToJsonObject(Self.First.Data);
+  JsonObject := TJson.RecordToJsonObject(Self.Part1);
   ExtractValues(result, JsonObject);
   JsonObject.Free;
 
-  JsonObject := TJson.RecordToJsonObject(Self.Second.Data);
+  JsonObject := TJson.RecordToJsonObject(Self.Part2);
   ExtractValues(result, JsonObject);
   JsonObject.Free;
 end;
 
 { TModbusUtil }
 
-class function TModbus.CheckCRC(const ABuff: TIdBytes; AProc: TLogProc): Boolean;
+class function TModbus.CheckCRC(const ABuff: TIdBytes): Boolean;
 var
   buff: TIdBytes;
   MyCRC, ReceivedCRC: UInt16;
@@ -393,7 +404,7 @@ begin
   // AProc(msDebug, 'DATA', IdBytesToHex(buff));
   // AProc(msDebug, 'CRC', ToHex(ABuff, 2, Length(buff)));
   if MyCRC <> ReceivedCRC then
-    AProc(msWarning, 'Wrong CRC', Format('MyCRC=%d,Received=%d', [MyCRC, ReceivedCRC]));
+    TJdcLogging.Obj.ApplicationMessage(msWarning, 'Wrong CRC', Format('MyCRC=%d,Received=%d', [MyCRC, ReceivedCRC]));
 
   result := MyCRC = ReceivedCRC;
 end;
@@ -435,10 +446,10 @@ begin
     result := ptIDTable
   else if (ABuff[0] = TModbus.POWER_UNIT_ID) and (Received >= SizeOf(TPowerModule)) then
     result := ptPowerModule
-  else if (ByteCount = SizeOf(TDataFirst)) and (Received >= SizeOf(TModuleFirst)) then
-    result := ptModuleFirst
-  else if (ByteCount = SizeOf(TDataSecond)) and (Received >= SizeOf(TModuleSecond)) then
-    result := ptModuleSecond
+  else if (ByteCount = SizeOf(TDataPart1)) and (Received >= SizeOf(TModulePart1)) then
+    result := ptModulePart1
+  else if (ByteCount = SizeOf(TDataPart2)) and (Received >= SizeOf(TModulePart2)) then
+    result := ptModulePart2
   else if (ByteCount = SizeOf(TIDArray40)) and (Received >= SizeOf(TIDTable)) then
     result := ptCheck // ReadConfig에서 사용
   else if (ABuff[1] = TModbus.ERROR_CODE) and (Received >= SizeOf(TErrorCode)) then
@@ -448,8 +459,8 @@ end;
 
 class function TModbus.InvalidDataLen(ALen: Integer): Boolean;
 begin
-  result := (ALen <> SizeOf(TIDTable)) and (ALen <> SizeOf(TModuleFirst)) //
-    and (ALen <> SizeOf(TModuleSecond)) and (ALen <> SizeOf(TPowerModule)) //
+  result := (ALen <> SizeOf(TIDTable)) and (ALen <> SizeOf(TModulePart1)) //
+    and (ALen <> SizeOf(TModulePart2)) and (ALen <> SizeOf(TPowerModule)) //
     and (ALen <> SizeOf(TErrorCode));
 end;
 
@@ -494,16 +505,16 @@ begin
   RevEveryWord(@Self, SizeOf(Self));
 end;
 
-{ TDataFirst }
+{ TDataPart1 }
 
-procedure TDataFirst.Reverse;
+procedure TDataPart1.Reverse;
 begin
   RevEveryWord(@Self, SizeOf(Self));
 end;
 
-{ TDataSecond }
+{ TDataPart2 }
 
-procedure TDataSecond.Reverse;
+procedure TDataPart2.Reverse;
 begin
   RevEveryWord(@Self, SizeOf(Self));
 end;
