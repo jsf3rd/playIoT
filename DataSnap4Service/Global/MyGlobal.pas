@@ -3,7 +3,7 @@ unit MyGlobal;
 interface
 
 uses
-  Classes, SysUtils, IOUtils, JdcGlobal;
+  Classes, SysUtils, IOUtils, JdcGlobal, JdcLogging;
 
 const
   PROJECT_CODE = 'playIoT';
@@ -13,11 +13,13 @@ const
 
 type
   TGlobal = class(TGlobalAbstract)
-  protected
-    procedure SetExeName(const Value: String); override;
-  public
+  strict protected
     constructor Create; override;
 
+    procedure SetExeName(const Value: String); override;
+    procedure OnAfterLoggingEvent(const AType: TMessageType; const ATitle: String;
+      const AMessage: String = '');
+  public
     class function Obj: TGlobal;
 
     procedure Initialize; override;
@@ -45,9 +47,9 @@ begin
   if FIsfinalized then
     Exit;
 
-  // Todo :
-
   inherited;
+
+  // Todo :
   FIsfinalized := true;
 end;
 
@@ -57,12 +59,14 @@ begin
     Exit;
   if FIsInitialized then
     Exit;
-  FIsInitialized := true;
 
   inherited;
 
-  FUseDebug := TOption.Obj.UseDebug;
-  ApplicationMessage(msDebug, 'UseDebug', BoolToStr(FUseDebug, true));
+  ApplicationMessage(msInfo, 'UseDebug', BoolToStr(TOption.Obj.UseDebug, true));
+  ApplicationMessage(msInfo, 'UseCloudLog', BoolToStr(TOption.Obj.UseCloudLog, true));
+
+  // Todo :
+  FIsInitialized := true;
 end;
 
 class function TGlobal.Obj: TGlobal;
@@ -72,20 +76,24 @@ begin
   result := MyObj;
 end;
 
+procedure TGlobal.OnAfterLoggingEvent(const AType: TMessageType; const ATitle, AMessage: String);
+begin
+  //
+end;
+
 procedure TGlobal.SetExeName(const Value: String);
 begin
   FExeName := Value;
-  FLogName := ExtractFilePath(FExeName) + 'logs\' + ChangeFileExt(ExtractFileName(FExeName), '.log');
-  // FLogName := GetEnvironmentVariable('LOCALAPPDATA') + '\playIoT\' + SERVICE_CODE + '\' +
-  // ExtractFileName(FLogName);
-
-  if not TDirectory.Exists(ExtractFilePath(FLogName)) then
-    TDirectory.CreateDirectory(ExtractFilePath(FLogName));
-
   FAppCode := TOption.Obj.AppCode;
   FProjectCode := TOption.Obj.ProjectCode;
-  FUseCloudLog := TOption.Obj.UseCloudLog;
-  FLogServer := TOption.Obj.LogServer;
+
+  TLogging.Obj.SetLogName(FExeName);
+  TLogging.Obj.ProjectCode := FProjectCode;
+  TLogging.Obj.AppCode := FAppCode;
+  TLogging.Obj.UseDebug := TOption.Obj.UseDebug;
+  TLogging.Obj.UseCloudLog := TOption.Obj.UseCloudLog;
+  TLogging.Obj.LogServer := TOption.Obj.LogServer;
+  TLogging.Obj.OnAfterLogging := OnAfterLoggingEvent;
 end;
 
 initialization

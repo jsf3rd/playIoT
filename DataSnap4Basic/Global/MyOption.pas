@@ -25,6 +25,8 @@ type
     procedure SetProjectCode(const Value: string);
     function GetLogServer: TConnInfo;
     procedure SetLogServer(const Value: TConnInfo);
+    function GetUseDebug: boolean;
+    procedure SetUseDebug(const Value: boolean);
   public
     class function Obj: TOption;
 
@@ -38,6 +40,7 @@ type
     property LogServer: TConnInfo read GetLogServer write SetLogServer;
     property ProjectCode: string read GetProjectCode write SetProjectCode;
     property UseCloudLog: boolean read GetUseCloudLog write SetUseCloudLog;
+    property UseDebug: boolean read GetUseDebug write SetUseDebug;
   end;
 
 implementation
@@ -90,6 +93,11 @@ begin
   result := FIniFile.ReadBool('CloudLog', 'Enable', False);
 end;
 
+function TOption.GetUseDebug: boolean;
+begin
+  result := FIniFile.ReadBool('Config', 'UseDebug', False);
+end;
+
 function TOption.GetHttpPort: Integer;
 begin
   result := FIniFile.ReadInteger('DSServer', 'HTTPPort', 80);
@@ -124,6 +132,11 @@ end;
 procedure TOption.SetUseCloudLog(const Value: boolean);
 begin
   FIniFile.WriteBool('CloudLog', 'Enable', Value);
+end;
+
+procedure TOption.SetUseDebug(const Value: boolean);
+begin
+  FIniFile.WriteBool('Config', 'UseDebug', Value);
 end;
 
 procedure TOption.SetHttpPort(const Value: Integer);

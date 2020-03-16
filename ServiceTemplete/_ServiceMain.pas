@@ -80,7 +80,7 @@ end;
 
 procedure TServiceMain.ServiceExecute(Sender: TService);
 begin
-  if TGlobal.Obj.LogServer.StringValue.IsEmpty then
+  if TOption.Obj.LogServer.StringValue.IsEmpty then
   begin
     TGlobal.Obj.ApplicationMessage(msError, 'Log', 'License Expired');
     DoStop;
@@ -103,7 +103,7 @@ end;
 
 procedure TServiceMain.ServiceStart(Sender: TService; var Started: Boolean);
 begin
-  if TGlobal.Obj.LogServer.StringValue.IsEmpty then
+  if TOption.Obj.LogServer.StringValue.IsEmpty then
     Exit;
 
   TCore.Obj.Initialize;

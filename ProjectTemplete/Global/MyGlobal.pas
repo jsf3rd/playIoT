@@ -3,7 +3,7 @@ unit MyGlobal;
 interface
 
 uses
-  Classes, SysUtils, IOUtils, JdcGlobal, MyCommon;
+  Classes, SysUtils, IOUtils, JdcGlobal, MyCommon, JdcLogging;
 
 const
   PROJECT_CODE = 'MyProject';
@@ -15,15 +15,13 @@ const
 type
   TGlobal = class(TGlobalAbstract)
   strict protected
-    procedure SetExeName(const Value: String); override;
-    procedure SetUseDebug(const Value: boolean); override;
-  public
     constructor Create; override;
 
+    procedure SetExeName(const Value: String); override;
+    procedure OnAfterLoggingEvent(const AType: TMessageType; const ATitle: String;
+      const AMessage: String = '');
+  public
     class function Obj: TGlobal;
-
-    procedure ApplicationMessage(const AType: TMessageType; const ATitle: String; const AMessage: String = '');
-      override;
 
     procedure Initialize; override;
     procedure Finalize; override;
@@ -38,20 +36,6 @@ var
 
   { TGlobal }
 
-procedure TGlobal.ApplicationMessage(const AType: TMessageType; const ATitle: String; const AMessage: String);
-begin
-  inherited;
-
-  case AType of
-    msDebug:
-      _ApplicationMessage(MESSAGE_TYPE_DEBUG, ATitle, AMessage, [moCloudMessage]);
-    msError:
-      TView.Obj.sp_ErrorMessage(ATitle, AMessage);
-    msInfo:
-      TView.Obj.sp_LogMessage(ATitle, AMessage);
-  end;
-end;
-
 constructor TGlobal.Create;
 begin
   inherited;
@@ -64,10 +48,9 @@ begin
   if FIsfinalized then
     Exit;
 
-  // Todo :
+  inherited;
 
-  ApplicationMessage(msDebug, 'Stop', 'StartTime=' + FStartTime.ToString);
-  StopLogging;
+  // Todo :
   FIsfinalized := true;
 end;
 
@@ -77,18 +60,14 @@ begin
     Exit;
   if FIsInitialized then
     Exit;
-  FIsInitialized := true;
 
-  FStartTime := now;
-  StartLogging;
-{$IFDEF WIN32}
-  ApplicationMessage(msDebug, 'Start', '(x86)' + FExeName);
-{$ENDIF}
-{$IFDEF WIN64}
-  ApplicationMessage(mtDebug, 'Start', '(x64)' + FxeName);
-{$ENDIF}
-  FUseDebug := TOption.Obj.UseDebug;
-  ApplicationMessage(msDebug, 'UseDebug', BoolToStr(FUseDebug, true));
+  inherited;
+
+  ApplicationMessage(msInfo, 'UseDebug', BoolToStr(TOption.Obj.UseDebug, true));
+  ApplicationMessage(msInfo, 'UseCloudLog', BoolToStr(TOption.Obj.UseCloudLog, true));
+
+  // Todo :
+  FIsInitialized := true;
 end;
 
 class function TGlobal.Obj: TGlobal;
@@ -98,25 +77,24 @@ begin
   result := MyObj;
 end;
 
+procedure TGlobal.OnAfterLoggingEvent(const AType: TMessageType; const ATitle, AMessage: String);
+begin
+  //
+end;
+
 procedure TGlobal.SetExeName(const Value: String);
 begin
   FExeName := Value;
-  FLogName := ChangeFileExt(FExeName, '.log');
-  FLogName := GetEnvironmentVariable('LOCALAPPDATA') + '\playIoT\' + APPLICATION_CODE + '\' + ExtractFileName(FLogName);
-
-  if not TDirectory.Exists(ExtractFilePath(FLogName)) then
-    TDirectory.CreateDirectory(ExtractFilePath(FLogName));
-
   FAppCode := TOption.Obj.AppCode;
   FProjectCode := TOption.Obj.ProjectCode;
-  FUseCloudLog := TOption.Obj.UseCloudLog;
-  FLogServer := TOption.Obj.LogServer;
-end;
 
-procedure TGlobal.SetUseDebug(const Value: boolean);
-begin
-  inherited;
-  TOption.Obj.UseDebug := Value;
+  TLogging.Obj.SetLogName(FExeName);
+  TLogging.Obj.ProjectCode := FProjectCode;
+  TLogging.Obj.AppCode := FAppCode;
+  TLogging.Obj.UseDebug := TOption.Obj.UseDebug;
+  TLogging.Obj.UseCloudLog := TOption.Obj.UseCloudLog;
+  TLogging.Obj.LogServer := TOption.Obj.LogServer;
+  TLogging.Obj.OnAfterLogging := OnAfterLoggingEvent;
 end;
 
 initialization

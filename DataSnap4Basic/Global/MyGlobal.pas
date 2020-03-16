@@ -3,7 +3,7 @@
 interface
 
 uses
-  Classes, SysUtils, IOUtils, JdcGlobal;
+  Classes, SysUtils, IOUtils, JdcGlobal, JdcLogging;
 
 const
   PROJECT_CODE = 'MyProject';
@@ -25,11 +25,11 @@ const
 type
   TGlobal = class(TGlobalAbstract)
   strict protected
-    procedure SetExeName(const Value: String); override;
-
-  public
     constructor Create; override;
-
+    procedure SetExeName(const Value: String); override;
+    procedure OnAfterLoggingEvent(const AType: TMessageType; const ATitle: String;
+      const AMessage: String = '');
+  public
     class function Obj: TGlobal;
 
     procedure Initialize; override;
@@ -57,9 +57,9 @@ begin
   if FIsfinalized then
     Exit;
 
-  // Todo :
-
   inherited;
+
+  // Todo :
   FIsfinalized := true;
 end;
 
@@ -69,11 +69,14 @@ begin
     Exit;
   if FIsInitialized then
     Exit;
-  FIsInitialized := true;
 
   inherited;
 
-  // Todo :
+  ApplicationMessage(msInfo, 'UseDebug', BoolToStr(TOption.Obj.UseDebug, true));
+  ApplicationMessage(msInfo, 'UseCloudLog', BoolToStr(TOption.Obj.UseCloudLog, true));
+
+  // TODO
+  FIsInitialized := true;
 end;
 
 class function TGlobal.Obj: TGlobal;
@@ -83,19 +86,24 @@ begin
   Result := MyObj;
 end;
 
+procedure TGlobal.OnAfterLoggingEvent(const AType: TMessageType; const ATitle, AMessage: String);
+begin
+  // TODO..
+end;
+
 procedure TGlobal.SetExeName(const Value: String);
 begin
   FExeName := Value;
-  FLogName := ChangeFileExt(FExeName, '.log');
-  FLogName := GetEnvironmentVariable('LOCALAPPDATA') + '\playIoT\' + ExtractFileName(FLogName);
-
-  if not TDirectory.Exists(ExtractFilePath(FLogName)) then
-    TDirectory.CreateDirectory(ExtractFilePath(FLogName));
-
   FAppCode := TOption.Obj.AppCode;
   FProjectCode := TOption.Obj.ProjectCode;
-  FUseCloudLog := TOption.Obj.UseCloudLog;
-  FLogServer := TOption.Obj.LogServer;
+
+  TLogging.Obj.SetLogName(FExeName);
+  TLogging.Obj.ProjectCode := FProjectCode;
+  TLogging.Obj.AppCode := FAppCode;
+  TLogging.Obj.UseDebug := TOption.Obj.UseDebug;
+  TLogging.Obj.UseCloudLog := TOption.Obj.UseCloudLog;
+  TLogging.Obj.LogServer := TOption.Obj.LogServer;
+  TLogging.Obj.OnAfterLogging := OnAfterLoggingEvent;
 end;
 
 end.

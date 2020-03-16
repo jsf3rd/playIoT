@@ -92,6 +92,7 @@
         <DCC_RemoteDebug>false</DCC_RemoteDebug>
         <BT_BuildType>Debug</BT_BuildType>
         <DCC_ExeOutput>..\__bin\$(Config)</DCC_ExeOutput>
+        <DCC_Define>_LOCALAPPDATA;_LOGGING_DAY_TAG;$(DCC_Define)</DCC_Define>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Cfg_2)'!=''">
         <DCC_LocalDebugSymbols>false</DCC_LocalDebugSymbols>

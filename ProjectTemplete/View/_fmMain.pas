@@ -3,10 +3,9 @@ unit _fmMain;
 interface
 
 uses
-  Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants,
-  System.Classes, Vcl.Graphics, Winapi.Shellapi,
-  Vcl.Controls, Vcl.Forms, Vcl.ActnList, JsonData, Vcl.Dialogs, System.Actions,
-  Vcl.Menus, Vcl.AppEvnts, Vcl.ExtCtrls, Vcl.StdCtrls;
+  Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
+  Winapi.Shellapi, Vcl.Controls, Vcl.Forms, Vcl.ActnList, JsonData, Vcl.Dialogs, System.Actions,
+  Vcl.Menus, Vcl.AppEvnts, Vcl.ExtCtrls, Vcl.StdCtrls, JdcLogging;
 
 type
   TfmMain = class(TForm)
@@ -61,8 +60,8 @@ uses JdcGlobal, MyGlobal, MyOption, MyCommon, JdcView, Core, System.UITypes;
 
 procedure TfmMain.actAboutExecute(Sender: TObject);
 begin
-  MessageDlg(APPLICATION_TITLE + ' ' + FileVersion(ParamStr(0)) + ' ' + COPY_RIGHT_SIGN +
-    #13#10#13#10 + HOME_PAGE_URL, mtInformation, [mbOK], 0);
+  MessageDlg(APPLICATION_TITLE + ' ' + FileVersion(TGlobal.Obj.ExeName) + ' ' + COPY_RIGHT_SIGN + #13#10#13#10
+    + HOME_PAGE_URL, mtInformation, [mbOK], 0);
 end;
 
 procedure TfmMain.actClearLogExecute(Sender: TObject);
@@ -74,7 +73,8 @@ end;
 procedure TfmMain.actDebugExecute(Sender: TObject);
 begin
   actDebug.Checked := not actDebug.Checked;
-  TGlobal.Obj.UseDebug := actDebug.Checked;
+  TOption.Obj.UseDebug := actDebug.Checked;
+  TLogging.Obj.UseDebug := TOption.Obj.UseDebug;
 end;
 
 procedure TfmMain.actExitExecute(Sender: TObject);
@@ -84,13 +84,13 @@ end;
 
 procedure TfmMain.actShowIniExecute(Sender: TObject);
 begin
-  ShellExecute(handle, 'open', PWideChar('notepad.exe'),
-    PWideChar(TOption.Obj.IniFile.FileName), '', SW_SHOWNORMAL);
+  ShellExecute(handle, 'open', PWideChar('notepad.exe'), PWideChar(TOption.Obj.IniFile.FileName), '',
+    SW_SHOWNORMAL);
 end;
 
 procedure TfmMain.actShowLogExecute(Sender: TObject);
 begin
-  ShellExecute(handle, 'open', PWideChar('notepad.exe'), PWideChar(TGlobal.Obj.LogName), '',
+  ShellExecute(handle, 'open', PWideChar('notepad.exe'), PWideChar(TLogging.Obj.LogName), '',
     SW_SHOWNORMAL);
 end;
 
@@ -101,15 +101,13 @@ end;
 
 procedure TfmMain.ApplicationEventsException(Sender: TObject; E: Exception);
 begin
-  TGlobal.Obj.ApplicationMessage(msError, 'System Error', '[%s] %s',
-    [Sender.ClassName, E.Message]);
+  TGlobal.Obj.ApplicationMessage(msError, 'System Error', '%s', [E.Message]);
 end;
 
 procedure TfmMain.FormCloseQuery(Sender: TObject; var CanClose: Boolean);
 begin
   CanClose := false;
-  if MessageDlg(APPLICATION_TITLE + '을(를) 종료하시겠습니까?', TMsgDlgType.mtConfirmation, mbYesNo, 0) = mrYes
-  then
+  if MessageDlg(APPLICATION_TITLE + '을(를) 종료하시겠습니까?', TMsgDlgType.mtConfirmation, mbYesNo, 0) = mrYes then
     TCore.Obj.Finalize;
 end;
 
@@ -131,20 +129,20 @@ end;
 
 procedure TfmMain.rp_ErrorMessage(APacket: TJsonData);
 begin
-  MessageDlg('오류 : ' + APacket.Values['Name'] + #13#10 + APacket.Values['Msg'],
-    TMsgDlgType.mtError, [mbOK], 0);
+  MessageDlg('오류 : ' + APacket.Values['Name'] + #13#10 + APacket.Values['Msg'], TMsgDlgType.mtError,
+    [mbOK], 0);
 end;
 
 procedure TfmMain.rp_Init(APacket: TJsonData);
 begin
-  Caption := TOption.Obj.AppName + ' ' + FileVersion(ParamStr(0));
-  actDebug.Checked := TGlobal.Obj.UseDebug;
+  Caption := TOption.Obj.AppName + ' ' + FileVersion(TGlobal.Obj.ExeName);
+  actDebug.Checked := TOption.Obj.UseDebug;
 end;
 
 procedure TfmMain.rp_LogMessage(APacket: TJsonData);
 begin
-  MessageDlg('알림 : ' + APacket.Values['Name'] + #13#10 + APacket.Values['Msg'],
-    TMsgDlgType.mtInformation, [mbOK], 0);
+  MessageDlg('알림 : ' + APacket.Values['Name'] + #13#10 + APacket.Values['Msg'], TMsgDlgType.mtInformation,
+    [mbOK], 0);
 end;
 
 procedure TfmMain.rp_Terminate(APacket: TJsonData);
