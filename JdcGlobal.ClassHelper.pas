@@ -1,10 +1,10 @@
 // *******************************************************
 //
-// playIoT Class Helper
+// DACO Class Helper
 //
-// Copyright(c) 2016 playIoT.
+// Copyright(c) 2020 DACO.
 //
-// jsf3rd@playiot.biz
+// jsf3rd@e-daco.net
 //
 //
 // *******************************************************
@@ -16,7 +16,7 @@ interface
 uses
   Classes, SysUtils, REST.JSON,
   XSuperObject, System.IOUtils, System.Generics.Collections, System.DateUtils, Data.SqlTimSt,
-  IdContext, JdcGlobal, IdGlobal, IdExceptionCore, IdIOHandler
+  IdContext, JdcGlobal, IdGlobal, IdExceptionCore, IdIOHandler, JdcLogging
 
 {$IF CompilerVersion  > 26} // upper XE5
     , System.JSON
@@ -50,7 +50,7 @@ type
     function PeerPort: word;
     function PeerInfo: string;
 
-    procedure FlushBuffer(ALogProc: TLogProc);
+    procedure FlushBuffer;
 
     property ReadTimeout: Integer read GetReadTimeout write SetReadTimeout;
   end;
@@ -80,15 +80,18 @@ type
     class function ObjectToJsonObjectEx(AObject: TObject): TJSONObject;
     class function ObjectToJsonStringEx(AObject: TObject): String;
     class function JsonToObjectEx<T: class>(AJsonObject: TJSONObject): T; overload;
-    class function JsonToObjectEx<T: class>(AJson: String): T; overload;
-    class function FileToObject<T: class>(FileName: String): T;
+    class function JsonToObjectEx<T: class>(const AJson: String): T; overload;
+    class function FileToObject<T: class>(const FileName: String): T;
 
     class function RecordToJsonObject<T: record >(ARecord: T): TJSONObject;
     class function RecordToJsonString<T: record >(ARecord: T): String;
     class function JsonToRecord<T: record >(AJsonObject: TJSONObject): T; overload;
-    class function JsonToRecord<T: record >(AJson: String): T; overload;
-    class function FileToRecord<T: record >(FileName: String): T;
+    class function JsonToRecord<T: record >(const AJson: String): T; overload;
+    class function FileToRecord<T: record >(const FileName: String): T;
     class function ConvertRecord<T1, T2: record >(ARecord: T1): T2;
+
+    class function RecordArrayToJsonArray<T: record >(RecordArray: TArray<T>): TJSONArray;
+    class function JsonArrayToRecordArray<T: record >(JsonArray: TJSONArray): TArray<T>;
   end;
 
   TTimeHelper = record helper for TTime
@@ -108,11 +111,19 @@ type
     function Time: string;
   end;
 
+function ReplaceStringNumber(const AInput: string): string;
+
 implementation
 
 {$IFDEF MSWINDOWS}
 
 uses JdcGlobal.DSCommon;
+
+function ReplaceStringNumber(const AInput: string): string;
+begin
+  result := AInput.Replace('NAN', '0', [rfReplaceAll, rfIgnoreCase]);
+  result := result.Replace('INF', '0', [rfReplaceAll, rfIgnoreCase]);
+end;
 
 { TTimerHelper }
 
@@ -128,7 +139,7 @@ function TJSONObjectHelper.AddPair(const Str: string; const Val: Integer): TJSON
 begin
   if not Str.IsEmpty then
     AddPair(TJSONPair.Create(Str, TJSONNumber.Create(Val)));
-  Result := Self;
+  result := Self;
 end;
 
 function TJSONObjectHelper.GetJSONArray(const Name: string): TJSONArray;
@@ -138,7 +149,7 @@ begin
   JSONValue := GetValueEx(Name);
 
   try
-    Result := JSONValue as TJSONArray;
+    result := JSONValue as TJSONArray;
   except
     on E: Exception do
       raise Exception.Create(SysUtils.Format('JSON name [%s] can not cast to TJSONArray. \n %s',
@@ -153,7 +164,7 @@ begin
   JSONValue := GetValueEx(Name);
 
   try
-    Result := JSONValue as TJSONObject;
+    result := JSONValue as TJSONObject;
   except
     on E: Exception do
       raise Exception.Create(SysUtils.Format('JSON name [%s] can not cast to TJSONObject. \n %s',
@@ -165,7 +176,7 @@ function TJSONObjectHelper.AddPair(const Str: string; const Val: double): TJSONO
 begin
   if not Str.IsEmpty then
     AddPair(TJSONPair.Create(Str, TJSONNumber.Create(Val)));
-  Result := Self;
+  result := Self;
 end;
 
 procedure TJSONObjectHelper.Clear;
@@ -180,7 +191,7 @@ begin
   JSONValue := GetValueEx(Name);
 
   try
-    Result := (JSONValue as TJSONNumber).AsDouble;
+    result := (JSONValue as TJSONNumber).AsDouble;
   except
     on E: Exception do
       raise Exception.Create(SysUtils.Format('JSON name [%s] can not cast to TJSONNumber. \n %s',
@@ -195,7 +206,7 @@ begin
   JSONValue := GetValueEx(Name);
 
   try
-    Result := (JSONValue as TJSONNumber).AsInt;
+    result := (JSONValue as TJSONNumber).AsInt;
   except
     on E: Exception do
       raise Exception.Create(SysUtils.Format('JSON name [%s] can not cast to TJSONNumber. \n %s',
@@ -205,7 +216,7 @@ end;
 
 function TJSONObjectHelper.GetString(const Name: string): String;
 begin
-  Result := GetValueEx(Name).Value;
+  result := GetValueEx(Name).Value;
 end;
 
 function TJSONObjectHelper.GetValueEx(const Name: string): TJSONValue;
@@ -213,9 +224,9 @@ var
   MyElem: TJSONPair;
   Names: String;
 begin
-  Result := GetValue(Name);
+  result := GetValue(Name);
 
-  if Assigned(Result) then
+  if Assigned(result) then
     Exit;
 
   Names := '';
@@ -229,25 +240,25 @@ class function TJSONObjectHelper.ParseFile(FileName: String): TJSONValue;
 var
   JsonString: string;
 begin
-  JsonString := TFile.ReadAllText(FileName);
-  Result := TJSONObject.ParseJSONValue(JsonString);
+  JsonString := ReplaceStringNumber(TFile.ReadAllText(FileName));
+  result := TJSONObject.ParseJSONValue(JsonString);
 end;
 
 function TJSONObjectHelper.ToObject<T>: T;
 begin
-  Result := REST.JSON.TJSON.JsonToObjectEx<T>(Self);
+  result := REST.JSON.TJSON.JsonToObjectEx<T>(Self);
 end;
 
 function TJSONObjectHelper.ToRecord<T>: T;
 begin
-  Result := REST.JSON.TJSON.JsonToRecord<T>(Self);
+  result := REST.JSON.TJSON.JsonToRecord<T>(Self);
 end;
 
 { TJSONHelper }
 
 class function TJSONHelper.JsonToObjectEx<T>(AJsonObject: TJSONObject): T;
 begin
-  Result := JsonToObjectEx<T>(AJsonObject.ToString);
+  result := JsonToObjectEx<T>(AJsonObject.ToString);
 end;
 
 class function TJSONHelper.ConvertRecord<T1, T2>(ARecord: T1): T2;
@@ -255,55 +266,88 @@ var
   JSONObject: TJSONObject;
 begin
   JSONObject := RecordToJsonObject<T1>(ARecord);
-  Result := JsonToRecord<T2>(JSONObject);
+  result := JsonToRecord<T2>(JSONObject);
   JSONObject.Free;
 end;
 
-class function TJSONHelper.FileToObject<T>(FileName: String): T;
+class function TJSONHelper.FileToObject<T>(const FileName: String): T;
 var
   JsonString: string;
 begin
   JsonString := TFile.ReadAllText(FileName);
-  Result := REST.JSON.TJSON.JsonToObjectEx<T>(JsonString);
+  result := REST.JSON.TJSON.JsonToObjectEx<T>(JsonString);
 end;
 
-class function TJSONHelper.FileToRecord<T>(FileName: String): T;
+class function TJSONHelper.FileToRecord<T>(const FileName: String): T;
 var
   JsonString: string;
 begin
   JsonString := TFile.ReadAllText(FileName);
-  Result := REST.JSON.TJSON.JsonToRecord<T>(JsonString);
+  result := REST.JSON.TJSON.JsonToRecord<T>(JsonString);
 end;
 
-class function TJSONHelper.JsonToObjectEx<T>(AJson: String): T;
+class function TJSONHelper.JsonArrayToRecordArray<T>(JsonArray: TJSONArray): TArray<T>;
+var
+  MyValue: TJSONValue;
+  I: Integer;
 begin
-  Result := TSuperObject.Create(AJson).AsType<T>;
+  SetLength(result, JsonArray.Count);
+
+  I := 0;
+  for MyValue in JsonArray do
+  begin
+    try
+      result[I] := JsonToRecord<T>(MyValue as TJSONObject);
+    except
+      on E: Exception do
+        raise Exception.Create('JsonArrayToRecordArray - ' + E.Message);
+    end;
+
+    Inc(I);
+  end;
+end;
+
+class function TJSONHelper.JsonToObjectEx<T>(const AJson: String): T;
+begin
+  result := TSuperObject.Create(AJson).AsType<T>;
 end;
 
 class function TJSONHelper.JsonToRecord<T>(AJsonObject: TJSONObject): T;
 begin
-  Result := JsonToRecord<T>(AJsonObject.ToString);
+  result := JsonToRecord<T>(AJsonObject.ToString);
 end;
 
-class function TJSONHelper.JsonToRecord<T>(AJson: String): T;
+class function TJSONHelper.JsonToRecord<T>(const AJson: String): T;
 var
-  tmp: string;
+  JsonString: string;
 begin
-  tmp := AJson.Replace('NAN', '0', [rfReplaceAll, rfIgnoreCase]);
-  Result := TSuperRecord<T>.FromJSON(tmp);
+  JsonString := ReplaceStringNumber(AJson);
+  result := TSuperRecord<T>.FromJSON(JsonString);
 end;
 
 class function TJSONHelper.ObjectToJsonObjectEx(AObject: TObject): TJSONObject;
 var
   JSONStr: String;
 begin
-  JSONStr := AObject.AsJSON;
-  Result := TJSONObject.ParseJSONValue(JSONStr) as TJSONObject;
+  JSONStr := ReplaceStringNumber(AObject.AsJSON);
+  result := TJSONObject.ParseJSONValue(JSONStr) as TJSONObject;
 end;
 
 class function TJSONHelper.ObjectToJsonStringEx(AObject: TObject): String;
 begin
-  Result := AObject.AsJSON;
+  result := AObject.AsJSON;
+end;
+
+class function TJSONHelper.RecordArrayToJsonArray<T>(RecordArray: TArray<T>): TJSONArray;
+var
+  MyElem: T;
+begin
+  result := TJSONArray.Create;
+
+  for MyElem in RecordArray do
+  begin
+    result.Add(RecordToJsonObject(MyElem));
+  end;
 end;
 
 class function TJSONHelper.RecordToJsonObject<T>(ARecord: T): TJSONObject;
@@ -311,10 +355,8 @@ var
   JsonString: string;
 begin
   try
-    JsonString := RecordToJsonString<T>(ARecord);
-    // JsonString := JsonString.Replace('NAN', '0', [rfReplaceAll, rfIgnoreCase]);
-    // JsonString := JsonString.Replace('-NAN', '0', [rfReplaceAll, rfIgnoreCase]);
-    Result := TJSONObject.ParseJSONValue(JsonString) as TJSONObject;
+    JsonString := ReplaceStringNumber(RecordToJsonString<T>(ARecord));
+    result := TJSONObject.ParseJSONValue(JsonString) as TJSONObject;
   except
     on E: Exception do
       raise Exception.Create('RecordToJsonObject,' + E.Message);
@@ -323,24 +365,24 @@ end;
 
 class function TJSONHelper.RecordToJsonString<T>(ARecord: T): String;
 begin
-  Result := TSuperRecord<T>.AsJSON(ARecord);
+  result := TSuperRecord<T>.AsJSON(ARecord);
 end;
 
 { TDateTimeHelper }
 
 function TDateTimeHelper.Date: string;
 begin
-  Result := FormatDateTime('YYYY-MM-DD', Self);
+  result := FormatDateTime('YYYY-MM-DD', Self);
 end;
 
 function TDateTimeHelper.FormatWithMSec: String;
 begin
-  Result := FormatDateTime('YYYY-MM-DD HH:NN:SS.zzz', Self);
+  result := FormatDateTime('YYYY-MM-DD HH:NN:SS.zzz', Self);
 end;
 
 function TDateTimeHelper.FormatWithoutMSec: String;
 begin
-  Result := FormatDateTime('YYYY-MM-DD HH:NN:SS', Self);
+  result := FormatDateTime('YYYY-MM-DD HH:NN:SS', Self);
 end;
 
 function TDateTimeHelper.RecodeTenMinute: TDateTime;
@@ -350,34 +392,34 @@ begin
   Min := MinuteOf(Self);
   Min := (Min div 10) * 10;
 
-  Result := RecodeMilliSecond(Self, 0);
-  Result := RecodeSecond(Result, 0);
-  Result := RecodeMinute(Result, Min);
+  result := RecodeMilliSecond(Self, 0);
+  result := RecodeSecond(result, 0);
+  result := RecodeMinute(result, Min);
 end;
 
 function TDateTimeHelper.SQLTimeStamp: TSQLTimeStamp;
 begin
-  Result := DateTimeToSQLTimeStamp(Self);
+  result := DateTimeToSQLTimeStamp(Self);
 end;
 
 function TDateTimeHelper.Time: string;
 begin
-  Result := FormatDateTime('HH:NN:SS', Self);
+  result := FormatDateTime('HH:NN:SS', Self);
 end;
 
 function TDateTimeHelper.ToISO8601: String;
 begin
-  Result := FormatDateTime('YYYY-MM-DD"T"HH:NN:SS.zzz', Self);
+  result := FormatDateTime('YYYY-MM-DD"T"HH:NN:SS.zzz', Self);
 end;
 
 function TDateTimeHelper.ToString: String;
 begin
-  Result := Self.FormatWithMSec;
+  result := Self.FormatWithMSec;
 end;
 
 { TIdContextHelper }
 
-procedure TIdContextHelper.FlushBuffer(ALogProc: TLogProc);
+procedure TIdContextHelper.FlushBuffer;
 var
   buff: TIdBytes;
   OldTimeout: Integer;
@@ -405,9 +447,8 @@ begin
     if Length(buff) = 0 then
       Exit;
 
-    if Assigned(ALogProc) then
-      ALogProc(msDebug, 'FlushBuffer', Format('Port=%d,Len=%d,Msg=%s', [Self.PeerPort, Length(buff),
-        IdBytesToHex(buff)]));
+    TLogging.Obj.ApplicationMessage(msDebug, 'FlushBuffer', Format('Port=%d,Len=%d,Msg=%s',
+      [Self.PeerPort, Length(buff), IdBytesToHex(buff)]));
   finally
     Self.Connection.IOHandler.ReadTimeout := OldTimeout;
   end;
@@ -415,32 +456,32 @@ end;
 
 function TIdContextHelper.GetReadTimeout: Integer;
 begin
-  Result := IOHandler.ReadTimeout;
+  result := IOHandler.ReadTimeout;
 end;
 
 function TIdContextHelper.IOHandler: TIdIOHandler;
 begin
-  Result := Self.Connection.IOHandler;
+  result := Self.Connection.IOHandler;
 end;
 
 function TIdContextHelper.PeerInfo: string;
 begin
-  Result := Format('IP=%s,Port=%d', [Self.PeerIP, Self.PeerPort]);
+  result := Format('IP=%s,Port=%d', [Self.PeerIP, Self.PeerPort]);
 end;
 
 function TIdContextHelper.PeerIP: string;
 begin
-  Result := Self.Connection.Socket.Binding.PeerIP;
+  result := Self.Connection.Socket.Binding.PeerIP;
 end;
 
 function TIdContextHelper.PeerPort: word;
 begin
-  Result := Self.Connection.Socket.Binding.PeerPort;
+  result := Self.Connection.Socket.Binding.PeerPort;
 end;
 
 function TIdContextHelper.ReadByte: Byte;
 begin
-  Result := IOHandler.ReadByte;
+  result := IOHandler.ReadByte;
 end;
 
 procedure TIdContextHelper.ReadBytes(var VBuffer: TIdBytes; AByteCount: Integer; AAppend: Boolean);
@@ -462,7 +503,7 @@ end;
 
 function TTimeHelper.ToString: String;
 begin
-  Result := FormatDateTime('HH:NN:SS', Self);
+  result := FormatDateTime('HH:NN:SS', Self);
 end;
 
 end.

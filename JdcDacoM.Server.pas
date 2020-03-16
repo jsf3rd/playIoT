@@ -229,11 +229,11 @@ begin
     AContext.Write(buff);
     Session := TMySession(AContext.Data);
     Session.RequestTime := Now;
-    TJdcLogging.Obj.ApplicationMessage(msSystem, 'SEND', 'Port=%d,Msg=%s',
+    TLogging.Obj.ApplicationMessage(msSystem, 'SEND', 'Port=%d,Msg=%s',
       [AContext.PeerPort, IdBytesToHex(buff)]);
   except
     on E: Exception do
-      TJdcLogging.Obj.ApplicationMessage(msError, 'SEND', 'IP=%s,buff=%s,E=%s',
+      TLogging.Obj.ApplicationMessage(msError, 'SEND', 'IP=%s,buff=%s,E=%s',
         [AContext.PeerIP, IdBytesToHex(buff), E.Message]);
   end;
 end;
@@ -252,7 +252,7 @@ begin
     ptError:
       ASession.OnError(ABuff);
   else
-    TJdcLogging.Obj.ApplicationMessage(msWarning, 'WrongProtocol', IdBytesToHex(ABuff));
+    TLogging.Obj.ApplicationMessage(msWarning, 'WrongProtocol', IdBytesToHex(ABuff));
   end;
 end;
 
@@ -277,7 +277,7 @@ begin
     _RequestData(ATime);
   except
     on E: Exception do
-      TJdcLogging.Obj.ApplicationMessage(msError, 'RequestData', E.Message);
+      TLogging.Obj.ApplicationMessage(msError, 'RequestData', E.Message);
   end;
 end;
 
@@ -288,8 +288,7 @@ begin
 
   FTCPServer.DefaultPort := APort;
   FTCPServer.Active := True;
-  TJdcLogging.Obj.ApplicationMessage(msInfo, 'DacoMServer',
-    Format('Opened,Port=%d', [FTCPServer.DefaultPort]));
+  TLogging.Obj.ApplicationMessage(msInfo, 'DacoMServer', Format('Opened,Port=%d', [FTCPServer.DefaultPort]));
 end;
 
 function TDacoMServer.Started: Boolean;
@@ -303,14 +302,14 @@ begin
     Exit;
 
   FTCPServer.Active := False;
-  TJdcLogging.Obj.ApplicationMessage(msInfo, 'DacoMServer', 'Closed');
+  TLogging.Obj.ApplicationMessage(msInfo, 'DacoMServer', 'Closed');
 end;
 
 procedure TDacoMServer.TCPServerConnect(AContext: TIdContext);
 var
   MySession: TMySession;
 begin
-  TJdcLogging.Obj.ApplicationMessage(msInfo, 'Connected', AContext.PeerInfo);
+  TLogging.Obj.ApplicationMessage(msInfo, 'Connected', AContext.PeerInfo);
 
   MySession := TMySession.Create(AContext);
   MySession.OnRequest := OnRequest;
@@ -330,7 +329,7 @@ begin
   if Assigned(AContext.Data) and (AContext.Data is TMySession) then
     AContext.Data.Free;
 
-  TJdcLogging.Obj.ApplicationMessage(msInfo, 'Disconnected', AContext.PeerInfo);
+  TLogging.Obj.ApplicationMessage(msInfo, 'Disconnected', AContext.PeerInfo);
   AContext.Data := nil;
 end;
 
@@ -338,7 +337,7 @@ procedure TDacoMServer.TCPServerException(AContext: TIdContext; AException: Exce
 begin
   if AException is EIdReadTimeout then
   begin
-    TJdcLogging.Obj.ApplicationMessage(msDebug, 'ReadTimeout', 'NoResponse.');
+    TLogging.Obj.ApplicationMessage(msDebug, 'ReadTimeout', 'NoResponse.');
     Exit;
   end;
 
@@ -354,7 +353,7 @@ begin
   if AException is EIdSocketError then
     Exit;
 
-  TJdcLogging.Obj.ApplicationMessage(msError, 'TCPException', 'E=%S,EClass=%s',
+  TLogging.Obj.ApplicationMessage(msError, 'TCPException', 'E=%S,EClass=%s',
     [AException.Message, AException.ClassName]);
 end;
 
@@ -386,7 +385,7 @@ begin
         if tmp < 10 then
           raise;
 
-        TJdcLogging.Obj.ApplicationMessage(msInfo, 'ExtraWait', 'Port=%d,%dms', [AContext.PeerPort, tmp]);
+        TLogging.Obj.ApplicationMessage(msInfo, 'ExtraWait', 'Port=%d,%dms', [AContext.PeerPort, tmp]);
         AContext.ReadTimeout := Min(tmp, READ_TIME_OUT - 1);
         Exit;
       end;
@@ -398,13 +397,13 @@ begin
       raise;
   end;
 
-  TJdcLogging.Obj.ApplicationMessage(msSystem, 'RECV', 'Port=%d,Len=%d,Msg=%s',
+  TLogging.Obj.ApplicationMessage(msSystem, 'RECV', 'Port=%d,Len=%d,Msg=%s',
     [AContext.PeerPort, Length(buff), IdBytesToHex(buff)]);
 
   CopyMemory(@Header, @buff[0], SizeOf(Header));
   Header.Reverse;
 
-  TJdcLogging.Obj.ApplicationMessage(msSystem, 'HEADER', TJson.RecordToJsonString(Header));
+  TLogging.Obj.ApplicationMessage(msSystem, 'HEADER', TJson.RecordToJsonString(Header));
 
   DataLen := Header.Length;
   if TModbus.InvalidDataLen(DataLen) then
@@ -418,7 +417,7 @@ begin
   AContext.ReadBytes(buff, DataLen);
   MySession.RequestTime := 0;
 
-  TJdcLogging.Obj.ApplicationMessage(msSystem, 'RECV', 'Port=%d,Len=%d,Msg=%s',
+  TLogging.Obj.ApplicationMessage(msSystem, 'RECV', 'Port=%d,Len=%d,Msg=%s',
     [AContext.PeerPort, Length(buff), IdBytesToHex(buff)]);
   ParsePacket(MySession, buff);
 end;
@@ -482,7 +481,7 @@ var
   ErrorCode: TErrorCode;
 begin
   CopyMemory(@ErrorCode, @ABuff[0], SizeOf(TErrorCode));
-  TJdcLogging.Obj.ApplicationMessage(msDebug, 'Error', TJson.RecordToJsonString(ErrorCode));
+  TLogging.Obj.ApplicationMessage(msDebug, 'Error', TJson.RecordToJsonString(ErrorCode));
 end;
 
 function TMySession.GetModule(AIndex: Integer): TModuleData;
@@ -514,11 +513,11 @@ var
   IDTable: TIDTable;
 begin
   CopyMemory(@IDTable, @ABuff[0], SizeOf(TIDTable));
-  TJdcLogging.Obj.ApplicationMessage(msSystem, 'IDTable', TJson.RecordToJsonString(IDTable));
+  TLogging.Obj.ApplicationMessage(msSystem, 'IDTable', TJson.RecordToJsonString(IDTable));
 
   CopyMemory(@Self.IDList[0], @IDTable.ID[0], SizeOf(TIDArray40));
   FModuleCount := Length(Self.ModuleList.Split([',']));
-  TJdcLogging.Obj.ApplicationMessage(msInfo, 'ModuleList', Format('Port=%d,Count=%d,List=%s',
+  TLogging.Obj.ApplicationMessage(msInfo, 'ModuleList', Format('Port=%d,Count=%d,List=%s',
     [FContext.PeerPort, FModuleCount, ModuleList]));
 end;
 
@@ -530,7 +529,7 @@ begin
   FirstModule.Data.Reverse;
   Self.Part1[FirstModule.UnitID] := FirstModule.Data;
 
-  TJdcLogging.Obj.ApplicationMessage(msSystem, 'First', TJson.RecordToJsonString(FirstModule));
+  TLogging.Obj.ApplicationMessage(msSystem, 'First', TJson.RecordToJsonString(FirstModule));
   RequestModule(FirstModule.UnitID, TModbus.WORD_COUNT_PART1, TModbus.WORD_COUNT_PART2);
 end;
 
@@ -558,7 +557,7 @@ begin
   SecondModule.Data.Reverse;
   Self.Part2[SecondModule.UnitID] := SecondModule.Data;
 
-  TJdcLogging.Obj.ApplicationMessage(msSystem, 'Second', TJson.RecordToJsonString(SecondModule));
+  TLogging.Obj.ApplicationMessage(msSystem, 'Second', TJson.RecordToJsonString(SecondModule));
   if Assigned(FOnModuleData) then
     FOnModuleData(Self, SecondModule.UnitID);
 
@@ -573,12 +572,12 @@ begin
   CopyMemory(@PowerModule, @ABuff[0], SizeOf(TPowerModule));
   PowerModule.Data.Reverse;
 
-  TJdcLogging.Obj.ApplicationMessage(msSystem, 'Power', TJson.RecordToJsonString(PowerModule));
+  TLogging.Obj.ApplicationMessage(msSystem, 'Power', TJson.RecordToJsonString(PowerModule));
   if FMacAddress = '' then
   begin
     FMacAddress := ToHex(ToBytes(PowerModule.Data.EthernetMac1_1)) + '-' +
       ToHex(ToBytes(PowerModule.Data.EthernetMac1_2));
-    TJdcLogging.Obj.ApplicationMessage(msInfo, 'AddMeter',
+    TLogging.Obj.ApplicationMessage(msInfo, 'AddMeter',
       Format('Port=%d,Mac=%s', [Self.FContext.PeerPort, FMacAddress]));
     RequestIDTable;
   end;

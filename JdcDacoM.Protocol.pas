@@ -404,7 +404,8 @@ begin
   // AProc(msDebug, 'DATA', IdBytesToHex(buff));
   // AProc(msDebug, 'CRC', ToHex(ABuff, 2, Length(buff)));
   if MyCRC <> ReceivedCRC then
-    TJdcLogging.Obj.ApplicationMessage(msWarning, 'Wrong CRC', Format('MyCRC=%d,Received=%d', [MyCRC, ReceivedCRC]));
+    TLogging.Obj.ApplicationMessage(msWarning, 'Wrong CRC', Format('MyCRC=%d,Received=%d',
+      [MyCRC, ReceivedCRC]));
 
   result := MyCRC = ReceivedCRC;
 end;

@@ -24,7 +24,7 @@ type
   TMsgOutput = (moDebugView, moLogFile, moCloudMessage);
   TMsgOutputs = set of TMsgOutput;
 
-  TLogMessage = record
+  TJdcLog = record
     LogName: string;
     Time: TDateTime;
     Msg: string;
@@ -32,13 +32,13 @@ type
     function ToString: string;
   end;
 
-  TJdcLogging = class sealed
+  TLogging = class sealed
   private
     FLogName: string;
     FExeVersion: string;
 
     FLogTask: TThread;
-    FMsgQueue: TQueue<TLogMessage>;
+    FMsgQueue: TQueue<TJdcLog>;
     FLogServer: TConnInfo;
     FProjectCode: string;
     FAppCode: String;
@@ -61,7 +61,7 @@ type
   public
     destructor Destroy; override;
 
-    class function Obj: TJdcLogging;
+    class function Obj: TLogging;
 
     procedure StartLogging;
     procedure StopLogging;
@@ -94,7 +94,7 @@ procedure PrintDebug(const str: string); overload;
 implementation
 
 var
-  MyObj: TJdcLogging = nil;
+  MyObj: TLogging = nil;
 
 procedure BackupLogFile(AName: string; AMaxSize: Integer = 1024 * 1024 * 5);
 begin
@@ -167,7 +167,7 @@ end;
 
 { TJdcLogging }
 
-procedure TJdcLogging.ApplicationMessage(const AType: TMessageType; const ATitle, AMessage: String;
+procedure TLogging.ApplicationMessage(const AType: TMessageType; const ATitle, AMessage: String;
   const DebugLog: Boolean);
 const
   MESSAGE_TYPE_INFO = 'INFO';
@@ -201,12 +201,12 @@ begin
     FOnAfterLogging(AType, ATitle, AMessage);
 end;
 
-procedure TJdcLogging.AppendLog(const AName, AMsg: string);
+procedure TLogging.AppendLog(const AName, AMsg: string);
 begin
-  FMsgQueue.Enqueue(TLogMessage.Create(AName, Now, AMsg));
+  FMsgQueue.Enqueue(TJdcLog.Create(AName, Now, AMsg));
 end;
 
-procedure TJdcLogging.ApplicationMessage(const AType: TMessageType; const ATitle, AFormat: String;
+procedure TLogging.ApplicationMessage(const AType: TMessageType; const ATitle, AFormat: String;
   const Args: array of const; const DebugLog: Boolean);
 var
   str: string;
@@ -215,9 +215,9 @@ begin
   ApplicationMessage(AType, ATitle, str, DebugLog);
 end;
 
-constructor TJdcLogging.Create;
+constructor TLogging.Create;
 begin
-  FMsgQueue := TQueue<TLogMessage>.Create;
+  FMsgQueue := TQueue<TJdcLog>.Create;
 
   FProjectCode := 'MyProject';
   FAppCode := 'MyApp';
@@ -231,15 +231,15 @@ begin
   FOnAfterLogging := nil;
 end;
 
-destructor TJdcLogging.Destroy;
+destructor TLogging.Destroy;
 begin
   FMsgQueue.Free;
   inherited;
 end;
 
-procedure TJdcLogging.FlushLog;
+procedure TLogging.FlushLog;
 
-  procedure _PrintLog(ALog: TLogMessage);
+  procedure _PrintLog(ALog: TJdcLog);
   var
     Stream: TStreamWriter;
     LogName: string;
@@ -284,7 +284,7 @@ procedure TJdcLogging.FlushLog;
   end;
 
 var
-  MyLog: TLogMessage;
+  MyLog: TJdcLog;
 begin
   if FMsgQueue.Count = 0 then
     Exit;
@@ -293,7 +293,7 @@ begin
   _PrintLog(MyLog);
 end;
 
-function TJdcLogging.GetLogName: String;
+function TLogging.GetLogName: String;
 begin
 {$IFDEF LOGGING_DAY_TAG}
   Result := ChangeFileExt(FLogName, FormatDateTime('_YYYYMMDD', Now) + '.log');
@@ -302,14 +302,14 @@ begin
 {$ENDIF}
 end;
 
-class function TJdcLogging.Obj: TJdcLogging;
+class function TLogging.Obj: TLogging;
 begin
   if MyObj = nil then
-    MyObj := TJdcLogging.Create;
+    MyObj := TLogging.Create;
   Result := MyObj;
 end;
 
-procedure TJdcLogging.SetLogName(const ExeName: string);
+procedure TLogging.SetLogName(const ExeName: string);
 begin
   FExeVersion := FileVersion(ExeName);
   FLogName := ExtractFilePath(ExeName) + 'logs\' + ChangeFileExt(ExtractFileName(ExeName), '.log');
@@ -321,22 +321,22 @@ begin
     TDirectory.CreateDirectory(ExtractFilePath(FLogName));
 end;
 
-procedure TJdcLogging.SetLogServer(const Value: TConnInfo);
+procedure TLogging.SetLogServer(const Value: TConnInfo);
 begin
   FLogServer := Value;
 end;
 
-procedure TJdcLogging.SetUseCloudLog(const Value: Boolean);
+procedure TLogging.SetUseCloudLog(const Value: Boolean);
 begin
   FUseCloudLog := Value;
 end;
 
-procedure TJdcLogging.SetUseDebug(const Value: Boolean);
+procedure TLogging.SetUseDebug(const Value: Boolean);
 begin
   FUseDebug := Value;
 end;
 
-procedure TJdcLogging.StartLogging;
+procedure TLogging.StartLogging;
 begin
   if FLogTask = nil then
   begin
@@ -358,7 +358,7 @@ begin
   end;
 end;
 
-procedure TJdcLogging.StopLogging;
+procedure TLogging.StopLogging;
 begin
   if Assigned(FLogTask) then
   begin
@@ -369,7 +369,7 @@ begin
   end;
 end;
 
-procedure TJdcLogging._ApplicationMessage(const AType, ATitle, AMessage: String; const AOutputs: TMsgOutputs);
+procedure TLogging._ApplicationMessage(const AType, ATitle, AMessage: String; const AOutputs: TMsgOutputs);
 var
   splitter: string;
 begin
@@ -390,21 +390,21 @@ end;
 
 { TJdcLog }
 
-constructor TLogMessage.Create(AName: string; ATime: TDateTime; AMsg: string);
+constructor TJdcLog.Create(AName: string; ATime: TDateTime; AMsg: string);
 begin
   Self.LogName := AName;
   Self.Time := ATime;
   Self.Msg := AMsg;
 end;
 
-function TLogMessage.ToString: string;
+function TJdcLog.ToString: string;
 begin
   Result := FormatDateTime('YYYY-MM-DD HH:NN:SS.zzz, ', Self.Time) + Self.Msg
 end;
 
 initialization
 
-MyObj := TJdcLogging.Create;
+MyObj := TLogging.Create;
 
 finalization
 

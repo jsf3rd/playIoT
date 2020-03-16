@@ -253,7 +253,7 @@ begin
   except
     on E: Exception do
     begin
-      TJdcLogging.Obj.ApplicationMessage(msError, 'FreeAndNilEx - ' + TObject(Obj).ClassName, E.Message);
+      TLogging.Obj.ApplicationMessage(msError, 'FreeAndNilEx - ' + TObject(Obj).ClassName, E.Message);
     end;
   end;
 end;
@@ -711,12 +711,12 @@ end;
 procedure TGlobalAbstract.ApplicationMessage(const AType: TMessageType; const ATitle, AFormat: String;
   const Args: array of const);
 begin
-  TJdcLogging.Obj.ApplicationMessage(AType, ATitle, AFormat, Args);
+  TLogging.Obj.ApplicationMessage(AType, ATitle, AFormat, Args);
 end;
 
 procedure TGlobalAbstract.ApplicationMessage(const AType: TMessageType; const ATitle, AMessage: String);
 begin
-  TJdcLogging.Obj.ApplicationMessage(AType, ATitle, AMessage);
+  TLogging.Obj.ApplicationMessage(AType, ATitle, AMessage);
 end;
 
 constructor TGlobalAbstract.Create;
@@ -730,19 +730,19 @@ end;
 
 procedure TGlobalAbstract.Finalize;
 begin
-  TJdcLogging.Obj.ApplicationMessage(msInfo, 'Stop', 'StartTime=' + FStartTime.ToString);
-  TJdcLogging.Obj.StopLogging;
+  TLogging.Obj.ApplicationMessage(msInfo, 'Stop', 'StartTime=' + FStartTime.ToString);
+  TLogging.Obj.StopLogging;
 end;
 
 procedure TGlobalAbstract.Initialize;
 begin
   FStartTime := Now;
-  TJdcLogging.Obj.StartLogging;
+  TLogging.Obj.StartLogging;
 {$IFDEF WIN32}
-  TJdcLogging.Obj.ApplicationMessage(msInfo, 'Start', '(x86)' + FExeName);
+  TLogging.Obj.ApplicationMessage(msInfo, 'Start', '(x86)' + FExeName);
 {$ENDIF}
 {$IFDEF WIN64}
-  TJdcLogging.Obj.ApplicationMessage(msInfo, 'Start', '(x64)' + FExeName);
+  TLogging.Obj.ApplicationMessage(msInfo, 'Start', '(x64)' + FExeName);
 {$ENDIF}
 end;
 

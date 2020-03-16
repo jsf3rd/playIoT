@@ -1,12 +1,10 @@
 // *******************************************************
 //
-// playIoT DataSnap Common
+// DACO DataSnap Common
 //
-// Copyright(c) 2016 playIoT.
+// Copyright(c) 2020 DACO.
 //
-// jsf3rd@playiot.biz
-//
-// Update 2016. 04. 22
+// jsf3rd@e-daco.net
 //
 // *******************************************************
 
@@ -18,7 +16,7 @@ uses
   Classes, SysUtils, FireDAC.Comp.Client, FireDAC.Stan.Intf, Data.DBXPlatform,
   FireDAC.Comp.DataSet, FireDAC.Stan.Param, REST.JSON,
   System.Generics.Collections, System.DateUtils, Data.DB, Data.SqlTimSt,
-  JdcGlobal
+  JdcGlobal, JdcLogging
 {$IF CompilerVersion  > 26} // upper XE5
     , System.JSON
 {$ELSE}
@@ -77,9 +75,9 @@ type
     function GetJSONObject(AValue: TJSONObject; AName: String): TJSONObject;
     function GetJSONArray(AValue: TJSONArray; AName: String): TJSONArray;
 
-    procedure FieldByJsonValue(AField: TField; AValue: TJSONValue; AProc: TLogProc = nil); overload;
-    procedure FieldByJsonValue(AValue: TJSONValue; AName: String; AProc: TLogProc = nil); overload;
-    procedure FieldByJSONArray(AValue: TJSONArray; AName: String; AProc: TLogProc = nil);
+    procedure FieldByJsonValue(AField: TField; AValue: TJSONValue); overload;
+    procedure FieldByJsonValue(AValue: TJSONValue; AName: String); overload;
+    procedure FieldByJSONArray(AValue: TJSONArray; AName: String);
   public
     procedure LoadFromDSStream(AStream: TStream);
 
@@ -87,15 +85,22 @@ type
     function ToRecord<T: Record >(AName: String = ''): T;
     function ToRecordArray<T: Record >(AName: String = ''): TArray<T>;
 
-    procedure FieldByJSONObject(AObject: TJSONObject; AProc: TLogProc = nil); overload;
-    procedure FieldByJSONObject(AJSON: String; AProc: TLogProc = nil); overload;
+    procedure FieldByJSONObject(AObject: TJSONObject); overload;
+    procedure FieldByJSONObject(AJSON: String); overload;
   end;
 
   TFDQueryHelper = class helper for TFDQuery
   private
-    procedure ParamByJsonValue(AParam: TFDParam; AValue: TJSONValue; AProc: TLogProc = nil); overload;
-    procedure ParamByJsonValue(AValue: TJSONValue; AName: String; AProc: TLogProc = nil); overload;
-    procedure ParamByJSONArray(AValue: TJSONArray; AName: String; AProc: TLogProc = nil);
+    function GetExternalProc: string;
+
+    procedure ParamByJsonValue(AParam: TFDParam; AValue: TJSONValue); overload;
+    procedure ParamByJsonValue(AValue: TJSONValue; AName: String); overload;
+    procedure ParamByJSONArray(AValue: TJSONArray; AName: String);
+
+    function OpenQuery(AConn: TFDConnection; AParams: TJSONObject): TStream;
+    function ExecQuery(AConn: TFDConnection; AParams: TJSONObject): Boolean; overload;
+    function ExecQuery(AConn: TFDConnection; AParams: TJSONArray): Boolean; overload;
+    function ApplyUpdate(AConn: TFDConnection; AStream: TStream): Boolean;
   public
     function Clone: TFDQuery;
     function ToStream: TStream;
@@ -105,9 +110,21 @@ type
     function ToRecord<T: Record >(AName: String = ''): T;
     function ToRecordArray<T: Record >(AName: String = ''): TArray<T>;
 
-    procedure ParamByJSONObject(AObject: TJSONObject; AProc: TLogProc = nil);
-    procedure FieldByJSONObject(AObject: TJSONObject; AProc: TLogProc = nil); overload;
-    procedure FieldByJSONObject(AJSON: String; AProc: TLogProc = nil); overload;
+    procedure ParamByJSONObject(AObject: TJSONObject);
+    procedure FieldByJSONObject(AObject: TJSONObject); overload;
+    procedure FieldByJSONObject(AJSON: String); overload;
+
+    // OpenQuery
+    function OpenInstantQuery(AConn: TFDConnection; AParams: TJSONObject): TStream; overload;
+
+    // ExecQuery
+    function ExecInstantQuery(AConn: TFDConnection; AParams: TJSONObject): Boolean; overload;
+
+    // Array DML
+    function ExecInstantQuery(AConn: TFDConnection; AParams: TJSONArray): Boolean; overload;
+
+    // ApplyUpdate
+    function ApplyInstantUpdate(AConn: TFDConnection; AStream: TStream): Boolean;
   end;
 
   TFDMemTableHelper = class helper for TFDMemTable
@@ -119,8 +136,8 @@ type
     function ToJSON: TJSONObject;
     function ToRecord<T: Record >(AName: String = ''): T;
     function ToRecordArray<T: Record >(AName: String = ''): TArray<T>;
-    procedure FieldByJSONObject(AObject: TJSONObject; AProc: TLogProc = nil); overload;
-    procedure FieldByJSONObject(AJSON: String; AProc: TLogProc = nil); overload;
+    procedure FieldByJSONObject(AObject: TJSONObject); overload;
+    procedure FieldByJSONObject(AJSON: String); overload;
   end;
 
 function GetFieldTypeName(AType: TFieldType): string;
@@ -391,6 +408,50 @@ begin
 end;
 
 { TFDQueryHelper }
+
+function TFDQueryHelper.ApplyInstantUpdate(AConn: TFDConnection; AStream: TStream): Boolean;
+var
+  MyQuery: TFDQuery;
+begin
+  MyQuery := Self.Clone;
+  try
+    result := MyQuery.ApplyUpdate(AConn, AStream);
+  finally
+    MyQuery.Free;
+  end;
+end;
+
+function TFDQueryHelper.ApplyUpdate(AConn: TFDConnection; AStream: TStream): Boolean;
+var
+  ExecTime: TDateTime;
+  Errors: Integer;
+begin
+  try
+    try
+      Self.Connection := AConn;
+      Self.LoadFromDSStream(AStream);
+
+      ExecTime := Now;
+      Errors := Self.ApplyUpdates;
+
+      TLogging.Obj.ApplicationMessage(msInfo, JdcGlobal.GetProcByLevel(0, True),
+        Format('Caller=%s,Query=%s,ChangeCount=%d,Errors=%d,ExecTime=%s', [GetExternalProc, Self.Name,
+        Self.ChangeCount, Errors, FormatDateTime('NN:SS.zzz', Now - ExecTime)]));
+
+      result := Errors = 0;
+    except
+      on E: Exception do
+      begin
+        TLogging.Obj.ApplicationMessage(msError, Self.Name, E.Message);
+        result := false;
+      end;
+    end;
+  finally
+    AConn.Free;
+  end;
+
+end;
+
 function TFDQueryHelper.Clone: TFDQuery;
 var
   I: Integer;
@@ -410,14 +471,116 @@ begin
     result.Params.Items[I].DataType := Self.Params.Items[I].DataType;
 end;
 
-procedure TFDQueryHelper.FieldByJSONObject(AObject: TJSONObject; AProc: TLogProc);
+procedure TFDQueryHelper.FieldByJSONObject(AObject: TJSONObject);
 begin
-  TFDDataSet(Self).FieldByJSONObject(AObject, AProc);
+  TFDDataSet(Self).FieldByJSONObject(AObject);
 end;
 
-procedure TFDQueryHelper.FieldByJSONObject(AJSON: String; AProc: TLogProc);
+function TFDQueryHelper.ExecInstantQuery(AConn: TFDConnection; AParams: TJSONObject): Boolean;
+var
+  MyQuery: TFDQuery;
 begin
-  TFDDataSet(Self).FieldByJSONObject(AJSON, AProc);
+  MyQuery := Self.Clone;
+  try
+    result := MyQuery.ExecQuery(AConn, AParams);
+  finally
+    MyQuery.Free;
+  end;
+end;
+
+function TFDQueryHelper.ExecInstantQuery(AConn: TFDConnection; AParams: TJSONArray): Boolean;
+var
+  MyQuery: TFDQuery;
+begin
+  MyQuery := Self.Clone;
+  try
+    result := MyQuery.ExecQuery(AConn, AParams);
+  finally
+    MyQuery.Free;
+  end;
+end;
+
+function TFDQueryHelper.ExecQuery(AConn: TFDConnection; AParams: TJSONArray): Boolean;
+var
+  ExecTime: TDateTime;
+  I: Integer;
+  Params: TJSONObject;
+begin
+  result := false;
+  AConn.StartTransaction;
+  try
+    Self.Connection := AConn;
+    try
+      Self.Params.ArraySize := AParams.Count;
+      for I := 0 to AParams.Count - 1 do
+      begin
+        Params := AParams.Items[I] as TJSONObject;
+        Self.Tag := I;
+        Self.ParamByJSONObject(Params);
+      end;
+
+      ExecTime := Now;
+      Self.Execute(AParams.Count);
+      TLogging.Obj.ApplicationMessage(msInfo, JdcGlobal.GetProcByLevel(0, True),
+        Format('Caller=%s,Query=%s,Requested=%d,RowsAffected=%d,ExecTime=%s', [GetExternalProc, Self.Name,
+        AParams.Count, Self.RowsAffected, FormatDateTime('NN:SS.zzz', Now - ExecTime)]));
+      result := Self.RowsAffected = AParams.Count;
+
+      if result then
+        AConn.Commit
+      else
+        AConn.Rollback;
+    except
+      on E: Exception do
+      begin
+        AConn.Rollback;
+        TLogging.Obj.ApplicationMessage(msError, GetExternalProc, E.Message);
+      end;
+    end;
+  finally
+    AConn.Free;
+  end;
+
+end;
+
+function TFDQueryHelper.ExecQuery(AConn: TFDConnection; AParams: TJSONObject): Boolean;
+var
+  ExecTime: TDateTime;
+begin
+  result := false;
+  try
+    Self.Connection := AConn;
+    try
+      if Assigned(AParams) then
+        Self.ParamByJSONObject(AParams);
+
+      ExecTime := Now;
+      Self.ExecSQL;
+      TLogging.Obj.ApplicationMessage(msInfo, JdcGlobal.GetProcByLevel(0, True),
+        Format('Caller=%s,Query=%s,RowsAffected=%d,ExecTime=%s', [GetExternalProc, Self.Name,
+        Self.RowsAffected, FormatDateTime('NN:SS.zzz', Now - ExecTime)]));
+      result := True;
+    except
+      on E: Exception do
+        TLogging.Obj.ApplicationMessage(msError, GetExternalProc, E.Message);
+    end;
+  finally
+    AConn.Free;
+  end;
+end;
+
+procedure TFDQueryHelper.FieldByJSONObject(AJSON: String);
+begin
+  TFDDataSet(Self).FieldByJSONObject(AJSON);
+end;
+
+function TFDQueryHelper.GetExternalProc: string;
+var
+  Proc: string;
+begin
+  // 0.ThisMethod - 1.OpenQuery - 2.OpenInstansQuery - 3.RealCaller
+  Proc := JdcGlobal.GetProcByLevel(3);
+  result := Proc;
 end;
 
 procedure TFDQueryHelper.LoadFromDSStream(AStream: TStream);
@@ -425,7 +588,43 @@ begin
   TFDDataSet(Self).LoadFromDSStream(AStream);
 end;
 
-procedure TFDQueryHelper.ParamByJsonValue(AParam: TFDParam; AValue: TJSONValue; AProc: TLogProc);
+function TFDQueryHelper.OpenInstantQuery(AConn: TFDConnection; AParams: TJSONObject): TStream;
+var
+  MyQuery: TFDQuery;
+begin
+  MyQuery := Self.Clone;
+  try
+    result := MyQuery.OpenQuery(AConn, AParams);
+  finally
+    MyQuery.Free;
+  end;
+end;
+
+function TFDQueryHelper.OpenQuery(AConn: TFDConnection; AParams: TJSONObject): TStream;
+var
+  ExecTime: TDateTime;
+begin
+  try
+    Self.Connection := AConn;
+    try
+      if Assigned(AParams) then
+        ParamByJSONObject(AParams);
+
+      ExecTime := Now;
+      result := Self.ToStream;
+      TLogging.Obj.ApplicationMessage(msInfo, JdcGlobal.GetProcByLevel(0, True),
+        Format('Caller=%s,Query=%s,RecordCount=%d,ExecTime=%s', [GetExternalProc, Self.Name, Self.RecordCount,
+        FormatDateTime('NN:SS.zzz', Now - ExecTime)]));
+    except
+      on E: Exception do
+        raise Exception.Create(Format('Proc=%s,Query=%s,E=%s', [GetExternalProc, Self.Name, E.Message]));
+    end;
+  finally
+    AConn.Free;
+  end;
+end;
+
+procedure TFDQueryHelper.ParamByJsonValue(AParam: TFDParam; AValue: TJSONValue);
 var
   Msg: String;
 begin
@@ -435,10 +634,7 @@ begin
   Msg := Format('DataSet=%s,ParamName=%s,DataType=%s,Value=%s',
     [Self.Name, AParam.Name, GetFieldTypeName(AParam.DataType), AValue.Value]);
 
-  if Assigned(AProc) then
-    AProc(msDebug, 'SQLParameter', Msg);
-  PrintDebug(Msg);
-
+  TLogging.Obj.ApplicationMessage(msSystem, 'SQLParameter', Msg);
   case AParam.DataType of
     ftUnknown:
       raise Exception.Create(Format('DataSet=%s,ParamName=%s,Unknown DataType', [Self.Name, AParam.Name]));
@@ -553,7 +749,7 @@ begin
 
 end;
 
-procedure TFDQueryHelper.ParamByJSONArray(AValue: TJSONArray; AName: String; AProc: TLogProc);
+procedure TFDQueryHelper.ParamByJSONArray(AValue: TJSONArray; AName: String);
 var
   MyElem: TJSONValue;
   Index: Integer;
@@ -561,29 +757,29 @@ begin
   Index := 1;
   for MyElem in AValue do
   begin
-    ParamByJsonValue(MyElem, AName + '_' + Index.ToString, AProc);
+    ParamByJsonValue(MyElem, AName + '_' + Index.ToString);
     Inc(Index);
   end;
 end;
 
-procedure TFDQueryHelper.ParamByJSONObject(AObject: TJSONObject; AProc: TLogProc);
+procedure TFDQueryHelper.ParamByJSONObject(AObject: TJSONObject);
 var
   MyElem: TJSONPair;
 begin
   for MyElem in AObject do
-    ParamByJsonValue(MyElem.JsonValue, MyElem.JsonString.Value, AProc);
+    ParamByJsonValue(MyElem.JsonValue, MyElem.JsonString.Value);
 end;
 
-procedure TFDQueryHelper.ParamByJsonValue(AValue: TJSONValue; AName: String; AProc: TLogProc);
+procedure TFDQueryHelper.ParamByJsonValue(AValue: TJSONValue; AName: String);
 begin
   if AValue is TJSONObject then
-    ParamByJSONObject(AValue as TJSONObject, AProc)
+    ParamByJSONObject(AValue as TJSONObject)
   else if AValue is TJSONArray then
   begin
-    ParamByJSONArray(AValue as TJSONArray, AName, AProc)
+    ParamByJSONArray(AValue as TJSONArray, AName)
   end
   else
-    ParamByJsonValue(Self.FindParam(AName), AValue, AProc);
+    ParamByJsonValue(Self.FindParam(AName), AValue);
 end;
 
 function TFDQueryHelper.ToStream: TStream;
@@ -633,14 +829,14 @@ begin
   end;
 end;
 
-procedure TFDMemTableHelper.FieldByJSONObject(AObject: TJSONObject; AProc: TLogProc);
+procedure TFDMemTableHelper.FieldByJSONObject(AObject: TJSONObject);
 begin
-  TFDDataSet(Self).FieldByJSONObject(AObject, AProc);
+  TFDDataSet(Self).FieldByJSONObject(AObject);
 end;
 
-procedure TFDMemTableHelper.FieldByJSONObject(AJSON: String; AProc: TLogProc);
+procedure TFDMemTableHelper.FieldByJSONObject(AJSON: String);
 begin
-  TFDDataSet(Self).FieldByJSONObject(AJSON, AProc);
+  TFDDataSet(Self).FieldByJSONObject(AJSON);
 end;
 
 procedure TFDMemTableHelper.LoadFromDSStream(AStream: TStream);
@@ -672,7 +868,7 @@ end;
 
 { TFDDataSetHelper }
 
-procedure TFDDataSetHelper.FieldByJsonValue(AField: TField; AValue: TJSONValue; AProc: TLogProc);
+procedure TFDDataSetHelper.FieldByJsonValue(AField: TField; AValue: TJSONValue);
 var
   Msg: String;
 begin
@@ -682,10 +878,7 @@ begin
   Msg := Format('DataSet=%s,FieldName=%s,DataType=%s,Value=%s',
     [Self.Name, AField.Name, GetFieldTypeName(AField.DataType), AValue.Value]);
 
-  if Assigned(AProc) then
-    AProc(msDebug, 'SQLParameter', Msg);
-  PrintDebug(Msg);
-
+  TLogging.Obj.ApplicationMessage(msSystem, 'SQLParameter', Msg);
   case AField.DataType of
     ftUnknown:
       raise Exception.Create(Format('DataSet=%s,ParamName=%s,Unknown DataType', [Self.Name, AField.Name]));
@@ -739,16 +932,16 @@ begin
   end;
 end;
 
-procedure TFDDataSetHelper.FieldByJsonValue(AValue: TJSONValue; AName: String; AProc: TLogProc);
+procedure TFDDataSetHelper.FieldByJsonValue(AValue: TJSONValue; AName: String);
 begin
   if AValue is TJSONObject then
-    FieldByJSONObject(AValue as TJSONObject, AProc)
+    FieldByJSONObject(AValue as TJSONObject)
   else if AValue is TJSONArray then
   begin
-    FieldByJSONArray(AValue as TJSONArray, AName, AProc)
+    FieldByJSONArray(AValue as TJSONArray, AName)
   end
   else
-    FieldByJsonValue(Self.FindField(AName), AValue, AProc);
+    FieldByJsonValue(Self.FindField(AName), AValue);
 end;
 
 function TFDDataSetHelper.FieldToJSONVlaue(AField: TField): TJSONValue;
@@ -808,7 +1001,7 @@ begin
     [Self.Name, AField.FieldName, GetFieldTypeName(AField.DataType), result.Value]);
 end;
 
-procedure TFDDataSetHelper.FieldByJSONArray(AValue: TJSONArray; AName: String; AProc: TLogProc);
+procedure TFDDataSetHelper.FieldByJSONArray(AValue: TJSONArray; AName: String);
 var
   MyElem: TJSONValue;
   Index: Integer;
@@ -816,12 +1009,12 @@ begin
   Index := 1;
   for MyElem in AValue do
   begin
-    FieldByJsonValue(MyElem, AName + '_' + Index.ToString, AProc);
+    FieldByJsonValue(MyElem, AName + '_' + Index.ToString);
     Inc(Index);
   end;
 end;
 
-procedure TFDDataSetHelper.FieldByJSONObject(AObject: TJSONObject; AProc: TLogProc = nil);
+procedure TFDDataSetHelper.FieldByJSONObject(AObject: TJSONObject);
 var
   MyElem: TJSONPair;
 begin
@@ -829,13 +1022,13 @@ begin
     FieldByJsonValue(MyElem.JsonValue, MyElem.JsonString.Value);
 end;
 
-procedure TFDDataSetHelper.FieldByJSONObject(AJSON: String; AProc: TLogProc);
+procedure TFDDataSetHelper.FieldByJSONObject(AJSON: String);
 var
   JSONObject: TJSONObject;
 begin
   JSONObject := TJSONObject.ParseJSONValue(AJSON) as TJSONObject;
   try
-    FieldByJSONObject(JSONObject, AProc);
+    FieldByJSONObject(JSONObject);
   finally
     JSONObject.Free;
   end;
