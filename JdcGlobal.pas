@@ -1,10 +1,10 @@
 // *******************************************************
 //
-// playIoT Global Library
+// DACO Global Library
 //
-// Copyright(c) 2016 playIoT.
+// Copyright(c) 2020 DACO.
 //
-// jsf3rd@playiot.biz
+// jsf3rd@e-daco.net
 //
 //
 // *******************************************************
@@ -14,9 +14,9 @@ unit JdcGlobal;
 interface
 
 uses
-  Classes, SysUtils, Windows, ZLib, IdGlobal, IOUtils, JclFileUtils, Vcl.ExtCtrls,
+  Classes, SysUtils, Windows, ZLib, IdGlobal, IOUtils, JclFileUtils, Vcl.ExtCtrls, System.StrUtils,
   IdUDPClient, JclSysInfo, psAPI, IdContext, IdExceptionCore, Vcl.StdCtrls, JclSvcCtrl, Vcl.ActnList,
-  Vcl.Dialogs, WinApi.Shellapi, UITypes, System.Generics.Collections, System.Json, REST.Json;
+  Vcl.Dialogs, WinApi.Shellapi, UITypes, System.Generics.Collections, System.Json, REST.Json, JclDebug;
 
 type
   IExecuteFunc<T> = Interface
@@ -29,23 +29,14 @@ type
     procedure Execute(AValue: T);
   End;
 
-  TMessageType = (msDebug, msInfo, msError, msWarning, msUnknown);
-
-  TLogProc = //
-    procedure(const AType: TMessageType; const ATitle: String; const AMessage: String = '') of object;
-
-  TOnMessageEvent = //
-    procedure(const Sender: TObject; const AName: string; const AMessage: string = '') of object;
-
-  TMsgOutput = (moDebugView, moLogFile, moCloudMessage);
-  TMsgOutputs = set of TMsgOutput;
+  TMessageType = (msDebug, msInfo, msError, msWarning, msSystem);
 
   TConnInfo = record
     StringValue: string;
     IntegerValue: Integer;
     constructor Create(AString: string; AInteger: Integer);
     function ToString: string;
-    function Equals(const ConnInfo: TConnInfo): boolean;
+    function Equals(const ConnInfo: TConnInfo): Boolean;
   end;
 
   TClientInfo = record
@@ -53,85 +44,33 @@ type
     Url: string;
   end;
 
-  TMemoLog = record
-    Memo: TMemo;
-    Msg: string;
-    Time: TDateTime;
-    constructor Create(AMemo: TMemo; AMsg: string);
-  end;
-
-  TJdcLog = record
-    LogName: string;
-    Time: TDateTime;
-    Msg: string;
-    constructor Create(AName: string; ATime: TDateTime; AMsg: string);
-    function ToString: string;
-  end;
-
   TGlobalAbstract = class abstract
-  strict private
-    FLogTask: TThread;
-    FMsgQueue: TQueue<TJdcLog>;
-    procedure FlushLog;
-  protected
+  strict protected
     FProjectCode: string;
     FAppCode: string;
 
-    FIsInitialized: boolean;
-    FIsFinalized: boolean;
+    FIsInitialized: Boolean;
+    FIsFinalized: Boolean;
     FExeName: String;
-    FLogName: string;
-    FUseCloudLog: boolean;
-    FUseDebug: boolean;
-
     FStartTime: TDateTime;
 
-    FLogServer: TConnInfo;
-    procedure SetExeName(const Value: String); virtual; abstract;
-
-    procedure _ApplicationMessage(const AType: string; const ATitle: string; const AMessage: String;
-      const AOutputs: TMsgOutputs = [moDebugView, moLogFile, moCloudMessage]); virtual;
-
-    function GetLogName: string; virtual;
-    procedure SetUseDebug(const Value: boolean); virtual;
-    procedure AppendLog(const AName: string; const AMsg: string);
-
-    procedure StartLogging;
-    procedure StopLogging;
-  public
     constructor Create; virtual;
+    procedure SetExeName(const Value: String); virtual; abstract;
+  public
 
     procedure Initialize; virtual;
     procedure Finalize; virtual;
 
     procedure ApplicationMessage(const AType: TMessageType; const ATitle: String;
-      const AMessage: String = ''); overload; virtual;
+      const AMessage: String = ''); overload;
     procedure ApplicationMessage(const AType: TMessageType; const ATitle: String; const AFormat: String;
       const Args: array of const); overload;
 
     property ExeName: String read FExeName write SetExeName;
-    property LogName: string read GetLogName;
-
-    property LogServer: TConnInfo read FLogServer write FLogServer;
-    property UseDebug: boolean read FUseDebug write SetUseDebug;
-
-  const
-    MESSAGE_TYPE_INFO = 'INFO';
-    MESSAGE_TYPE_ERROR = 'ERROR';
-    MESSAGE_TYPE_DEBUG = 'DEBUG';
-    MESSAGE_TYPE_WARNING = 'WARNING';
-    MESSAGE_TYPE_UNKNOWN = 'UNKNOWN';
   end;
 
-  // 로그 찍기..
-procedure PrintLog(const AFile: string; const ATime: TDateTime; const AMessage: String); overload;
-procedure PrintLog(AMemo: TMemo; const AMsg: String); overload;
-
-procedure PrintDebug(const Format: string; const Args: array of const); overload;
-procedure PrintDebug(const str: string); overload;
-
-// 특정 자리수 이하 0 만들기
-// Value : 값, Digit : 자리수
+  // 특정 자리수 이하 0 만들기
+  // Value : 값, Digit : 자리수
 function TruncInt(Value: Integer; Digit: Integer): Integer;
 
 function CurrentProcessMemory: Cardinal;
@@ -140,14 +79,14 @@ procedure CloudMessage(const ProjectCode, AppCode, TypeCode, ATitle, AMessage, A
   const AServer: TConnInfo);
 
 // 데이터 압축..
-function CompressStream(Stream: TStream; OutStream: TStream; OnProgress: TNotifyEvent): boolean;
+function CompressStream(Stream: TStream; OutStream: TStream; OnProgress: TNotifyEvent): Boolean;
 
 // 데이터 압축 해제..
-function DeCompressStream(Stream: TStream; OutStream: TStream; OnProgress: TNotifyEvent): boolean;
+function DeCompressStream(Stream: TStream; OutStream: TStream; OnProgress: TNotifyEvent): Boolean;
 
 // 응답 검사..
-function Contains(Contents: string; const str: array of const): boolean;
-function IsGoodResponse(Text, Command: string; Response: array of const): boolean;
+function Contains(Contents: string; const str: array of const): Boolean;
+function IsGoodResponse(Text, Command: string; Response: array of const): Boolean;
 
 // 매 Word 마다 Reverse
 procedure RevEveryWord(APointer: Pointer; ASize: Integer);
@@ -186,7 +125,7 @@ function StrDefault(str: string; Default: string): string;
 procedure ThreadSafe(AMethod: TThreadMethod); overload;
 procedure ThreadSafe(AThreadProc: TThreadProcedure); overload;
 
-procedure FreeAndNilEx(var Obj; const AGlobal: TGlobalAbstract = nil);
+procedure FreeAndNilEx(var Obj);
 
 // 서비스 관리
 procedure StartService(const ServiceName: String; var OldStatus: TJclServiceState; StartAction: TAction);
@@ -201,12 +140,53 @@ function IntToBin(Value: Cardinal; Digits: Integer): String;
 // JsonValue에서 JsonObject의 Value 값만 추출
 procedure ExtractValues(var AList: TStrings; AValue: TJSONValue);
 
+// JclDebug Rapper
+function GetModuleByLevel(const Level: Integer = 0): string;
+function GetLineByLevel(const Level: Integer = 0): Integer;
+function GetProcByLevel(const Level: Integer = 0; const OnlyProcedureName: Boolean = False): string;
+
 const
+  LOG_PORT = 8094;
   LOCAL_SERVER = '\\localhost';
+
+const
+  DEBUG_LEVEL_ALL = 0;
+  DEBUG_LEVEL_LOG = 1;
+  DEBUG_LEVEL_ETC = 2;
+  DEBUG_LEVEL_DB = 4;
+  DEBUG_LEVEL_Comm = 8;
+  DEBUG_LEVEL_JSON = 16;
 
 implementation
 
-uses JdcGlobal.ClassHelper;
+uses JdcGlobal.ClassHelper, JdcLogging;
+
+function GetModuleByLevel(const Level: Integer): string;
+var
+  Module: string;
+begin
+  // 바로 리턴 하는 경우 Release에서 Level오류 발생
+  Module := ModuleByLevel(Level + 1);
+  Result := Module;
+end;
+
+function GetLineByLevel(const Level: Integer): Integer;
+var
+  Line: Integer;
+begin
+  // 바로 리턴 하는 경우 Release에서 Level오류 발생
+  Line := LineByLevel(Level + 1);
+  Result := Line;
+end;
+
+function GetProcByLevel(const Level: Integer; const OnlyProcedureName: Boolean): string;
+var
+  Proc: string;
+begin
+  // 바로 리턴 하는 경우 Release에서 Level오류 발생
+  Proc := ProcByLevel(Level + 1, OnlyProcedureName);
+  Result := Proc;
+end;
 
 procedure ExtractValues(var AList: TStrings; AValue: TJSONValue);
 var
@@ -265,7 +245,7 @@ begin
   Result := S;
 end;
 
-procedure FreeAndNilEx(var Obj; const AGlobal: TGlobalAbstract);
+procedure FreeAndNilEx(var Obj);
 begin
   try
     if Assigned(TObject(Obj)) then
@@ -273,8 +253,7 @@ begin
   except
     on E: Exception do
     begin
-      if Assigned(AGlobal) then
-        AGlobal.ApplicationMessage(msError, 'FreeAndNilEx - ' + TObject(Obj).ClassName, E.Message);
+      TJdcLogging.Obj.ApplicationMessage(msError, 'FreeAndNilEx - ' + TObject(Obj).ClassName, E.Message);
     end;
   end;
 end;
@@ -288,7 +267,7 @@ begin
     Exit;
 
   MessageDlg('서비스를 시작하지 못했습니다.', TMsgDlgType.mtWarning, [mbOK], 0);
-  StartAction.Enabled := true;
+  StartAction.Enabled := True;
 end;
 
 procedure StopService(const ServiceName: String; var OldStatus: TJclServiceState; StopAction: TAction;
@@ -323,7 +302,7 @@ begin
     ssStopped:
       begin
         StatusEdit.Text := '중지됨.';
-        StartAction.Enabled := true;
+        StartAction.Enabled := True;
       end;
     ssStartPending:
       StatusEdit.Text := '시작 중...';
@@ -332,7 +311,7 @@ begin
     ssRunning:
       begin
         StatusEdit.Text := '시작됨.';
-        StopAction.Enabled := true;
+        StopAction.Enabled := True;
       end;
     ssContinuePending:
       StatusEdit.Text := '계속 중...';
@@ -416,75 +395,6 @@ begin
   end;
 end;
 
-procedure PrintLog(AMemo: TMemo; const AMsg: String);
-begin
-  if AMemo.Lines.Count > 5000 then
-    AMemo.Lines.Clear;
-
-  if AMsg.IsEmpty then
-    AMemo.Lines.Add('')
-  else
-  begin
-    AMemo.Lines.Add(FormatDateTime('YYYY-MM-DD HH:NN:SS.zzz, ', Now) + AMsg);
-  end;
-end;
-
-procedure BackupLogFile(AName: string; AMaxSize: Integer = 1024 * 1024 * 5);
-begin
-  if FileExists(AName) then
-  begin
-    if JclFileUtils.FileGetSize(AName) > AMaxSize then
-    begin
-      try
-        FileMove(AName, ChangeFileExt(AName, FormatDateTime('_YYYYMMDD_HHNNSS', Now) + '.bak'), true);
-      except
-        on E: Exception do
-          AName := ChangeFileExt(AName, FormatDateTime('_YYYYMMDD', Now) + '.tmp');
-      end;
-    end;
-  end;
-end;
-
-procedure PrintLog(const AFile: string; const ATime: TDateTime; const AMessage: String);
-var
-  Stream: TStreamWriter;
-  Time: TDateTime;
-begin
-  BackupLogFile(AFile);
-  try
-    if ATime = 0 then
-      Time := Now
-    else
-      Time := ATime;
-
-    Stream := TFile.AppendText(AFile);
-    try
-      if AMessage.IsEmpty then
-        Stream.WriteLine
-      else
-        Stream.WriteLine(FormatDateTime('YYYY-MM-DD HH:NN:SS.zzz, ', Time) + AMessage);
-    finally
-      FreeAndNil(Stream);
-    end;
-  except
-    on E: Exception do
-      PrintDebug(E.Message + ', ' + AMessage);
-  end;
-end;
-
-procedure PrintDebug(const Format: string; const Args: array of const); overload;
-var
-  str: string;
-begin
-  FmtStr(str, Format, Args);
-  PrintDebug(str);
-end;
-
-procedure PrintDebug(const str: string); overload;
-begin
-  OutputDebugString(PChar('[JDC] ' + str));
-end;
-
 function TruncInt(Value: Integer; Digit: Integer): Integer;
 begin
   Result := Trunc(Value / Digit);
@@ -539,13 +449,6 @@ var
   MBFactor, GBFactor: double;
   _Title: string;
 begin
-{$IFDEF DEBUG}
-  {
-    PrintDebug('XCloudLog,<%s> [%s] %s=%s,Host=%s', [TypeCode, AppCode, _Title, Msg,
-    AServer.StringValue]);
-    Exit;
-  }
-{$ENDIF}
   MBFactor := 1024 * 1024;
   GBFactor := MBFactor * 1024;
 
@@ -585,7 +488,7 @@ begin
   end;
 end;
 
-function CompressStream(Stream: TStream; OutStream: TStream; OnProgress: TNotifyEvent): boolean;
+function CompressStream(Stream: TStream; OutStream: TStream; OnProgress: TNotifyEvent): Boolean;
 var
   CS: TZCompressionStream;
 begin
@@ -593,18 +496,19 @@ begin
   try
     if Assigned(OnProgress) then
       CS.OnProgress := OnProgress;
-    CS.CopyFrom(Stream, Stream.Size); // 여기서 압축이 진행됨
+    CS.CopyFrom(Stream, Stream.Size);
+    // 여기서 압축이 진행됨
     // 테스트 결과 압축완료시 이벤트가 발생하지 않기 때문에
     // 완료시 한번 더 이벤트를 불러준다.
     if Assigned(OnProgress) then
       OnProgress(CS);
-    Result := true;
+    Result := True;
   finally
     CS.Free;
   end;
 end;
 
-function Contains(Contents: string; const str: array of const): boolean;
+function Contains(Contents: string; const str: array of const): Boolean;
 var
   I: Integer;
 begin
@@ -616,10 +520,10 @@ begin
       Exit;
   end;
 
-  Result := true;
+  Result := True;
 end;
 
-function IsGoodResponse(Text, Command: string; Response: array of const): boolean;
+function IsGoodResponse(Text, Command: string; Response: array of const): Boolean;
 var
   SL: TStringList;
 begin
@@ -633,7 +537,7 @@ begin
   end;
 end;
 
-function DeCompressStream(Stream: TStream; OutStream: TStream; OnProgress: TNotifyEvent): boolean;
+function DeCompressStream(Stream: TStream; OutStream: TStream; OnProgress: TNotifyEvent): Boolean;
 const
   BuffSize = 65535; // 버퍼 사이즈
 var
@@ -663,7 +567,7 @@ begin
       if Assigned(OnProgress) then
         OnProgress(DS);
       // Compress와 같은이유
-      Result := true;
+      Result := True;
     finally
       FreeMem(buff)
     end;
@@ -804,33 +708,15 @@ end;
 
 { TGlobalAbstract }
 
-procedure TGlobalAbstract.ApplicationMessage(const AType: TMessageType; const ATitle: string;
-  const AMessage: String);
+procedure TGlobalAbstract.ApplicationMessage(const AType: TMessageType; const ATitle, AFormat: String;
+  const Args: array of const);
 begin
-  if FIsFinalized then
-    Exit;
-
-  case AType of
-    msDebug:
-      _ApplicationMessage(MESSAGE_TYPE_DEBUG, ATitle, AMessage, [moDebugView, moLogFile]);
-    msInfo:
-      _ApplicationMessage(MESSAGE_TYPE_INFO, ATitle, AMessage);
-    msError:
-      _ApplicationMessage(MESSAGE_TYPE_ERROR, ATitle, AMessage);
-    msWarning:
-      _ApplicationMessage(MESSAGE_TYPE_WARNING, ATitle, AMessage);
-  else
-    _ApplicationMessage(MESSAGE_TYPE_UNKNOWN, ATitle, AMessage);
-  end;
+  TJdcLogging.Obj.ApplicationMessage(AType, ATitle, AFormat, Args);
 end;
 
-procedure TGlobalAbstract.ApplicationMessage(const AType: TMessageType; const ATitle: string;
-  const AFormat: String; const Args: array of const);
-var
-  str: string;
+procedure TGlobalAbstract.ApplicationMessage(const AType: TMessageType; const ATitle, AMessage: String);
 begin
-  FmtStr(str, AFormat, Args);
-  ApplicationMessage(AType, ATitle, str);
+  TJdcLogging.Obj.ApplicationMessage(AType, ATitle, AMessage);
 end;
 
 constructor TGlobalAbstract.Create;
@@ -838,160 +724,26 @@ begin
   FProjectCode := 'MyProject';
   FAppCode := 'MyApp';
   FExeName := '';
-  FLogName := '';
-  FLogServer.StringValue := '';
-  FLogServer.IntegerValue := 8094;
   FIsInitialized := False;
   FIsFinalized := False;
-  FUseCloudLog := False;
-  FUseDebug := False;
-
-  FMsgQueue := nil;
 end;
 
 procedure TGlobalAbstract.Finalize;
 begin
-  ApplicationMessage(msInfo, 'Stop', 'StartTime=' + FStartTime.ToString);
-  StopLogging;
-end;
-
-procedure TGlobalAbstract.FlushLog;
-
-  procedure _PrintLog(ALog: TJdcLog);
-  var
-    Stream: TStreamWriter;
-    LogName: string;
-  begin
-    LogName := ALog.LogName;
-
-    if LogName.IsEmpty then
-      Exit;
-
-    BackupLogFile(LogName);
-    try
-      Stream := TFile.AppendText(LogName);
-      try
-        if ALog.Msg.IsEmpty then
-          Stream.WriteLine
-        else
-          Stream.WriteLine(ALog.ToString);
-
-        while FMsgQueue.Count > 0 do
-        begin
-          Sleep(1);
-          ALog := FMsgQueue.Dequeue;
-
-          if LogName <> ALog.LogName then
-          begin
-            _PrintLog(ALog);
-            break;
-          end;
-
-          if ALog.Msg.IsEmpty then
-            Stream.WriteLine
-          else
-            Stream.WriteLine(ALog.ToString);
-        end;
-      finally
-        FreeAndNil(Stream);
-      end;
-    except
-      on E: Exception do
-        PrintLog(LogName + '.tmp', ALog.Time, ALog.Msg);
-    end;
-  end;
-
-var
-  MyLog: TJdcLog;
-begin
-  if FMsgQueue.Count = 0 then
-    Exit;
-
-  MyLog := FMsgQueue.Dequeue;
-  _PrintLog(MyLog);
-end;
-
-function TGlobalAbstract.GetLogName: string;
-begin
-  Result := FLogName;
-
-  // Override this.
-  // Result := ChangeFileExt(FLogName, FormatDateTime('_YYYYMMDD', Now) + '.log');
+  TJdcLogging.Obj.ApplicationMessage(msInfo, 'Stop', 'StartTime=' + FStartTime.ToString);
+  TJdcLogging.Obj.StopLogging;
 end;
 
 procedure TGlobalAbstract.Initialize;
 begin
   FStartTime := Now;
-  StartLogging;
+  TJdcLogging.Obj.StartLogging;
 {$IFDEF WIN32}
-  ApplicationMessage(msInfo, 'Start', '(x86)' + FExeName);
+  TJdcLogging.Obj.ApplicationMessage(msInfo, 'Start', '(x86)' + FExeName);
 {$ENDIF}
 {$IFDEF WIN64}
-  ApplicationMessage(msInfo, 'Start', '(x64)' + FExeName);
+  TJdcLogging.Obj.ApplicationMessage(msInfo, 'Start', '(x64)' + FExeName);
 {$ENDIF}
-end;
-
-procedure TGlobalAbstract.AppendLog(const AName: string; const AMsg: string);
-begin
-  if Assigned(FMsgQueue) then
-    FMsgQueue.Enqueue(TJdcLog.Create(AName, Now, AMsg));
-end;
-
-procedure TGlobalAbstract.SetUseDebug(const Value: boolean);
-begin
-  FUseDebug := Value;
-end;
-
-procedure TGlobalAbstract.StartLogging;
-begin
-  if FMsgQueue = nil then
-    FMsgQueue := TQueue<TJdcLog>.Create;
-
-  if FLogTask = nil then
-  begin
-    FLogTask := TThread.CreateAnonymousThread(
-      procedure
-      begin
-        while not TThread.CurrentThread.CheckTerminated do
-        begin
-          Sleep(507);
-          FlushLog;
-        end;
-      end);
-    FLogTask.FreeOnTerminate := False;
-    FLogTask.Start;
-  end;
-end;
-
-procedure TGlobalAbstract.StopLogging;
-begin
-  if Assigned(FLogTask) then
-  begin
-    FLogTask.Terminate;
-    FLogTask.WaitFor;
-    FreeAndNil(FLogTask);
-  end;
-  FreeAndNilEx(FMsgQueue);
-end;
-
-procedure TGlobalAbstract._ApplicationMessage(const AType: string; const ATitle: string;
-const AMessage: String; const AOutputs: TMsgOutputs);
-var
-  splitter: string;
-begin
-  if AMessage.IsEmpty then
-    splitter := ''
-  else
-    splitter := ' - ';
-
-  if moDebugView in AOutputs then
-    PrintDebug('<%s> [%s] %s%s%s', [AType, FAppCode, ATitle, splitter, AMessage]);
-
-  if moLogFile in AOutputs then
-    AppendLog(GetLogName, Format('<%s> %s%s%s', [AType, ATitle, splitter, AMessage]));
-
-  if (moCloudMessage in AOutputs) and FUseCloudLog then
-    CloudMessage(FProjectCode, FAppCode, AType, ATitle, AMessage, FileVersion(FExeName), FLogServer);
 end;
 
 { TConnInfo }
@@ -1002,7 +754,7 @@ begin
   Self.IntegerValue := AInteger;
 end;
 
-function TConnInfo.Equals(const ConnInfo: TConnInfo): boolean;
+function TConnInfo.Equals(const ConnInfo: TConnInfo): Boolean;
 begin
   Result := Self.StringValue.Equals(ConnInfo.StringValue) and (Self.IntegerValue = ConnInfo.IntegerValue);
 end;
@@ -1018,29 +770,6 @@ begin
     Result := Default
   else
     Result := str;
-end;
-
-{ TMemoLog }
-
-constructor TMemoLog.Create(AMemo: TMemo; AMsg: string);
-begin
-  Self.Memo := AMemo;
-  Self.Msg := AMsg;
-  Self.Time := Now;
-end;
-
-{ TJdcLog }
-
-constructor TJdcLog.Create(AName: string; ATime: TDateTime; AMsg: string);
-begin
-  Self.LogName := AName;
-  Self.Time := ATime;
-  Self.Msg := AMsg;
-end;
-
-function TJdcLog.ToString: string;
-begin
-  Result := FormatDateTime('YYYY-MM-DD HH:NN:SS.zzz, ', Self.Time) + Self.Msg
 end;
 
 end.
