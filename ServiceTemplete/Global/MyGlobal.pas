@@ -85,12 +85,12 @@ begin
   FAppCode := TOption.Obj.AppCode;
   FProjectCode := TOption.Obj.ProjectCode;
 
-  TLogging.Obj.SetLogName(FExeName);
   TLogging.Obj.ProjectCode := FProjectCode;
   TLogging.Obj.AppCode := FAppCode;
   TLogging.Obj.UseDebug := TOption.Obj.UseDebug;
   TLogging.Obj.UseCloudLog := TOption.Obj.UseCloudLog;
   TLogging.Obj.LogServer := TOption.Obj.LogServer;
+  TLogging.Obj.SetLogName(FExeName);
   TLogging.Obj.OnAfterLogging := OnAfterLoggingEvent;
 end;
 
