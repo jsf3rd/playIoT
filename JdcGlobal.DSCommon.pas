@@ -1,4 +1,4 @@
-// *******************************************************
+﻿// *******************************************************
 //
 // DACO DataSnap Common
 //
@@ -16,7 +16,7 @@ uses
   Classes, SysUtils, FireDAC.Comp.Client, FireDAC.Stan.Intf, Data.DBXPlatform,
   FireDAC.Comp.DataSet, FireDAC.Stan.Param, REST.JSON,
   System.Generics.Collections, System.DateUtils, Data.DB, Data.SqlTimSt,
-  JdcGlobal, JdcLogging
+  JdcGlobal, JdcLogging, JclDebug, Rtti
 {$IF CompilerVersion  > 26} // upper XE5
     , System.JSON
 {$ELSE}
@@ -32,6 +32,8 @@ type
   private
 
   public
+    class function GetRecordName<T: Record >: String;
+
     // Clear JSONObject Members
     class procedure ClearJSONObject(AValue: TJSONObject); overload;
     class procedure ClearJSONObject(AValue: TJSONArray); overload;
@@ -91,7 +93,7 @@ type
 
   TFDQueryHelper = class helper for TFDQuery
   private
-    function GetExternalProc: string;
+    function GetExternalProc(OnlyProcName: Boolean = False): string;
 
     procedure ParamByJsonValue(AParam: TFDParam; AValue: TJSONValue); overload;
     procedure ParamByJsonValue(AValue: TJSONValue; AName: String); overload;
@@ -161,9 +163,9 @@ uses JdcGlobal.ClassHelper;
 function GetFieldTypeName(AType: TFieldType): string;
 begin
   if Integer(AType) > Length(FieldTypeName) - 1 then
-    result := Integer(AType).ToString
+    Result := Integer(AType).ToString
   else
-    result := FieldTypeName[Integer(AType)];
+    Result := FieldTypeName[Integer(AType)];
 end;
 
 { TDSCommon }
@@ -232,12 +234,12 @@ end;
 
 class function TDSCommon.DataSetToStream(AQuery: TFDQuery): TStream;
 begin
-  result := AQuery.ToStream;
+  Result := AQuery.ToStream;
 end;
 
 class function TDSCommon.DataSetToStream(AMemTab: TFDMemTable): TStream;
 begin
-  result := AMemTab.ToStream;
+  Result := AMemTab.ToStream;
 end;
 
 class procedure TDSCommon.ClearJSONObject(AValue: TJSONObject);
@@ -266,8 +268,9 @@ var
 begin
   MemTab := TFDMemTable.Create(nil);
   try
+    MemTab.Name := 'mt' + GetRecordName<T>.Substring(1);
     MemTab.LoadFromDSStream(AProc(AParam));
-    result := MemTab.ToRecord<T>;
+    Result := MemTab.ToRecord<T>;
   finally
     MemTab.Free;
   end;
@@ -277,10 +280,12 @@ class function TDSCommon.DSProcToRecord<T>(AProc: TDSOpenProc): T;
 var
   MemTab: TFDMemTable;
 begin
+
   MemTab := TFDMemTable.Create(nil);
   try
+    MemTab.Name := 'mt' + GetRecordName<T>.Substring(1);
     MemTab.LoadFromDSStream(AProc);
-    result := MemTab.ToRecord<T>;
+    Result := MemTab.ToRecord<T>;
   finally
     MemTab.Free;
   end;
@@ -292,8 +297,9 @@ var
 begin
   MemTab := TFDMemTable.Create(nil);
   try
+    MemTab.Name := 'mt' + GetRecordName<T>.Substring(1);
     MemTab.LoadFromDSStream(AProc(AParam));
-    result := MemTab.ToRecordArray<T>;
+    Result := MemTab.ToRecordArray<T>;
   finally
     MemTab.Free;
   end;
@@ -305,8 +311,9 @@ var
 begin
   MemTab := TFDMemTable.Create(nil);
   try
+    MemTab.Name := 'mt' + GetRecordName<T>.Substring(1);
     MemTab.LoadFromDSStream(AProc);
-    result := MemTab.ToRecordArray<T>;
+    Result := MemTab.ToRecordArray<T>;
   finally
     MemTab.Free;
   end;
@@ -319,15 +326,15 @@ var
   Buffer: TBytes;
   BytesReadCount: Integer;
 begin
-  result := TBytesStream.Create;
+  Result := TBytesStream.Create;
 
   SetLength(Buffer, BufferSize);
   repeat
     BytesReadCount := AStream.Read(Buffer[0], BufferSize);
-    result.Write(Buffer[0], BytesReadCount);
+    Result.Write(Buffer[0], BytesReadCount);
   until BytesReadCount < BufferSize;
 
-  result.Position := 0;
+  Result.Position := 0;
 end;
 
 class function TDSCommon.DBXStreamToMemoryStream(AStream: TStream): TMemoryStream;
@@ -337,16 +344,16 @@ var
   Buffer: TBytes;
   ReadCount: Integer;
 begin
-  result := TMemoryStream.Create;
+  Result := TMemoryStream.Create;
   try
     SetLength(Buffer, BufferSize);
     repeat
       ReadCount := AStream.Read(Buffer[0], BufferSize);
-      result.Write(Buffer[0], ReadCount);
+      Result.Write(Buffer[0], ReadCount);
     until ReadCount < BufferSize;
-    result.Position := 0;
+    Result.Position := 0;
   except
-    result.Free;
+    Result.Free;
     raise;
   end;
 end;
@@ -354,6 +361,16 @@ end;
 class procedure TDSCommon.DSStreamToFDDataSet(AStream: TStream; ADataSet: TFDDataSet);
 begin
   ADataSet.LoadFromDSStream(AStream);
+end;
+
+class function TDSCommon.GetRecordName<T>: String;
+var
+  LContext: TRttiContext;
+  LRecord: TRttiRecordType;
+begin
+  LContext := TRttiContext.Create;
+  LRecord := LContext.GetType(TypeInfo(T)).AsRecord;
+  Result := LRecord.Name;
 end;
 
 class procedure TDSCommon.InitDataType(ASender: TComponent; AConn: TFDConnection);
@@ -415,7 +432,7 @@ var
 begin
   MyQuery := Self.Clone;
   try
-    result := MyQuery.ApplyUpdate(AConn, AStream);
+    Result := MyQuery.ApplyUpdate(AConn, AStream);
   finally
     MyQuery.Free;
   end;
@@ -426,6 +443,7 @@ var
   ExecTime: TDateTime;
   Errors: Integer;
 begin
+  Result := False;
   try
     try
       Self.Connection := AConn;
@@ -434,16 +452,16 @@ begin
       ExecTime := Now;
       Errors := Self.ApplyUpdates;
 
-      TLogging.Obj.ApplicationMessage(msInfo, JdcGlobal.GetProcByLevel(0, True),
-        Format('Caller=%s,Query=%s,ChangeCount=%d,Errors=%d,ExecTime=%s', [GetExternalProc, Self.Name,
-        Self.ChangeCount, Errors, FormatDateTime('NN:SS.zzz', Now - ExecTime)]));
+      TLogging.Obj.ApplicationMessage(msInfo, JdcGlobal.GetCurrentProc,
+        Format('Query=%s,ChangeCount=%d,Errors=%d,ExecTime=%s,Caller=%s', [Self.Name, Self.ChangeCount,
+        Errors, FormatDateTime('NN:SS.zzz', Now - ExecTime), GetExternalProc]));
 
-      result := Errors = 0;
+      Result := Errors = 0;
     except
       on E: Exception do
       begin
-        TLogging.Obj.ApplicationMessage(msError, Self.Name, E.Message);
-        result := false;
+        TLogging.Obj.ApplicationMessage(msError, JdcGlobal.GetCurrentProc, 'Query=%s,E=%s,Caller=%s',
+          [Self.Name, E.Message, GetExternalProc]);
       end;
     end;
   finally
@@ -456,19 +474,19 @@ function TFDQueryHelper.Clone: TFDQuery;
 var
   I: Integer;
 begin
-  result := TFDQuery.Create(nil);
-  result.Connection := Self.Connection;
-  result.OnExecuteError := Self.OnExecuteError;
-  result.OnReconcileError := Self.OnReconcileError;
-  result.CachedUpdates := Self.CachedUpdates;
-  result.UpdateOptions.KeyFields := Self.UpdateOptions.KeyFields;
-  result.UpdateOptions.UpdateTableName := Self.UpdateOptions.UpdateTableName;
+  Result := TFDQuery.Create(nil);
+  Result.Connection := Self.Connection;
+  Result.OnExecuteError := Self.OnExecuteError;
+  Result.OnReconcileError := Self.OnReconcileError;
+  Result.CachedUpdates := Self.CachedUpdates;
+  Result.UpdateOptions.KeyFields := Self.UpdateOptions.KeyFields;
+  Result.UpdateOptions.UpdateTableName := Self.UpdateOptions.UpdateTableName;
 
-  result.SQL.Text := Self.SQL.Text;
-  result.Name := Self.Name + '_' + Format('%0.5d', [Random(100000)]);
+  Result.SQL.Text := Self.SQL.Text;
+  Result.Name := Self.Name + '_' + Format('%0.5d', [Random(100000)]);
 
   for I := 0 to Self.ParamCount - 1 do
-    result.Params.Items[I].DataType := Self.Params.Items[I].DataType;
+    Result.Params.Items[I].DataType := Self.Params.Items[I].DataType;
 end;
 
 procedure TFDQueryHelper.FieldByJSONObject(AObject: TJSONObject);
@@ -482,7 +500,7 @@ var
 begin
   MyQuery := Self.Clone;
   try
-    result := MyQuery.ExecQuery(AConn, AParams);
+    Result := MyQuery.ExecQuery(AConn, AParams);
   finally
     MyQuery.Free;
   end;
@@ -494,7 +512,7 @@ var
 begin
   MyQuery := Self.Clone;
   try
-    result := MyQuery.ExecQuery(AConn, AParams);
+    Result := MyQuery.ExecQuery(AConn, AParams);
   finally
     MyQuery.Free;
   end;
@@ -506,7 +524,7 @@ var
   I: Integer;
   Params: TJSONObject;
 begin
-  result := false;
+  Result := False;
   AConn.StartTransaction;
   try
     Self.Connection := AConn;
@@ -521,12 +539,12 @@ begin
 
       ExecTime := Now;
       Self.Execute(AParams.Count);
-      TLogging.Obj.ApplicationMessage(msInfo, JdcGlobal.GetProcByLevel(0, True),
-        Format('Caller=%s,Query=%s,Requested=%d,RowsAffected=%d,ExecTime=%s', [GetExternalProc, Self.Name,
-        AParams.Count, Self.RowsAffected, FormatDateTime('NN:SS.zzz', Now - ExecTime)]));
-      result := Self.RowsAffected = AParams.Count;
+      TLogging.Obj.ApplicationMessage(msInfo, JdcGlobal.GetCurrentProc,
+        Format('Query=%s,Requested=%d,RowsAffected=%d,ExecTime=%s,Caller=%s', [Self.Name, AParams.Count,
+        Self.RowsAffected, FormatDateTime('NN:SS.zzz', Now - ExecTime), GetExternalProc]));
+      Result := Self.RowsAffected = AParams.Count;
 
-      if result then
+      if Result then
         AConn.Commit
       else
         AConn.Rollback;
@@ -534,7 +552,8 @@ begin
       on E: Exception do
       begin
         AConn.Rollback;
-        TLogging.Obj.ApplicationMessage(msError, GetExternalProc, E.Message);
+        TLogging.Obj.ApplicationMessage(msError, JdcGlobal.GetCurrentProc, 'Query=%s,E=%s,Caller=%s',
+          [Self.Name, E.Message, GetExternalProc]);
       end;
     end;
   finally
@@ -547,7 +566,7 @@ function TFDQueryHelper.ExecQuery(AConn: TFDConnection; AParams: TJSONObject): B
 var
   ExecTime: TDateTime;
 begin
-  result := false;
+  Result := False;
   try
     Self.Connection := AConn;
     try
@@ -556,13 +575,14 @@ begin
 
       ExecTime := Now;
       Self.ExecSQL;
-      TLogging.Obj.ApplicationMessage(msInfo, JdcGlobal.GetProcByLevel(0, True),
-        Format('Caller=%s,Query=%s,RowsAffected=%d,ExecTime=%s', [GetExternalProc, Self.Name,
-        Self.RowsAffected, FormatDateTime('NN:SS.zzz', Now - ExecTime)]));
-      result := True;
+      TLogging.Obj.ApplicationMessage(msInfo, JdcGlobal.GetCurrentProc,
+        Format('Query=%s,RowsAffected=%d,ExecTime=%s,Caller=%s', [Self.Name, Self.RowsAffected,
+        FormatDateTime('NN:SS.zzz', Now - ExecTime), GetExternalProc]));
+      Result := True;
     except
       on E: Exception do
-        TLogging.Obj.ApplicationMessage(msError, GetExternalProc, E.Message);
+        TLogging.Obj.ApplicationMessage(msError, JdcGlobal.GetCurrentProc, 'Query=%s,E=%s,Caller=%s',
+          [Self.Name, E.Message, GetExternalProc]);
     end;
   finally
     AConn.Free;
@@ -574,13 +594,13 @@ begin
   TFDDataSet(Self).FieldByJSONObject(AJSON);
 end;
 
-function TFDQueryHelper.GetExternalProc: string;
+function TFDQueryHelper.GetExternalProc(OnlyProcName: Boolean): string;
 var
   Proc: string;
 begin
   // 0.ThisMethod - 1.OpenQuery - 2.OpenInstansQuery - 3.RealCaller
-  Proc := JdcGlobal.GetProcByLevel(3);
-  result := Proc;
+  Proc := JdcGlobal.GetProcByLevel(3, OnlyProcName);
+  Result := Proc;
 end;
 
 procedure TFDQueryHelper.LoadFromDSStream(AStream: TStream);
@@ -594,7 +614,7 @@ var
 begin
   MyQuery := Self.Clone;
   try
-    result := MyQuery.OpenQuery(AConn, AParams);
+    Result := MyQuery.OpenQuery(AConn, AParams);
   finally
     MyQuery.Free;
   end;
@@ -611,13 +631,13 @@ begin
         ParamByJSONObject(AParams);
 
       ExecTime := Now;
-      result := Self.ToStream;
-      TLogging.Obj.ApplicationMessage(msInfo, JdcGlobal.GetProcByLevel(0, True),
-        Format('Caller=%s,Query=%s,RecordCount=%d,ExecTime=%s', [GetExternalProc, Self.Name, Self.RecordCount,
-        FormatDateTime('NN:SS.zzz', Now - ExecTime)]));
+      Result := Self.ToStream;
+      TLogging.Obj.ApplicationMessage(msInfo, JdcGlobal.GetCurrentProc,
+        Format('Query=%s,RecordCount=%d,ExecTime=%s,Caller=%s', [Self.Name, Self.RecordCount,
+        FormatDateTime('NN:SS.zzz', Now - ExecTime), GetExternalProc]));
     except
       on E: Exception do
-        raise Exception.Create(Format('Proc=%s,Query=%s,E=%s', [GetExternalProc, Self.Name, E.Message]));
+        raise Exception.Create(Format('Query=%s,E=%s,Caller=%s', [Self.Name, E.Message, GetExternalProc]));
     end;
   finally
     AConn.Free;
@@ -784,27 +804,27 @@ end;
 
 function TFDQueryHelper.ToStream: TStream;
 begin
-  result := TMemoryStream.Create;
+  Result := TMemoryStream.Create;
   Self.Close;
   Self.Open;
   Self.Refresh;
-  Self.SaveToStream(result, sfBinary);
-  result.Position := 0;
+  Self.SaveToStream(Result, sfBinary);
+  Result.Position := 0;
 end;
 
 function TFDQueryHelper.ToRecordArray<T>(AName: String): TArray<T>;
 begin
-  result := TFDDataSet(Self).ToRecordArray<T>(AName);
+  Result := TFDDataSet(Self).ToRecordArray<T>(AName);
 end;
 
 function TFDQueryHelper.ToJSON: TJSONObject;
 begin
-  result := TFDDataSet(Self).ToJSON;
+  Result := TFDDataSet(Self).ToJSON;
 end;
 
 function TFDQueryHelper.ToRecord<T>(AName: String): T;
 begin
-  result := TFDDataSet(Self).ToRecord<T>(AName);
+  Result := TFDDataSet(Self).ToRecord<T>(AName);
 end;
 
 { TFDMemTableHelper }
@@ -814,7 +834,7 @@ var
   Stream: TStream;
   StoreItems: TFDStoreItems;
 begin
-  result := TFDMemTable.Create(Self.Owner);
+  Result := TFDMemTable.Create(Self.Owner);
 
   StoreItems := Self.ResourceOptions.StoreItems;
   Self.ResourceOptions.StoreItems := [siData, siDelta, siMeta];
@@ -822,7 +842,7 @@ begin
   try
     Self.SaveToStream(Stream);
     Stream.Position := 0;
-    result.LoadFromStream(Stream);
+    Result.LoadFromStream(Stream);
   finally
     Self.ResourceOptions.StoreItems := StoreItems;
     FreeAndNil(Stream);
@@ -846,24 +866,24 @@ end;
 
 function TFDMemTableHelper.ToRecordArray<T>(AName: String): TArray<T>;
 begin
-  result := TFDDataSet(Self).ToRecordArray<T>(AName);
+  Result := TFDDataSet(Self).ToRecordArray<T>(AName);
 end;
 
 function TFDMemTableHelper.ToJSON: TJSONObject;
 begin
-  result := TFDDataSet(Self).ToJSON;
+  Result := TFDDataSet(Self).ToJSON;
 end;
 
 function TFDMemTableHelper.ToRecord<T>(AName: String): T;
 begin
-  result := TFDDataSet(Self).ToRecord<T>(AName);
+  Result := TFDDataSet(Self).ToRecord<T>(AName);
 end;
 
 function TFDMemTableHelper.ToStream: TStream;
 begin
-  result := TMemoryStream.Create;
-  Self.SaveToStream(result, sfBinary);
-  result.Position := 0;
+  Result := TMemoryStream.Create;
+  Self.SaveToStream(Result, sfBinary);
+  Result.Position := 0;
 end;
 
 { TFDDataSetHelper }
@@ -954,51 +974,52 @@ begin
       raise Exception.Create(Format('DataSet=%s,FieldName=%s,Unknown DataType',
         [Self.Name, AField.FieldName]));
     ftString, ftWideString:
-      result := TJSONString.Create(AField.AsString);
+      Result := TJSONString.Create(AField.AsString);
     ftSmallint, ftInteger, ftWord, ftShortint, ftAutoInc:
-      result := TJSONNumber.Create(AField.AsInteger);
+      Result := TJSONNumber.Create(AField.AsInteger);
 
 {$IF CompilerVersion  > 26} // upper XE5
     ftBoolean:
-      result := TJSONBool.Create(AField.AsBoolean);
+      Result := TJSONBool.Create(AField.AsBoolean);
     ftDate, ftTime, ftDateTime:
-      result := TJSONString.Create(AField.AsDateTime.ToISO8601);
+      Result := TJSONString.Create(AField.AsDateTime.ToISO8601);
     ftTimeStamp:
-      result := TJSONString.Create(SQLTimeStampToDateTime(AField.AsSQLTimeStamp).ToISO8601);
+      Result := TJSONString.Create(SQLTimeStampToDateTime(AField.AsSQLTimeStamp).ToISO8601);
 {$ELSE}
     ftBoolean:
       begin
         if AField.AsBoolean then
-          result := TJSONTrue.Create
+          Result := TJSONTrue.Create
         else
-          result := TJSONFalse.Create;
+          Result := TJSONFalse.Create;
       end;
     ftDate, ftTime, ftDateTime:
-      result := TJSONString.Create(AField.AsDateTime.ToString);
+      Result := TJSONString.Create(AField.AsDateTime.ToString);
     ftTimeStamp:
-      result := TJSONString.Create(SQLTimeStampToDateTime(AField.AsSQLTimeStamp).ToString);
+      Result := TJSONString.Create(SQLTimeStampToDateTime(AField.AsSQLTimeStamp).ToString);
 {$ENDIF}
     ftFloat:
-      result := TJSONNumber.Create(AField.AsFloat);
+      Result := TJSONNumber.Create(AField.AsFloat);
     ftCurrency:
-      result := TJSONNumber.Create(AField.AsCurrency);
+      Result := TJSONNumber.Create(AField.AsCurrency);
     ftLargeint:
-      result := TJSONNumber.Create(AField.AsLargeInt);
+      Result := TJSONNumber.Create(AField.AsLargeInt);
     ftGuid:
-      result := TJSONString.Create(TGuidField(AField).AsGUID.ToString);
+      Result := TJSONString.Create(TGuidField(AField).AsGUID.ToString);
     ftExtended:
-      result := TJSONNumber.Create(AField.AsExtended);
+      Result := TJSONNumber.Create(AField.AsExtended);
     ftLongWord:
-      result := TJSONNumber.Create(AField.AsLongword);
+      Result := TJSONNumber.Create(AField.AsLongword);
     ftSingle:
-      result := TJSONNumber.Create(AField.AsSingle);
+      Result := TJSONNumber.Create(AField.AsSingle);
   else
     raise Exception.Create(Format('DataSet=%s,FieldName=%s,UnsurportDataType=%s',
       [Self.Name, AField.FieldName, GetFieldTypeName(AField.DataType)]));
   end;
 
-  PrintDebug('DataSet=%s,FieldName=%s,DataType=%s,Value=%s',
-    [Self.Name, AField.FieldName, GetFieldTypeName(AField.DataType), result.Value]);
+  TLogging.Obj.ApplicationMessage(msSystem, 'FieldToJSONVlaue',
+    'DataSet=%s,FieldName=%s,DataType=%s,Value=%s', [Self.Name, AField.FieldName,
+    GetFieldTypeName(AField.DataType), Result.Value]);
 end;
 
 procedure TFDDataSetHelper.FieldByJSONArray(AValue: TJSONArray; AName: String);
@@ -1039,19 +1060,19 @@ var
   I: Integer;
   Key: string;
 begin
-  result := TJSONArray.Create;
+  Result := TJSONArray.Create;
 
 {$IF CompilerVersion  > 26} // upper XE5
   for I := 0 to AValue.Count - 1 do
   begin
     Key := AName + '_' + (I + 1).ToString;
-    result.AddElement(GetNameValue(AValue.Items[I], Key));
+    Result.AddElement(GetNameValue(AValue.Items[I], Key));
   end;
 {$ELSE}
   for I := 0 to AValue.Size - 1 do
   begin
     Key := AName + '_' + (I + 1).ToString;
-    result.AddElement(GetNameValue(AValue.Get(I), Key));
+    Result.AddElement(GetNameValue(AValue.Get(I), Key));
   end;
 {$ENDIF}
 end;
@@ -1061,7 +1082,7 @@ var
   MyElem: TJSONPair;
   Key: string;
 begin
-  result := TJSONObject.Create;
+  Result := TJSONObject.Create;
   for MyElem in AValue do
   begin
     Key := AName + '_';
@@ -1069,18 +1090,18 @@ begin
       Key := '';
 
     Key := Key + MyElem.JsonString.Value;
-    result.AddPair(MyElem.JsonString.Value, GetNameValue(MyElem.JsonValue, Key));
+    Result.AddPair(MyElem.JsonString.Value, GetNameValue(MyElem.JsonValue, Key));
   end;
 end;
 
 function TFDDataSetHelper.GetNameValue(AValue: TJSONValue; AName: String): TJSONValue;
 begin
   if AValue is TJSONObject then
-    result := GetJSONObject(AValue as TJSONObject, AName)
+    Result := GetJSONObject(AValue as TJSONObject, AName)
   else if AValue is TJSONArray then
-    result := GetJSONArray(AValue as TJSONArray, AName)
+    Result := GetJSONArray(AValue as TJSONArray, AName)
   else
-    result := FieldToJSONVlaue(Self.Fields.FindField(AName));
+    Result := FieldToJSONVlaue(Self.Fields.FindField(AName));
 end;
 
 procedure TFDDataSetHelper.LoadFromDSStream(AStream: TStream);
@@ -1102,13 +1123,13 @@ function TFDDataSetHelper.ToRecordArray<T>(AName: String): TArray<T>;
 var
   _record: T;
 begin
-  SetLength(result, 0);
+  SetLength(Result, 0);
 
   Self.First;
   while not Self.Eof do
   begin
     _record := Self.ToRecord<T>(AName);
-    result := result + [_record];
+    Result := Result + [_record];
     Self.Next;
   end;
 end;
@@ -1118,11 +1139,11 @@ var
   MyField: TField;
   JsonValue: TJSONValue;
 begin
-  result := TJSONObject.Create;
+  Result := TJSONObject.Create;
   for MyField in Self.Fields do
   begin
     JsonValue := FieldToJSONVlaue(MyField);
-    result.AddPair(MyField.FieldName, JsonValue);
+    Result.AddPair(MyField.FieldName, JsonValue);
   end;
 end;
 
@@ -1136,7 +1157,7 @@ begin
   try
     ResultValue := GetJSONObject(TempContainer, AName);
     try
-      result := REST.JSON.TJson.JsonToRecord<T>(ResultValue);
+      Result := REST.JSON.TJson.JsonToRecord<T>(ResultValue);
     finally
       ResultValue.Free;
     end;

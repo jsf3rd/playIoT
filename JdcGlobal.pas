@@ -144,6 +144,7 @@ procedure ExtractValues(var AList: TStrings; AValue: TJSONValue);
 function GetModuleByLevel(const Level: Integer = 0): string;
 function GetLineByLevel(const Level: Integer = 0): Integer;
 function GetProcByLevel(const Level: Integer = 0; const OnlyProcedureName: Boolean = False): string;
+function GetCurrentProc: string;
 
 const
   LOG_PORT = 8094;
@@ -162,30 +163,24 @@ implementation
 uses JdcGlobal.ClassHelper, JdcLogging;
 
 function GetModuleByLevel(const Level: Integer): string;
-var
-  Module: string;
 begin
-  // 바로 리턴 하는 경우 Release에서 Level오류 발생
-  Module := ModuleByLevel(Level + 1);
-  Result := Module;
+  Result := ModuleByLevel(Level + 1) + '';
 end;
 
 function GetLineByLevel(const Level: Integer): Integer;
-var
-  Line: Integer;
 begin
-  // 바로 리턴 하는 경우 Release에서 Level오류 발생
-  Line := LineByLevel(Level + 1);
-  Result := Line;
+  Result := LineByLevel(Level + 1) + 0;
+end;
+
+function GetCurrentProc: string;
+begin
+  Result := ProcByLevel(1, True) + '';
 end;
 
 function GetProcByLevel(const Level: Integer; const OnlyProcedureName: Boolean): string;
-var
-  Proc: string;
 begin
-  // 바로 리턴 하는 경우 Release에서 Level오류 발생
-  Proc := ProcByLevel(Level + 1, OnlyProcedureName);
-  Result := Proc;
+  // 바로 리턴 하는 경우 Release에서 Level + 1 무시하는 오류 발생
+  Result := ProcByLevel(Level + 1, OnlyProcedureName) + '';
 end;
 
 procedure ExtractValues(var AList: TStrings; AValue: TJSONValue);
@@ -478,10 +473,11 @@ begin
   try
     try
       UDPClient.Send(AServer.StringValue, AServer.IntegerValue, Msg, IndyTextEncoding_UTF8);
-      PrintDebug('CloudLog,<%s> [%s] %s=%s,Host=%s', [TypeCode, AppCode, _Title, Msg, AServer.StringValue]);
+      PrintDebug('[%s] <%s> [%s] %s=%s,Host=%s', ['CloudLog', TypeCode, AppCode, _Title, Msg,
+        AServer.StringValue]);
     except
       on E: Exception do
-        PrintDebug('CloudLog,E=' + E.Message);
+        PrintDebug('[%s] Server=%s,E=%s', ['CloudLog', AServer.ToString, E.Message]);
     end;
   finally
     UDPClient.Free;

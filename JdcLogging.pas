@@ -165,7 +165,7 @@ begin
   OutputDebugString(PChar('[JDC] ' + str));
 end;
 
-{ TJdcLogging }
+{ TLogging }
 
 procedure TLogging.ApplicationMessage(const AType: TMessageType; const ATitle, AMessage: String;
   const DebugLog: Boolean);
@@ -314,8 +314,7 @@ begin
   FExeVersion := FileVersion(ExeName);
   FLogName := ExtractFilePath(ExeName) + 'logs\' + ChangeFileExt(ExtractFileName(ExeName), '.log');
 {$IFDEF LOCALAPPDATA}
-  FLogName := GetEnvironmentVariable('LOCALAPPDATA') + '\' + FProjectCode + '\' + FAppCode + '\' +
-    ExtractFileName(FLogName);
+  FLogName := GetEnvironmentVariable('LOCALAPPDATA') + '\DACO\' + FAppCode + '\' + ExtractFileName(FLogName);
 {$ENDIF}
   if not TDirectory.Exists(ExtractFilePath(FLogName)) then
     TDirectory.CreateDirectory(ExtractFilePath(FLogName));
@@ -372,17 +371,19 @@ end;
 procedure TLogging._ApplicationMessage(const AType, ATitle, AMessage: String; const AOutputs: TMsgOutputs);
 var
   splitter: string;
+  MyType: string;
 begin
   if AMessage.IsEmpty then
     splitter := ''
   else
     splitter := ' - ';
 
+  MyType := '<' + AType + '>';
   if moDebugView in AOutputs then
-    PrintDebug('<%s> [%s] %s%s%s', [AType, FAppCode, ATitle, splitter, AMessage]);
+    PrintDebug('%-9s [%s] %s%s%s', [MyType, FAppCode, ATitle, splitter, AMessage]);
 
   if moLogFile in AOutputs then
-    AppendLog(GetLogName, Format('<%s> %s%s%s', [AType, ATitle, splitter, AMessage]));
+    AppendLog(GetLogName, Format('%-9s %s%s%s', [MyType, ATitle, splitter, AMessage]));
 
   if (moCloudMessage in AOutputs) and FUseCloudLog then
     CloudMessage(FProjectCode, FAppCode, AType, ATitle, AMessage, FExeVersion, FLogServer);
