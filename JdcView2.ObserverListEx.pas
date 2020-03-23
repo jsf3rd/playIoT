@@ -9,7 +9,7 @@ interface
 
 uses
   JsonData, HandleComponent,
-  Windows, Messages, Classes, SysUtils, SyncObjs, Types, JdcGlobal;
+  Windows, Messages, Classes, SysUtils, SyncObjs, Types, JdcGlobal, JdcLogging;
 
 const
   WM_ASYNC_BROADCAST = WM_USER + 1;

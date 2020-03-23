@@ -3,7 +3,7 @@ unit JdcView2;
 interface
 
 uses
-  JdcView2.ObserverListEx, JsonData, Classes, SysUtils;
+  JdcView2.ObserverListEx, JsonData, Classes, SysUtils, JdcLogging;
 
 type
   TView = class(TObserverListEx)
