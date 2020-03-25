@@ -107,6 +107,7 @@
         <AppDPIAwarenessMode>PerMonitor</AppDPIAwarenessMode>
         <DCC_DcuOutput>.\__dcu\$(Config)</DCC_DcuOutput>
         <DCC_Define>_LOCALAPPDATA;_LOGGING_DAY_TAG;$(DCC_Define)</DCC_Define>
+        <BT_BuildType>Debug</BT_BuildType>
     </PropertyGroup>
     <ItemGroup>
         <DelphiCompile Include="$(MainSource)">
