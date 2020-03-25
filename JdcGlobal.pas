@@ -89,7 +89,7 @@ function Contains(Contents: string; const str: array of const): Boolean;
 function IsGoodResponse(Text, Command: string; Response: array of const): Boolean;
 
 // ¸Å Word ¸¶´Ù Reverse
-procedure RevEveryWord(APointer: Pointer; ASize: Integer);
+procedure RevEveryWord(APointer: Pointer; ASize: Integer; AIndex: Integer = 0);
 
 // Reverse 2Btyes..
 function Rev2Bytes(w: WORD): WORD;
@@ -204,21 +204,22 @@ begin
     raise Exception.Create('ExtractValues,' + AValue.ToString);
 end;
 
-procedure RevEveryWord(APointer: Pointer; ASize: Integer);
+procedure RevEveryWord(APointer: Pointer; ASize: Integer; AIndex: Integer);
 var
   src: TIdBytes;
   tmp: Byte;
-  I: Integer;
   Index: Integer;
 begin
   SetLength(src, ASize);
   CopyMemory(@src[0], APointer, ASize);
-  for I := 0 to (ASize div 2) - 1 do
+
+  Index := AIndex;
+  while Index + 1 < ASize do
   begin
-    Index := I * 2;
     tmp := src[Index];
     src[Index] := src[Index + 1];
     src[Index + 1] := tmp;
+    Index := Index + 2;
   end;
   CopyMemory(APointer, @src[0], ASize);
 end;
