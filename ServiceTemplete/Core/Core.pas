@@ -45,9 +45,12 @@ begin
   FIsfinalized := true;
 
   // Terminate Threads...
-  FMyTask.Terminate;
-  FMyTask.WaitFor;
-  FreeAndNil(FMyTask);
+  if Assigned(FMyTask) then
+  begin
+    FMyTask.Terminate;
+    FMyTask.WaitFor;
+    FreeAndNil(FMyTask);
+  end;
 
   TGlobal.Obj.Finalize;
 end;
