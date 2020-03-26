@@ -15,12 +15,13 @@ interface
 uses System.SysUtils, System.Classes, JdcDacoM.Protocol, JdcDacoM.Common, IdContext, IdBaseComponent,
   IdComponent, IdCustomTCPServer, IdTCPServer, JdcGlobal, System.Generics.Collections, IdGlobal,
   Winapi.Windows, System.JSON, REST.JSON, JdcGlobal.ClassHelper, System.DateUtils, IdException,
-  IdExceptionCore, IdStack, Math;
+  IdExceptionCore, IdStack, Math, JdcGlobal.DSCommon;
 
 type
   TMySession = class;
 
   TOnPowerData = procedure(ATime: TDateTime; AMac: string; AData: TPowerData) of object; // Power 데이터 수신 이벤트
+  TOnIOList = procedure(ATime: TDateTime; AMac: string; AData: TIOList) of object; // IOControl 데이터 수신 이벤트
   TOnModuleData = procedure(ASession: TMySession; AID: Integer) of object; // 분기모듈 데이터 수신 이벤트
   TOnMeterData = procedure(ASession: TMySession) of object; // 모든 모듈 데이터 수집 완료 이벤트
   TOnRequest = procedure(AContext: TIdContext; const AParam: TRequestParam) of object;
@@ -39,6 +40,7 @@ type
     FMacAddress: string;
 
     FOnPowerData: TOnPowerData;
+    FOnIOList: TOnIOList;
     FOnModuleData: TOnModuleData;
     FOnMeterData: TOnMeterData;
 
@@ -62,7 +64,13 @@ type
     procedure OnModulePart1(ABuff: TIdBytes);
     procedure OnModulePart2(ABuff: TIdBytes);
     procedure OnPowerModule(ABuff: TIdBytes);
+    procedure OnIOControl(ABuff: TIdBytes);
     procedure OnError(ABuff: TIdBytes);
+
+    procedure OnResponse(var ABuff: TIdBytes);
+
+    function BuffToRecord<T: record >(var ABuff: TIdBytes; ReverseIndex: Integer = -1;
+      AType: TMessageType = msSystem): T;
 
     procedure RequestModule(AID: Integer; AOffSet, ALen: UInt16);
     procedure RequestNextModule;
@@ -88,6 +96,7 @@ type
 
     property OnRequest: TOnRequest read FOnRequest write FOnRequest;
     property OnPowerData: TOnPowerData read FOnPowerData write FOnPowerData;
+    property OnIOList: TOnIOList read FOnIOList write FOnIOList;
     property OnModuleData: TOnModuleData read FOnModuleData write FOnModuleData;
     property OnMeterData: TOnMeterData read FOnMeterData write FOnMeterData;
   end;
@@ -249,6 +258,8 @@ begin
       ASession.OnModulePart2(ABuff);
     ptPowerModule:
       ASession.OnPowerModule(ABuff);
+    ptIOControl:
+      ASession.OnIOControl(ABuff);
     ptError:
       ASession.OnError(ABuff);
   else
@@ -286,6 +297,7 @@ begin
   if FTCPServer.Active then
     Exit;
 
+  FTCPServer.Bindings.Clear;
   FTCPServer.DefaultPort := APort;
   FTCPServer.Active := True;
   TLogging.Obj.ApplicationMessage(msInfo, 'DacoMServer', Format('Opened,Port=%d', [FTCPServer.DefaultPort]));
@@ -360,7 +372,7 @@ end;
 procedure TDacoMServer.TCPServerExecute(AContext: TIdContext);
 var
   buff: TIdBytes;
-  Header: TMBAP;
+  Header: TMBAPHeader;
   DataLen: Integer;
 
   MySession: TMySession;
@@ -401,7 +413,7 @@ begin
     [AContext.PeerPort, Length(buff), IdBytesToHex(buff)]);
 
   CopyMemory(@Header, @buff[0], SizeOf(Header));
-  Header.Reverse;
+  RevEveryWord(@Header, SizeOf(TMBAPHeader));
 
   TLogging.Obj.ApplicationMessage(msSystem, 'HEADER', TJson.RecordToJsonString(Header));
 
@@ -453,6 +465,18 @@ end;
 
 { TMySession }
 
+function TMySession.BuffToRecord<T>(var ABuff: TIdBytes; ReverseIndex: Integer; AType: TMessageType): T;
+begin
+  CopyMemory(@result, @ABuff[0], SizeOf(T));
+
+  if ReverseIndex > -1 then
+    RevEveryWord(@result, SizeOf(T), ReverseIndex);
+
+  SetLength(ABuff, 0);
+  TLogging.Obj.ApplicationMessage(AType, TDSCommon.GetRecordName<T>.Substring(1),
+    TJson.RecordToJsonString(result));
+end;
+
 constructor TMySession.Create(AContext: TIdContext);
 var
   I: Integer;
@@ -477,11 +501,8 @@ begin
 end;
 
 procedure TMySession.OnError(ABuff: TIdBytes);
-var
-  ErrorCode: TErrorCode;
 begin
-  CopyMemory(@ErrorCode, @ABuff[0], SizeOf(TErrorCode));
-  TLogging.Obj.ApplicationMessage(msDebug, 'Error', TJson.RecordToJsonString(ErrorCode));
+  BuffToRecord<TErrorCode>(ABuff, -1, msWarning);
 end;
 
 function TMySession.GetModule(AIndex: Integer): TModuleData;
@@ -521,16 +542,22 @@ begin
     [FContext.PeerPort, FModuleCount, ModuleList]));
 end;
 
+procedure TMySession.OnIOControl(ABuff: TIdBytes);
+var
+  IOControl: TIOControl;
+begin
+  IOControl := BuffToRecord<TIOControl>(ABuff, 3, msSystem);
+  if Assigned(FOnIOList) then
+    FOnIOList(FRequestTime, MacAddress, IOControl.Data);
+end;
+
 procedure TMySession.OnModulePart1(ABuff: TIdBytes);
 var
-  FirstModule: TModulePart1;
+  ModulePart1: TModulePart1;
 begin
-  CopyMemory(@FirstModule, @ABuff[0], SizeOf(TModulePart1));
-  FirstModule.Data.Reverse;
-  Self.Part1[FirstModule.UnitID] := FirstModule.Data;
-
-  TLogging.Obj.ApplicationMessage(msSystem, 'First', TJson.RecordToJsonString(FirstModule));
-  RequestModule(FirstModule.UnitID, TModbus.WORD_COUNT_PART1, TModbus.WORD_COUNT_PART2);
+  ModulePart1 := BuffToRecord<TModulePart1>(ABuff, 3);
+  Self.Part1[ModulePart1.UnitId] := ModulePart1.Data;
+  RequestModule(ModulePart1.UnitId, TModbus.WORD_COUNT_PART1, TModbus.WORD_COUNT_PART2);
 end;
 
 function TMySession.ModuleList: String;
@@ -551,15 +578,13 @@ end;
 
 procedure TMySession.OnModulePart2(ABuff: TIdBytes);
 var
-  SecondModule: TModulePart2;
+  ModulePart2: TModulePart2;
 begin
-  CopyMemory(@SecondModule, @ABuff[0], SizeOf(TModulePart2));
-  SecondModule.Data.Reverse;
-  Self.Part2[SecondModule.UnitID] := SecondModule.Data;
+  ModulePart2 := BuffToRecord<TModulePart2>(ABuff, 3);
+  Self.Part2[ModulePart2.UnitId] := ModulePart2.Data;
 
-  TLogging.Obj.ApplicationMessage(msSystem, 'Second', TJson.RecordToJsonString(SecondModule));
   if Assigned(FOnModuleData) then
-    FOnModuleData(Self, SecondModule.UnitID);
+    FOnModuleData(Self, ModulePart2.UnitId);
 
   // Next 데이터 요청
   RequestNextModule;
@@ -569,10 +594,7 @@ procedure TMySession.OnPowerModule(ABuff: TIdBytes);
 var
   PowerModule: TPowerModule;
 begin
-  CopyMemory(@PowerModule, @ABuff[0], SizeOf(TPowerModule));
-  PowerModule.Data.Reverse;
-
-  TLogging.Obj.ApplicationMessage(msSystem, 'Power', TJson.RecordToJsonString(PowerModule));
+  PowerModule := BuffToRecord<TPowerModule>(ABuff, 3);
   if FMacAddress = '' then
   begin
     FMacAddress := ToHex(ToBytes(PowerModule.Data.EthernetMac1_1)) + '-' +
@@ -589,10 +611,15 @@ begin
   RequestNextModule;
 end;
 
+procedure TMySession.OnResponse(var ABuff: TIdBytes);
+begin
+  BuffToRecord<TResponse>(ABuff, 2, msInfo);
+end;
+
 procedure TMySession.RequestIDTable;
 begin
-  OnRequest(FContext, TRequestParam.Create(TModbus.IDTABLE_UNITID, TModbus.IDTABLE_ADDRESS,
-    TModbus.WORD_COUNT_IDTABLE));
+  OnRequest(FContext, TRequestParam.Create(TModbus.IDTABLE_UNITID, TModbus.READ_REGISTER,
+    TModbus.IDTABLE_ADDRESS, TModbus.WORD_COUNT_IDTABLE));
 end;
 
 procedure TMySession.RequestModule(AID: Integer; AOffSet, ALen: UInt16);
@@ -613,7 +640,7 @@ begin
   end;
 
   Addr := TModbus.GetAddress(AID, TDacoM.DEVICE_1000APS) + AOffSet;
-  OnRequest(FContext, TRequestParam.Create(AID, Addr, ALen));
+  OnRequest(FContext, TRequestParam.Create(AID, TModbus.READ_REGISTER, Addr, ALen));
 end;
 
 procedure TMySession.RequestNextModule;
@@ -623,8 +650,8 @@ end;
 
 procedure TMySession.RequestPower;
 begin
-  OnRequest(FContext, TRequestParam.Create(TModbus.POWER_UNIT_ID, TModbus.POWER_ADDRESS,
-    TModbus.WORD_COUNT_POWER));
+  OnRequest(FContext, TRequestParam.Create(TModbus.POWER_UNIT_ID, TModbus.READ_REGISTER,
+    TModbus.POWER_ADDRESS, TModbus.WORD_COUNT_POWER));
 end;
 
 procedure TMySession.RequestPowerDataOnly;
@@ -677,7 +704,7 @@ begin
     raise Exception.Create('out of index SetPart2, ' + AIndex.ToString);
 
   FModule[AIndex].Part2 := Value;
-  FModule[AIndex].UnitID := AIndex;
+  FModule[AIndex].UnitId := AIndex;
 end;
 
 end.

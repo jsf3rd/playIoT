@@ -16,11 +16,10 @@ uses SysUtils, Classes, JdcGlobal, JdcGlobal.ClassHelper, IdGlobal, Winapi.Windo
   System.DateUtils, JdcCRC, REST.JSON, System.JSON, JdcDacoM.Common, JdcLogging;
 
 type
-  TMBAP = packed record
+  TMBAPHeader = packed record
     TrasactionId: UInt16;
     ProtocolId: UInt16;
     Length: UInt16;
-    procedure Reverse;
   end;
 
   TPhasor = packed record
@@ -69,6 +68,13 @@ type
     UnitId: Byte;
     FC: Byte; // 0x83
     Msg: Byte; // 0x01
+  end;
+
+  TResponse = packed record
+    ID: Byte;
+    FC: Byte;
+    Addr: UInt16;
+    Data: UInt16;
   end;
 
   THarmoic = array [0 .. 30] of UInt16;
@@ -142,7 +148,6 @@ type
       TimeDayHour: UInt16;
       TimeMinSec: UInt16;
     }
-    procedure Reverse;
   end;
 
   TPowerModule = packed record
@@ -173,7 +178,6 @@ type
     KWh: TAMOUNT; // 유효전력량
     KVARh: TAMOUNT; // 무효전력량
     KVAh: UInt32; // 피상전력량
-    procedure Reverse;
   end;
 
   TModulePart1 = packed record
@@ -211,8 +215,6 @@ type
 
     // 1000E
     // VoltageLL: T3PhaseEx;
-
-    procedure Reverse;
   end;
 
   TModulePart2 = packed record
@@ -235,13 +237,29 @@ type
     ID: TIDArray40;
   end;
 
+  TAnalogChannel = array [0 .. 15] of UInt16;
+
+  TIOList = packed record
+    InputStatus1: UInt16;
+    InputStatus2: UInt16;
+    OutputStatus1: UInt16;
+    OutputStatus2: UInt16;
+    AnalogChannel: TAnalogChannel;
+  end;
+
+  TIOControl = packed record
+    Header: TMBHeader;
+    Data: TIOList;
+  end;
+
 type
   TRequestParam = record
     ID: Byte;
+    FC: Byte;
     Addr: UInt16;
-    Len: UInt16;
-    constructor Create(AID: Byte; AAddr, ALen: UInt16);
-    function GetCommand(FC: Byte): TIdBytes;
+    Data: UInt16;
+    constructor Create(ID: Byte; FC: Byte; Addr, Data: UInt16);
+    function GetCommand: TIdBytes;
   end;
 
   TModbus = class
@@ -251,18 +269,23 @@ type
 
     MAIN_UNIT_ID = $01;
 
-    IDTABLE_ADDRESS = $66BD; // 26301
     IDTABLE_UNITID = $FD; // 253
+    IDTABLE_ADDRESS = $66BD; // 26301
 
-    POWER_ADDRESS = $2B5D; // 11101;
     POWER_UNIT_ID = $FE; // 254
+    POWER_ADDRESS = $2B5D; // 11101;
+
+    IOCONTROL_UNIT_ID = $BC; // 188
+    IOCONTROL_ADDRESS = $68B1; // 26801
 
     ERROR_CODE = $83; //
 
     MBAP: array [0 .. 5] of Byte = ($00, $00, $00, $00, $00, $06);
     READ_REGISTER = $03;
+    WRITE_REGISTER = $06;
 
     WORD_COUNT_POWER = SizeOf(TPowerData) div 2;
+    WORD_COUNT_IOLIST = SizeOf(TIOList) div 2;
     WORD_COUNT_PART1 = SizeOf(TDataPart1) div 2;
     WORD_COUNT_PART2 = SizeOf(TDataPart2) div 2;
     WORD_COUNT_IDTABLE = SizeOf(TIDArray40) div 2;
@@ -447,6 +470,8 @@ begin
     result := ptIDTable
   else if (ABuff[0] = TModbus.POWER_UNIT_ID) and (Received >= SizeOf(TPowerModule)) then
     result := ptPowerModule
+  else if (ABuff[0] = TModbus.IOCONTROL_UNIT_ID) and (Received >= SizeOf(TIOControl)) then
+    result := ptIOControl
   else if (ByteCount = SizeOf(TDataPart1)) and (Received >= SizeOf(TModulePart1)) then
     result := ptModulePart1
   else if (ByteCount = SizeOf(TDataPart2)) and (Received >= SizeOf(TModulePart2)) then
@@ -454,8 +479,9 @@ begin
   else if (ByteCount = SizeOf(TIDArray40)) and (Received >= SizeOf(TIDTable)) then
     result := ptCheck // ReadConfig에서 사용
   else if (ABuff[1] = TModbus.ERROR_CODE) and (Received >= SizeOf(TErrorCode)) then
-    result := ptError;
-
+    result := ptError
+  else if (ABuff[1] = TModbus.WRITE_REGISTER) and (Received >= SizeOf(TResponse)) then
+    result := ptResponse;
 end;
 
 class function TModbus.InvalidDataLen(ALen: Integer): Boolean;
@@ -469,62 +495,35 @@ class function TModbus.TcpCommand(const AParam: TRequestParam): TIdBytes;
 begin
   SetLength(result, Length(MBAP));
   CopyMemory(@result[0], @MBAP[0], Length(MBAP));
-  AppendBytes(result, AParam.GetCommand(READ_REGISTER));
+  AppendBytes(result, AParam.GetCommand);
 end;
 
 class function TModbus.SerialCommand(const AParam: TRequestParam): TIdBytes;
 var
   MyCRC: UInt16;
 begin
-  result := AParam.GetCommand(READ_REGISTER);
+  result := AParam.GetCommand;
   MyCRC := ModbusCRC16(result);
   AppendBytes(result, ToBytes(MyCRC));
 end;
 
 { TRequestParam }
 
-constructor TRequestParam.Create(AID: Byte; AAddr, ALen: UInt16);
+constructor TRequestParam.Create(ID: Byte; FC: Byte; Addr, Data: UInt16);
 begin
-  Self.ID := AID;
-  Self.Addr := AAddr;
-  Self.Len := ALen;
+  Self.ID := ID;
+  Self.FC := FC;
+  Self.Addr := Addr;
+  Self.Data := Data;
 end;
 
-function TRequestParam.GetCommand(FC: Byte): TIdBytes;
+function TRequestParam.GetCommand: TIdBytes;
 begin
   SetLength(result, 0);
   AppendByte(result, Self.ID); // unit_id
-  AppendByte(result, FC); // FC
+  AppendByte(result, Self.FC); // FC
   AppendBytes(result, ToBytes(Rev2Bytes(Self.Addr))); // 시작주소
-  AppendBytes(result, ToBytes(Rev2Bytes(Self.Len))); // 개수
-end;
-
-{ TPowerData }
-
-procedure TPowerData.Reverse;
-begin
-  RevEveryWord(@Self, SizeOf(Self));
-end;
-
-{ TDataPart1 }
-
-procedure TDataPart1.Reverse;
-begin
-  RevEveryWord(@Self, SizeOf(Self));
-end;
-
-{ TDataPart2 }
-
-procedure TDataPart2.Reverse;
-begin
-  RevEveryWord(@Self, SizeOf(Self));
-end;
-
-{ TMBAP }
-
-procedure TMBAP.Reverse;
-begin
-  RevEveryWord(@Self, SizeOf(Self));
+  AppendBytes(result, ToBytes(Rev2Bytes(Self.Data))); // 개수
 end;
 
 end.

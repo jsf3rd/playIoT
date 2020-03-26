@@ -27,7 +27,8 @@ type
 
   TIDArray40 = array [0 .. MODULE_COUNT] of TID;
 
-  TProtocolType = (ptIDTable, ptPowerModule, ptModulePart1, ptModulePart2, ptError, ptCheck, ptUnknown);
+  TProtocolType = (ptIDTable, ptPowerModule, ptIOControl, ptModulePart1, ptModulePart2, ptError, ptCheck,
+    ptResponse, ptUnknown);
 
   TDacoM = class
   const
