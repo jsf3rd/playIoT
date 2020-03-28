@@ -73,6 +73,9 @@ type
     procedure ApplicationMessage(const AType: TMessageType; const ATitle: String; const AFormat: String;
       const Args: array of const; const DebugLog: Boolean = False); overload;
 
+    procedure PrintUseDebug;
+    Procedure PrintUseCloudLog;
+
     property ProjectCode: String read FProjectCode write FProjectCode;
     property AppCode: String read FAppCode write FAppCode;
 
@@ -307,6 +310,16 @@ begin
   if MyObj = nil then
     MyObj := TLogging.Create;
   Result := MyObj;
+end;
+
+procedure TLogging.PrintUseCloudLog;
+begin
+  ApplicationMessage(msInfo, 'UseCloudLog', BoolToStr(FUseCloudLog, True));
+end;
+
+procedure TLogging.PrintUseDebug;
+begin
+  ApplicationMessage(msInfo, 'UseDebug', BoolToStr(FUseDebug, True));
 end;
 
 procedure TLogging.SetLogName(const ExeName: string);

@@ -63,9 +63,6 @@ begin
 
   inherited;
 
-  ApplicationMessage(msInfo, 'UseDebug', BoolToStr(TOption.Obj.UseDebug, true));
-  ApplicationMessage(msInfo, 'UseCloudLog', BoolToStr(TOption.Obj.UseCloudLog, true));
-
   // Todo :
   FIsInitialized := true;
 end;

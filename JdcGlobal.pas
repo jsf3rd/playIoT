@@ -741,6 +741,8 @@ begin
 {$IFDEF WIN64}
   TLogging.Obj.ApplicationMessage(msInfo, 'Start', '(x64)' + FExeName);
 {$ENDIF}
+  TLogging.Obj.PrintUseDebug;
+  TLogging.Obj.PrintUseCloudLog;
 end;
 
 { TConnInfo }
