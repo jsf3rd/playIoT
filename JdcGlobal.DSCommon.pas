@@ -66,7 +66,7 @@ type
     class function DSProcToRecordArray<T: record >(AProc: TDSOpenParamProc; AParam: TJSONObject)
       : TArray<T>; overload;
 
-    // Init TFDQuery DataType
+    // Init TFDQuery Parameter DataType
     class procedure InitDataType(ASender: TComponent; AConn: TFDConnection);
   end;
 
@@ -270,6 +270,9 @@ begin
   try
     MemTab.Name := 'mt' + GetRecordName<T>.Substring(1);
     MemTab.LoadFromDSStream(AProc(AParam));
+    if MemTab.RecordCount > 1 then
+      raise Exception.Create('query did not return a unique result : ' + MemTab.RecordCount.ToString);
+
     Result := MemTab.ToRecord<T>;
   finally
     MemTab.Free;
@@ -280,11 +283,13 @@ class function TDSCommon.DSProcToRecord<T>(AProc: TDSOpenProc): T;
 var
   MemTab: TFDMemTable;
 begin
-
   MemTab := TFDMemTable.Create(nil);
   try
     MemTab.Name := 'mt' + GetRecordName<T>.Substring(1);
     MemTab.LoadFromDSStream(AProc);
+    if MemTab.RecordCount > 1 then
+      raise Exception.Create('query did not return a unique result : ' + MemTab.RecordCount.ToString);
+
     Result := MemTab.ToRecord<T>;
   finally
     MemTab.Free;
