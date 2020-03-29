@@ -87,8 +87,8 @@ begin
   TLogging.Obj.UseDebug := TOption.Obj.UseDebug;
   TLogging.Obj.UseCloudLog := TOption.Obj.UseCloudLog;
   TLogging.Obj.LogServer := TOption.Obj.LogServer;
-  TLogging.Obj.SetLogName(FExeName);
   TLogging.Obj.OnAfterLogging := OnAfterLoggingEvent;
+  TLogging.Obj.SetLogName(FExeName);
 end;
 
 initialization
