@@ -6,12 +6,12 @@ uses
   Classes, SysUtils, IOUtils, JdcGlobal, JdcLogging;
 
 const
-  PROJECT_CODE = 'MyProject';
-  APPLICATION_CODE = 'playIoT Application';
+  PROJECT_CODE = 'DACO Project';
+  APPLICATION_CODE = 'DACO Application';
   APPLICATION_TITLE = 'DataSnap for Basic';
   APPLICATION_VERSION = 'v1.0';
-  COPY_RIGHT_SIGN = 'ⓒ 2016 playIoT';
-  HOME_PAGE_URL = 'http://www.playIoT.biz';
+  COPY_RIGHT_SIGN = 'ⓒ 2020 DACO';
+  HOME_PAGE_URL = 'http://www.i-daco.com';
 
   DB_DRIVER_ID = 'DriverID';
   DB_HOST = 'Server';
@@ -25,11 +25,10 @@ const
 type
   TGlobal = class(TGlobalAbstract)
   strict protected
-    constructor Create; override;
-    procedure SetExeName(const Value: String); override;
     procedure OnAfterLoggingEvent(const AType: TMessageType; const ATitle: String;
-      const AMessage: String = '');
+      const AMessage: String = ''); override;
   public
+    constructor Create; override;
     class function Obj: TGlobal;
 
     procedure Initialize; override;
@@ -49,6 +48,11 @@ constructor TGlobal.Create;
 begin
   inherited;
 
+  FExeName := ParamStr(0);
+  FProjectCode := PROJECT_CODE;
+  FAppCode := TOption.Obj.AppCode;
+
+  TLogging.Obj.Init(Self, TOption.Obj);
   // TODO : after crete
 end;
 
@@ -88,19 +92,8 @@ begin
   // TODO..
 end;
 
-procedure TGlobal.SetExeName(const Value: String);
-begin
-  FExeName := Value;
-  FAppCode := TOption.Obj.AppCode;
-  FProjectCode := TOption.Obj.ProjectCode;
+initialization
 
-  TLogging.Obj.ProjectCode := FProjectCode;
-  TLogging.Obj.AppCode := FAppCode;
-  TLogging.Obj.UseDebug := TOption.Obj.UseDebug;
-  TLogging.Obj.UseCloudLog := TOption.Obj.UseCloudLog;
-  TLogging.Obj.LogServer := TOption.Obj.LogServer;
-  TLogging.Obj.OnAfterLogging := OnAfterLoggingEvent;
-  TLogging.Obj.SetLogName(FExeName);
-end;
+MyObj := TGlobal.Create;
 
 end.

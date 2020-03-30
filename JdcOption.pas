@@ -3,41 +3,51 @@ unit JdcOption;
 interface
 
 uses
-  Classes, SysUtils, IniFiles, Registry, Winapi.Windows;
+  Classes, SysUtils, IniFiles, Registry, Winapi.Windows, JdcGlobal;
 
 type
   TIniProc = reference to procedure(AIni: TIniFile);
   TRegProc = reference to procedure(ARegistry: TRegistry);
 
+  TOptionAbstract = class abstract
+  protected
+    FIniFile: TCustomIniFile;
+    function GetUseCloudLog: boolean; virtual;
+    procedure SetUseCloudLog(const Value: boolean); virtual;
+    function GetLogServer: TConnInfo; virtual;
+    procedure SetLogServer(const Value: TConnInfo); virtual;
+    function GetUseDebug: boolean; virtual;
+    procedure SetUseDebug(const Value: boolean); virtual;
+  public
+    constructor Create; virtual;
+    destructor Destroy; override;
+
+    function FileName: string;
+    property LogServer: TConnInfo read GetLogServer write SetLogServer;
+    property UseCloudLog: boolean read GetUseCloudLog write SetUseCloudLog;
+    property UseDebug: boolean read GetUseDebug write SetUseDebug;
+  end;
+
+  // Deprecated
   TOptionInterface = class abstract(TComponent)
   private
     FPath: String;
     procedure SetPath(const Value: String);
   protected
-    function GetStringValue(const ASec, AIdent, ADefault: String): String;
-      virtual; abstract;
-    procedure SetStringValue(const ASec, AIdent, AValue: String);
-      virtual; abstract;
+    function GetStringValue(const ASec, AIdent, ADefault: String): String; virtual; abstract;
+    procedure SetStringValue(const ASec, AIdent, AValue: String); virtual; abstract;
 
-    function GetIntegerValue(const ASec, AIdent: String; ADefault: Integer)
-      : Integer; virtual; abstract;
-    procedure SetIntegerValue(const ASec, AIdent: String; AValue: Integer);
-      virtual; abstract;
+    function GetIntegerValue(const ASec, AIdent: String; ADefault: Integer): Integer; virtual; abstract;
+    procedure SetIntegerValue(const ASec, AIdent: String; AValue: Integer); virtual; abstract;
 
-    function GetFloatValue(const ASec, AIdent: String; ADefault: real): real;
-      virtual; abstract;
-    procedure SetFloatValue(const ASec, AIdent: String; AValue: real);
-      virtual; abstract;
+    function GetFloatValue(const ASec, AIdent: String; ADefault: real): real; virtual; abstract;
+    procedure SetFloatValue(const ASec, AIdent: String; AValue: real); virtual; abstract;
 
-    function GetBoolValue(const ASec, AIdent: String; ADefault: Boolean)
-      : Boolean; virtual; abstract;
-    procedure SetBoolValue(const ASec, AIdent: String; AValue: Boolean);
-      virtual; abstract;
+    function GetBoolValue(const ASec, AIdent: String; ADefault: boolean): boolean; virtual; abstract;
+    procedure SetBoolValue(const ASec, AIdent: String; AValue: boolean); virtual; abstract;
 
-    function GetDateTimeValue(const ASec, AIdent: String; ADefault: TDateTime)
-      : TDateTime; virtual; abstract;
-    procedure SetDateTimeValue(const ASec, AIdent: String; AValue: TDateTime);
-      virtual; abstract;
+    function GetDateTimeValue(const ASec, AIdent: String; ADefault: TDateTime): TDateTime; virtual; abstract;
+    procedure SetDateTimeValue(const ASec, AIdent: String; AValue: TDateTime); virtual; abstract;
   public
     constructor Create(AOwner: TComponent); override;
 
@@ -48,37 +58,30 @@ type
     procedure EraseSection(const ASec: String); virtual; abstract;
     procedure DeleteKey(const ASec, AKey: String); virtual; abstract;
 
-    function KeyExist(const ASec, AKey: String): Boolean; virtual; abstract;
+    function KeyExist(const ASec, AKey: String): boolean; virtual; abstract;
 
     property Path: String read FPath write SetPath;
   end;
 
+  // Deprecated
   TOptionIniFiles = class(TOptionInterface)
   private
     procedure IniTemplete(ACallBack: TIniProc);
   protected
-    function GetStringValue(const ASec, AIdent, ADefault: String)
-      : String; override;
+    function GetStringValue(const ASec, AIdent, ADefault: String): String; override;
     procedure SetStringValue(const ASec, AIdent, AValue: String); override;
 
-    function GetIntegerValue(const ASec, AIdent: String; ADefault: Integer)
-      : Integer; override;
-    procedure SetIntegerValue(const ASec, AIdent: String;
-      AValue: Integer); override;
+    function GetIntegerValue(const ASec, AIdent: String; ADefault: Integer): Integer; override;
+    procedure SetIntegerValue(const ASec, AIdent: String; AValue: Integer); override;
 
-    function GetFloatValue(const ASec, AIdent: String; ADefault: real)
-      : real; override;
+    function GetFloatValue(const ASec, AIdent: String; ADefault: real): real; override;
     procedure SetFloatValue(const ASec, AIdent: String; AValue: real); override;
 
-    function GetBoolValue(const ASec, AIdent: String; ADefault: Boolean)
-      : Boolean; override;
-    procedure SetBoolValue(const ASec, AIdent: String;
-      AValue: Boolean); override;
+    function GetBoolValue(const ASec, AIdent: String; ADefault: boolean): boolean; override;
+    procedure SetBoolValue(const ASec, AIdent: String; AValue: boolean); override;
 
-    function GetDateTimeValue(const ASec, AIdent: String; ADefault: TDateTime)
-      : TDateTime; override;
-    procedure SetDateTimeValue(const ASec, AIdent: String;
-      AValue: TDateTime); override;
+    function GetDateTimeValue(const ASec, AIdent: String; ADefault: TDateTime): TDateTime; override;
+    procedure SetDateTimeValue(const ASec, AIdent: String; AValue: TDateTime); override;
   public
     function ReadSections: TStrings; override;
     function ReadSection(ASection: string): TStrings; override;
@@ -87,36 +90,29 @@ type
     procedure EraseSection(const ASec: String); override;
     procedure DeleteKey(const ASec, AKey: String); override;
 
-    function KeyExist(const ASec, AKey: String): Boolean; override;
+    function KeyExist(const ASec, AKey: String): boolean; override;
   end;
 
+  // Deprecated
   TOptionRegistry = class(TOptionInterface)
   private
     FRootKey: HKEY;
     procedure RegistryTemplete(ASec: String; ACallBack: TRegProc);
   protected
-    function GetStringValue(const ASec, AIdent, ADefault: String)
-      : String; override;
+    function GetStringValue(const ASec, AIdent, ADefault: String): String; override;
     procedure SetStringValue(const ASec, AIdent, AValue: String); override;
 
-    function GetIntegerValue(const ASec, AIdent: String; ADefault: Integer)
-      : Integer; override;
-    procedure SetIntegerValue(const ASec, AIdent: String;
-      AValue: Integer); override;
+    function GetIntegerValue(const ASec, AIdent: String; ADefault: Integer): Integer; override;
+    procedure SetIntegerValue(const ASec, AIdent: String; AValue: Integer); override;
 
-    function GetFloatValue(const ASec, AIdent: String; ADefault: real)
-      : real; override;
+    function GetFloatValue(const ASec, AIdent: String; ADefault: real): real; override;
     procedure SetFloatValue(const ASec, AIdent: String; AValue: real); override;
 
-    function GetBoolValue(const ASec, AIdent: String; ADefault: Boolean)
-      : Boolean; override;
-    procedure SetBoolValue(const ASec, AIdent: String;
-      AValue: Boolean); override;
+    function GetBoolValue(const ASec, AIdent: String; ADefault: boolean): boolean; override;
+    procedure SetBoolValue(const ASec, AIdent: String; AValue: boolean); override;
 
-    function GetDateTimeValue(const ASec, AIdent: String; ADefault: TDateTime)
-      : TDateTime; override;
-    procedure SetDateTimeValue(const ASec, AIdent: String;
-      AValue: TDateTime); override;
+    function GetDateTimeValue(const ASec, AIdent: String; ADefault: TDateTime): TDateTime; override;
+    procedure SetDateTimeValue(const ASec, AIdent: String; AValue: TDateTime); override;
   public
     constructor Create(AOwner: TComponent); overload; override;
     constructor Create(AOwner: TComponent; AKey: HKEY); reintroduce; overload;
@@ -128,7 +124,7 @@ type
     procedure EraseSection(const ASec: String); override;
     procedure DeleteKey(const ASec, AKey: String); override;
 
-    function KeyExist(const ASec, AKey: String): Boolean; override;
+    function KeyExist(const ASec, AKey: String): boolean; override;
 
     property RootKey: HKEY read FRootKey;
   end;
@@ -163,8 +159,7 @@ begin
     end);
 end;
 
-procedure TOptionIniFiles.SetFloatValue(const ASec, AIdent: String;
-AValue: real);
+procedure TOptionIniFiles.SetFloatValue(const ASec, AIdent: String; AValue: real);
 begin
   IniTemplete(
     procedure(AIni: TIniFile)
@@ -223,10 +218,9 @@ begin
   result := Value;
 end;
 
-function TOptionIniFiles.GetBoolValue(const ASec, AIdent: String;
-ADefault: Boolean): Boolean;
+function TOptionIniFiles.GetBoolValue(const ASec, AIdent: String; ADefault: boolean): boolean;
 var
-  Value: Boolean;
+  Value: boolean;
 begin
 
   IniTemplete(
@@ -240,8 +234,7 @@ begin
 
 end;
 
-function TOptionIniFiles.GetDateTimeValue(const ASec, AIdent: String;
-ADefault: TDateTime): TDateTime;
+function TOptionIniFiles.GetDateTimeValue(const ASec, AIdent: String; ADefault: TDateTime): TDateTime;
 var
   Value: TDateTime;
 begin
@@ -257,8 +250,7 @@ begin
 
 end;
 
-function TOptionIniFiles.GetFloatValue(const ASec, AIdent: String;
-ADefault: real): real;
+function TOptionIniFiles.GetFloatValue(const ASec, AIdent: String; ADefault: real): real;
 var
   Value: real;
 begin
@@ -273,8 +265,7 @@ begin
   result := Value;
 end;
 
-function TOptionIniFiles.GetIntegerValue(const ASec, AIdent: String;
-ADefault: Integer): Integer;
+function TOptionIniFiles.GetIntegerValue(const ASec, AIdent: String; ADefault: Integer): Integer;
 var
   Value: Integer;
 begin
@@ -290,8 +281,7 @@ begin
 
 end;
 
-function TOptionIniFiles.GetStringValue(const ASec, AIdent,
-  ADefault: String): String;
+function TOptionIniFiles.GetStringValue(const ASec, AIdent, ADefault: String): String;
 var
   Value: String;
 begin
@@ -328,9 +318,9 @@ begin
   end;
 end;
 
-function TOptionIniFiles.KeyExist(const ASec, AKey: String): Boolean;
+function TOptionIniFiles.KeyExist(const ASec, AKey: String): boolean;
 var
-  Value: Boolean;
+  Value: boolean;
 begin
   IniTemplete(
 
@@ -342,8 +332,7 @@ begin
   result := Value;
 end;
 
-procedure TOptionIniFiles.SetBoolValue(const ASec, AIdent: String;
-AValue: Boolean);
+procedure TOptionIniFiles.SetBoolValue(const ASec, AIdent: String; AValue: boolean);
 begin
   IniTemplete(
     procedure(AIni: TIniFile)
@@ -355,8 +344,7 @@ begin
 
 end;
 
-procedure TOptionIniFiles.SetDateTimeValue(const ASec, AIdent: String;
-AValue: TDateTime);
+procedure TOptionIniFiles.SetDateTimeValue(const ASec, AIdent: String; AValue: TDateTime);
 begin
   IniTemplete(
     procedure(AIni: TIniFile)
@@ -368,8 +356,7 @@ begin
 
 end;
 
-procedure TOptionIniFiles.SetIntegerValue(const ASec, AIdent: String;
-AValue: Integer);
+procedure TOptionIniFiles.SetIntegerValue(const ASec, AIdent: String; AValue: Integer);
 begin
   IniTemplete(
     procedure(AIni: TIniFile)
@@ -405,8 +392,72 @@ begin
   FPath := Value;
 
   if Value.IsEmpty then
-    raise Exception.Create
-      ('::JdcOption:: Can not set empty string to Option Path.');
+    raise Exception.Create('::JdcOption:: Can not set empty string to Option Path.');
+end;
+
+{ TOptionAbstract }
+
+constructor TOptionAbstract.Create;
+var
+  FileName: string;
+begin
+  FileName := ChangeFileExt(ParamStr(0), '.ini');
+  FIniFile := TIniFile.Create(FileName);
+
+  /// ////////////////////////////////////////////////////////////////////////////////
+  // Override Create;
+
+  // FIniFile := TMemIniFile.Create(FileName);
+
+  // Registry...
+  // FileName := 'SOFTWARE\DACO\' + PROJECT_CODE;
+  // FIniFile := TRegistryIniFile.Create(FileName);
+  // TRegistryIniFile(FIniFile).RegIniFile.RootKey := HKEY_CURRENT_USER;
+  // TRegistryIniFile(FIniFile).RegIniFile.OpenKey(FIniFile.FileName, True);
+end;
+
+destructor TOptionAbstract.Destroy;
+begin
+  if Assigned(FIniFile) then
+    FreeAndNil(FIniFile);
+  inherited;
+end;
+
+function TOptionAbstract.FileName: string;
+begin
+  result := FIniFile.FileName;
+end;
+
+function TOptionAbstract.GetLogServer: TConnInfo;
+begin
+  result.StringValue := FIniFile.ReadString('CloudLog', 'IP', '');
+  result.IntegerValue := FIniFile.ReadInteger('CloudLog', 'Port', 8094);
+end;
+
+function TOptionAbstract.GetUseCloudLog: boolean;
+begin
+  result := FIniFile.ReadBool('CloudLog', 'Enable', False);
+end;
+
+function TOptionAbstract.GetUseDebug: boolean;
+begin
+  result := FIniFile.ReadBool('Config', 'UseDebug', False);
+end;
+
+procedure TOptionAbstract.SetLogServer(const Value: TConnInfo);
+begin
+  FIniFile.WriteString('CloudLog', 'IP', Value.StringValue);
+  FIniFile.WriteInteger('CloudLog', 'Port', Value.IntegerValue);
+end;
+
+procedure TOptionAbstract.SetUseCloudLog(const Value: boolean);
+begin
+  FIniFile.WriteBool('CloudLog', 'Enable', Value);
+end;
+
+procedure TOptionAbstract.SetUseDebug(const Value: boolean);
+begin
+  FIniFile.WriteBool('Config', 'UseDebug', Value);
 end;
 
 { TOptionRegistry }
@@ -443,10 +494,9 @@ begin
     end);
 end;
 
-function TOptionRegistry.GetBoolValue(const ASec, AIdent: String;
-ADefault: Boolean): Boolean;
+function TOptionRegistry.GetBoolValue(const ASec, AIdent: String; ADefault: boolean): boolean;
 var
-  Value: Boolean;
+  Value: boolean;
 begin
   RegistryTemplete(ASec,
     procedure(ARegistry: TRegistry)
@@ -460,8 +510,7 @@ begin
   result := Value;
 end;
 
-function TOptionRegistry.GetDateTimeValue(const ASec, AIdent: String;
-ADefault: TDateTime): TDateTime;
+function TOptionRegistry.GetDateTimeValue(const ASec, AIdent: String; ADefault: TDateTime): TDateTime;
 var
   Value: TDateTime;
 begin
@@ -477,8 +526,7 @@ begin
   result := Value;
 end;
 
-function TOptionRegistry.GetFloatValue(const ASec, AIdent: String;
-ADefault: real): real;
+function TOptionRegistry.GetFloatValue(const ASec, AIdent: String; ADefault: real): real;
 var
   Value: Double;
 begin
@@ -494,8 +542,7 @@ begin
   result := Value;
 end;
 
-function TOptionRegistry.GetIntegerValue(const ASec, AIdent: String;
-ADefault: Integer): Integer;
+function TOptionRegistry.GetIntegerValue(const ASec, AIdent: String; ADefault: Integer): Integer;
 var
   Value: Integer;
 begin
@@ -512,8 +559,7 @@ begin
 
 end;
 
-function TOptionRegistry.GetStringValue(const ASec, AIdent,
-  ADefault: String): String;
+function TOptionRegistry.GetStringValue(const ASec, AIdent, ADefault: String): String;
 var
   Value: String;
 begin
@@ -529,9 +575,9 @@ begin
   result := Value;
 end;
 
-function TOptionRegistry.KeyExist(const ASec, AKey: String): Boolean;
+function TOptionRegistry.KeyExist(const ASec, AKey: String): boolean;
 var
-  Value: Boolean;
+  Value: boolean;
 begin
 
   RegistryTemplete(ASec,
@@ -623,8 +669,7 @@ begin
   end;
 end;
 
-procedure TOptionRegistry.SetBoolValue(const ASec, AIdent: String;
-AValue: Boolean);
+procedure TOptionRegistry.SetBoolValue(const ASec, AIdent: String; AValue: boolean);
 begin
   RegistryTemplete(ASec,
     procedure(ARegistry: TRegistry)
@@ -633,8 +678,7 @@ begin
     end);
 end;
 
-procedure TOptionRegistry.SetDateTimeValue(const ASec, AIdent: String;
-AValue: TDateTime);
+procedure TOptionRegistry.SetDateTimeValue(const ASec, AIdent: String; AValue: TDateTime);
 begin
   RegistryTemplete(ASec,
     procedure(ARegistry: TRegistry)
@@ -643,8 +687,7 @@ begin
     end);
 end;
 
-procedure TOptionRegistry.SetFloatValue(const ASec, AIdent: String;
-AValue: real);
+procedure TOptionRegistry.SetFloatValue(const ASec, AIdent: String; AValue: real);
 begin
   RegistryTemplete(ASec,
     procedure(ARegistry: TRegistry)
@@ -653,8 +696,7 @@ begin
     end);
 end;
 
-procedure TOptionRegistry.SetIntegerValue(const ASec, AIdent: String;
-AValue: Integer);
+procedure TOptionRegistry.SetIntegerValue(const ASec, AIdent: String; AValue: Integer);
 begin
   RegistryTemplete(ASec,
     procedure(ARegistry: TRegistry)

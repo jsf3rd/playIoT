@@ -5,7 +5,7 @@ interface
 uses SysUtils, Classes;
 
 const
-  PROJECT_CODE = 'playIoT Project';
+  PROJECT_CODE = 'DACO Project';
 
 implementation
 

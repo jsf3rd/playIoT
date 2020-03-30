@@ -3,12 +3,11 @@ unit _ServerContainer;
 interface
 
 uses System.SysUtils, System.Classes, Vcl.SvcMgr, Datasnap.DSTCPServerTransport, Datasnap.DSHTTPCommon,
-  Datasnap.DSHTTP,
-  Datasnap.DSServer, Datasnap.DSCommonServer, Datasnap.DSAuth, IPPeerServer, Registry, Winapi.Windows,
-  JdcConnectionPool, FireDAC.Stan.Intf, FireDAC.Stan.Option, FireDAC.Stan.Error, FireDAC.UI.Intf,
-  FireDAC.Phys.Intf,
-  FireDAC.Stan.Def, FireDAC.Stan.Pool, FireDAC.Stan.Async, FireDAC.Phys, FireDAC.VCLUI.Wait, Data.DB,
-  FireDAC.Comp.Client, System.JSON, FireDAC.Stan.Param, System.StrUtils, System.Generics.Collections;
+  Datasnap.DSHTTP, Datasnap.DSServer, Datasnap.DSCommonServer, Datasnap.DSAuth, IPPeerServer, Registry,
+  Winapi.Windows, JdcConnectionPool, FireDAC.Stan.Intf, FireDAC.Stan.Option, FireDAC.Stan.Error,
+  FireDAC.UI.Intf, FireDAC.Phys.Intf, FireDAC.Stan.Def, FireDAC.Stan.Pool, FireDAC.Stan.Async, FireDAC.Phys,
+  FireDAC.VCLUI.Wait, Data.DB, FireDAC.Comp.Client, System.JSON, FireDAC.Stan.Param, System.StrUtils,
+  System.Generics.Collections, JdcLogging;
 
 type
   TServerContainer = class(TService)
@@ -161,7 +160,6 @@ begin
     Reg.Free;
   end;
 
-  TGlobal.Obj.ExeName := ParamStr(0);
   TGlobal.Obj.ApplicationMessage(msWarning, 'Installed', SERVICE_NAME);
 end;
 
@@ -174,21 +172,21 @@ procedure TServerContainer.ServiceCreate(Sender: TObject);
 begin
   Self.Name := SERVICE_CODE;
   Self.DisplayName := SERVICE_NAME;
-  TGlobal.Obj.ExeName := ParamStr(0);
 end;
 
 procedure TServerContainer.ServiceEnd;
 begin
   TGlobal.Obj.Finalize;
-  if Assigned(FConnectionPool) then
-    FreeAndNil(FConnectionPool);
+//  if Assigned(FConnectionPool) then
+//    FreeAndNil(FConnectionPool);
 end;
 
 procedure TServerContainer.ServiceExecute(Sender: TService);
 begin
   if TOption.Obj.LogServer.StringValue.IsEmpty then
   begin
-    TGlobal.Obj.ApplicationMessage(msError, 'Log', 'License Expired');
+    TOption.Obj.LogServer := TOption.Obj.LogServer;
+    TGlobal.Obj.ApplicationMessage(msError, 'License', 'Expired');
     DoStop;
   end;
 
@@ -212,7 +210,7 @@ begin
     Exit;
 
   TGlobal.Obj.Initialize;
-  CreateDBPool;
+  // CreateDBPool;
 
   DSTCPServerTransport.Port := TOption.Obj.TcpPort;
   DSHTTPService.HttpPort := TOption.Obj.HttpPort;

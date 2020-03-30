@@ -57,7 +57,6 @@ begin
     Reg.Free;
   end;
 
-  TGlobal.Obj.ExeName := ParamStr(0);
   TGlobal.Obj.ApplicationMessage(msWarning, 'Installed', SERVICE_NAME);
 end;
 
@@ -70,7 +69,6 @@ procedure TServiceMain.ServiceCreate(Sender: TObject);
 begin
   Self.Name := SERVICE_CODE;
   Self.DisplayName := SERVICE_NAME;
-  TGlobal.Obj.ExeName := ParamStr(0);
 end;
 
 procedure TServiceMain.ServiceEnd;
@@ -82,7 +80,8 @@ procedure TServiceMain.ServiceExecute(Sender: TService);
 begin
   if TOption.Obj.LogServer.StringValue.IsEmpty then
   begin
-    TGlobal.Obj.ApplicationMessage(msError, 'Log', 'License Expired');
+    TOption.Obj.LogServer := TOption.Obj.LogServer;
+    TGlobal.Obj.ApplicationMessage(msError, 'License', 'Expired');
     DoStop;
   end;
 

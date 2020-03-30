@@ -84,14 +84,12 @@ end;
 
 procedure TfmMain.actShowIniExecute(Sender: TObject);
 begin
-  ShellExecute(handle, 'open', PWideChar('notepad.exe'), PWideChar(TOption.Obj.IniFile.FileName), '',
-    SW_SHOWNORMAL);
+  ShellExecute(handle, 'open', PWideChar('notepad.exe'), PWideChar(TOption.Obj.FileName), '', SW_SHOWNORMAL);
 end;
 
 procedure TfmMain.actShowLogExecute(Sender: TObject);
 begin
-  ShellExecute(handle, 'open', PWideChar('notepad.exe'), PWideChar(TLogging.Obj.LogName), '',
-    SW_SHOWNORMAL);
+  ShellExecute(handle, 'open', PWideChar('notepad.exe'), PWideChar(TLogging.Obj.LogName), '', SW_SHOWNORMAL);
 end;
 
 procedure TfmMain.actTestMenuExecute(Sender: TObject);
@@ -113,7 +111,6 @@ end;
 
 procedure TfmMain.FormCreate(Sender: TObject);
 begin
-  TGlobal.Obj.ExeName := ParamStr(0);
   TView.Obj.Add(Self);
 end;
 

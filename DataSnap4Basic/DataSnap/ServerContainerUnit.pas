@@ -85,7 +85,7 @@ begin
   TGlobal.Obj.ApplicationMessage(msInfo, 'DSServer', 'Start,TCP:%d, HTTP:%d',
     [DSTCPServerTransport.Port, DSHTTPService.HttpPort]);
 
-  CreateDBPool;
+  // CreateDBPool;
 end;
 
 procedure TServerContainer.DataModuleDestroy(Sender: TObject);

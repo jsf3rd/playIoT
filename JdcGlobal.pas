@@ -45,7 +45,7 @@ type
   end;
 
   TGlobalAbstract = class abstract
-  strict protected
+  protected
     FProjectCode: string;
     FAppCode: string;
 
@@ -54,9 +54,10 @@ type
     FExeName: String;
     FStartTime: TDateTime;
 
-    constructor Create; virtual;
-    procedure SetExeName(const Value: String); virtual; abstract;
+    procedure OnAfterLoggingEvent(const AType: TMessageType; const ATitle: String;
+      const AMessage: String = ''); virtual;
   public
+    constructor Create; virtual;
 
     procedure Initialize; virtual;
     procedure Finalize; virtual;
@@ -66,7 +67,9 @@ type
     procedure ApplicationMessage(const AType: TMessageType; const ATitle: String; const AFormat: String;
       const Args: array of const); overload;
 
-    property ExeName: String read FExeName write SetExeName;
+    property ExeName: String read FExeName;
+    property ProjectCode: string read FProjectCode write FProjectCode;
+    property AppCode: string read FAppCode write FAppCode;
   end;
 
   // 특정 자리수 이하 0 만들기
@@ -718,11 +721,14 @@ end;
 
 constructor TGlobalAbstract.Create;
 begin
+  FStartTime := Now;
   FProjectCode := 'MyProject';
   FAppCode := 'MyApp';
-  FExeName := '';
+  FExeName := ParamStr(0);
   FIsInitialized := False;
   FIsFinalized := False;
+
+  TLogging.Obj.OnAfterLogging := OnAfterLoggingEvent;
 end;
 
 procedure TGlobalAbstract.Finalize;
@@ -733,7 +739,6 @@ end;
 
 procedure TGlobalAbstract.Initialize;
 begin
-  FStartTime := Now;
   TLogging.Obj.StartLogging;
 {$IFDEF WIN32}
   TLogging.Obj.ApplicationMessage(msInfo, 'Start', '(x86)' + FExeName);
@@ -743,6 +748,11 @@ begin
 {$ENDIF}
   TLogging.Obj.PrintUseDebug;
   TLogging.Obj.PrintUseCloudLog;
+end;
+
+procedure TGlobalAbstract.OnAfterLoggingEvent(const AType: TMessageType; const ATitle, AMessage: String);
+begin
+  // null method;
 end;
 
 { TConnInfo }

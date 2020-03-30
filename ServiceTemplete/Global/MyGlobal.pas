@@ -6,18 +6,17 @@ uses
   Classes, SysUtils, IOUtils, JdcGlobal, JdcLogging;
 
 const
-  PROJECT_CODE = 'playIoT';
-  SERVICE_CODE = 'playIoTSvc';
-  SERVICE_NAME = 'playIoT Service Application Templete';
-  SERVICE_DESCRIPTION = '여기에 Service Application의 설명을 넣으세요.';
+  PROJECT_CODE = 'DACO';
+  SERVICE_CODE = 'ServiceTempleteSvc';
+  SERVICE_NAME = 'DACO Service Templete';
+  SERVICE_DESCRIPTION = '여기에 Service Templete의 설명을 넣으세요.';
 
 type
   TGlobal = class(TGlobalAbstract)
-  strict protected
-    constructor Create; override;
-    procedure SetExeName(const Value: String); override;
-    procedure OnAfterLoggingEvent(const AType: TMessageType; const ATitle, AMessage: String);
+  protected
+    procedure OnAfterLoggingEvent(const AType: TMessageType; const ATitle, AMessage: String); override;
   public
+    constructor Create; override;
     class function Obj: TGlobal;
 
     procedure Initialize; override;
@@ -37,6 +36,11 @@ constructor TGlobal.Create;
 begin
   inherited;
 
+  FExeName := ParamStr(0);
+  FAppCode := TOption.Obj.AppCode;
+  FProjectCode := PROJECT_CODE;
+
+  TLogging.Obj.Init(Self, TOption.Obj);
   // TODO : after create
 end;
 
@@ -74,21 +78,6 @@ end;
 procedure TGlobal.OnAfterLoggingEvent(const AType: TMessageType; const ATitle, AMessage: String);
 begin
   //
-end;
-
-procedure TGlobal.SetExeName(const Value: String);
-begin
-  FExeName := Value;
-  FAppCode := TOption.Obj.AppCode;
-  FProjectCode := TOption.Obj.ProjectCode;
-
-  TLogging.Obj.ProjectCode := FProjectCode;
-  TLogging.Obj.AppCode := FAppCode;
-  TLogging.Obj.UseDebug := TOption.Obj.UseDebug;
-  TLogging.Obj.UseCloudLog := TOption.Obj.UseCloudLog;
-  TLogging.Obj.LogServer := TOption.Obj.LogServer;
-  TLogging.Obj.OnAfterLogging := OnAfterLoggingEvent;
-  TLogging.Obj.SetLogName(FExeName);
 end;
 
 initialization

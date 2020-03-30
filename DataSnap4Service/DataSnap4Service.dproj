@@ -108,6 +108,7 @@
         <DCC_DcuOutput>.\__dcu\$(Config)</DCC_DcuOutput>
         <DCC_Define>_LOCALAPPDATA;_LOGGING_DAY_TAG;$(DCC_Define)</DCC_Define>
         <BT_BuildType>Debug</BT_BuildType>
+        <DCC_MapFile>3</DCC_MapFile>
     </PropertyGroup>
     <ItemGroup>
         <DelphiCompile Include="$(MainSource)">
@@ -151,6 +152,12 @@
                 </Excluded_Packages>
             </Delphi.Personality>
             <Deployment Version="3">
+                <DeployFile LocalName="..\__bin\Release\DataSnap4Service.exe" Configuration="Release" Class="ProjectOutput">
+                    <Platform Name="Win32">
+                        <RemoteName>DataSnap4Service.exe</RemoteName>
+                        <Overwrite>true</Overwrite>
+                    </Platform>
+                </DeployFile>
                 <DeployFile LocalName="..\bin\Debug\DataSnap4Service.exe" Configuration="Debug" Class="ProjectOutput"/>
                 <DeployClass Name="AdditionalDebugSymbols">
                     <Platform Name="OSX32">

@@ -15,7 +15,7 @@ unit JdcLogging;
 interface
 
 uses System.Classes, System.SysUtils, System.IOUtils, System.Generics.Collections, JdcGlobal, JclFileUtils,
-  Vcl.StdCtrls, Winapi.Windows;
+  Vcl.StdCtrls, Winapi.Windows, JdcOption;
 
 type
   TLogProc = procedure(const AType: TMessageType; const ATitle: String; const AMessage: String = '')
@@ -55,9 +55,6 @@ type
       const AOutputs: TMsgOutputs = [moDebugView, moLogFile, moCloudMessage]);
 
     function GetLogName: String;
-    procedure SetUseCloudLog(const Value: Boolean);
-    procedure SetUseDebug(const Value: Boolean);
-    procedure SetLogServer(const Value: TConnInfo);
   public
     destructor Destroy; override;
 
@@ -66,7 +63,7 @@ type
     procedure StartLogging;
     procedure StopLogging;
 
-    procedure SetLogName(const ExeName: string);
+    procedure Init(AGlobal: TGlobalAbstract; AOption: TOptionAbstract);
 
     procedure ApplicationMessage(const AType: TMessageType; const ATitle: String; const AMessage: String = '';
       const DebugLog: Boolean = False); overload;
@@ -79,11 +76,11 @@ type
     property ProjectCode: String read FProjectCode write FProjectCode;
     property AppCode: String read FAppCode write FAppCode;
 
-    property UseDebug: Boolean read FUseDebug write SetUseDebug;
-    property UseCloudLog: Boolean read FUseCloudLog write SetUseCloudLog;
+    property UseDebug: Boolean read FUseDebug write FUseDebug;
+    property UseCloudLog: Boolean read FUseCloudLog write FUseCloudLog;
 
     property LogName: String read GetLogName;
-    property LogServer: TConnInfo read FLogServer write SetLogServer;
+    property LogServer: TConnInfo read FLogServer write FLogServer;
 
     property OnAfterLogging: TLogProc read FOnAfterLogging write FOnAfterLogging;
   end;
@@ -236,8 +233,10 @@ end;
 
 destructor TLogging.Destroy;
 begin
-  FMsgQueue.Free;
-  inherited;
+  StopLogging;
+
+  if Assigned(FMsgQueue) then
+    FreeAndNil(FMsgQueue);
 end;
 
 procedure TLogging.FlushLog;
@@ -253,37 +252,33 @@ procedure TLogging.FlushLog;
       Exit;
 
     BackupLogFile(LogName);
+    Stream := TFile.AppendText(LogName);
     try
-      Stream := TFile.AppendText(LogName);
-      try
+      if ALog.Msg.IsEmpty then
+        Stream.WriteLine
+      else
+        Stream.WriteLine(ALog.ToString);
+
+      while FMsgQueue.Count > 0 do
+      begin
+        Sleep(1);
+        ALog := FMsgQueue.Dequeue;
+
+        if LogName <> ALog.LogName then
+        begin
+          _PrintLog(ALog);
+          break;
+        end;
+
         if ALog.Msg.IsEmpty then
           Stream.WriteLine
         else
           Stream.WriteLine(ALog.ToString);
-
-        while FMsgQueue.Count > 0 do
-        begin
-          Sleep(1);
-          ALog := FMsgQueue.Dequeue;
-
-          if LogName <> ALog.LogName then
-          begin
-            _PrintLog(ALog);
-            break;
-          end;
-
-          if ALog.Msg.IsEmpty then
-            Stream.WriteLine
-          else
-            Stream.WriteLine(ALog.ToString);
-        end;
-      finally
-        FreeAndNil(Stream);
       end;
-    except
-      on E: Exception do
-        PrintLog(LogName + '.tmp', ALog.Time, ALog.Msg);
+    finally
+      FreeAndNil(Stream);
     end;
+
   end;
 
 var
@@ -293,7 +288,13 @@ begin
     Exit;
 
   MyLog := FMsgQueue.Dequeue;
-  _PrintLog(MyLog);
+
+  try
+    _PrintLog(MyLog);
+  except
+    on E: Exception do
+      PrintLog(LogName + '.tmp', MyLog.Time, MyLog.Msg);
+  end;
 end;
 
 function TLogging.GetLogName: String;
@@ -303,6 +304,28 @@ begin
 {$ELSE}
   Result := FLogName;
 {$ENDIF}
+end;
+
+procedure TLogging.Init(AGlobal: TGlobalAbstract; AOption: TOptionAbstract);
+var
+  ExeName: string;
+begin
+  FProjectCode := AGlobal.ProjectCode;
+  FAppCode := AGlobal.AppCode;
+  FUseDebug := AOption.UseDebug;
+  FUseCloudLog := AOption.UseCloudLog;
+  FLogServer := AOption.LogServer;
+
+  ExeName := AGlobal.ExeName;
+  FExeVersion := FileVersion(ExeName);
+  FLogName := ExtractFilePath(ExeName) + 'logs\' + ChangeFileExt(ExtractFileName(ExeName), '.log');
+{$IFDEF LOCALAPPDATA}
+  FLogName := GetEnvironmentVariable('LOCALAPPDATA') + '\DACO\' + FAppCode + '\' + ExtractFileName(FLogName);
+{$ENDIF}
+  if not TDirectory.Exists(ExtractFilePath(FLogName)) then
+    TDirectory.CreateDirectory(ExtractFilePath(FLogName));
+
+  StartLogging;
 end;
 
 class function TLogging.Obj: TLogging;
@@ -322,63 +345,44 @@ begin
   ApplicationMessage(msInfo, 'UseDebug', BoolToStr(FUseDebug, True));
 end;
 
-procedure TLogging.SetLogName(const ExeName: string);
-begin
-  FExeVersion := FileVersion(ExeName);
-  FLogName := ExtractFilePath(ExeName) + 'logs\' + ChangeFileExt(ExtractFileName(ExeName), '.log');
-{$IFDEF LOCALAPPDATA}
-  FLogName := GetEnvironmentVariable('LOCALAPPDATA') + '\DACO\' + FAppCode + '\' + ExtractFileName(FLogName);
-{$ENDIF}
-  if not TDirectory.Exists(ExtractFilePath(FLogName)) then
-    TDirectory.CreateDirectory(ExtractFilePath(FLogName));
-end;
-
-procedure TLogging.SetLogServer(const Value: TConnInfo);
-begin
-  FLogServer := Value;
-end;
-
-procedure TLogging.SetUseCloudLog(const Value: Boolean);
-begin
-  FUseCloudLog := Value;
-end;
-
-procedure TLogging.SetUseDebug(const Value: Boolean);
-begin
-  FUseDebug := Value;
-end;
-
 procedure TLogging.StartLogging;
 begin
-  if FLogTask = nil then
+  if LogName = '' then
   begin
-    FLogTask := TThread.CreateAnonymousThread(
-      procedure
-      begin
-        while not TThread.CurrentThread.CheckTerminated do
-        begin
-          Sleep(507);
-          FlushLog;
-        end;
-      end);
-    FLogTask.FreeOnTerminate := False;
-    FLogTask.Start;
-    ApplicationMessage(msDebug, 'Logging',
-      'Project=%s,AppCode=%s,UseDebug=%s,UseCloudLog=%s,LogServer=%s,File=%s',
-      [FProjectCode, FAppCode, BoolToStr(FUseDebug, True), BoolToStr(FUseCloudLog, True), FLogServer.ToString,
-      FLogName]);
+    PrintDebug('No LogName!!');
+    Exit;
   end;
+
+  if Assigned(FLogTask) then
+    Exit;
+
+  FLogTask := TThread.CreateAnonymousThread(
+    procedure
+    begin
+      while not TThread.CurrentThread.CheckTerminated do
+      begin
+        Sleep(507);
+        FlushLog;
+      end;
+    end);
+  FLogTask.FreeOnTerminate := False;
+  FLogTask.Start;
+  ApplicationMessage(msDebug, 'Logging',
+    'Project=%s,AppCode=%s,UseDebug=%s,UseCloudLog=%s,LogServer=%s,File=%s',
+    [FProjectCode, FAppCode, BoolToStr(FUseDebug, True), BoolToStr(FUseCloudLog, True), FLogServer.ToString,
+    FLogName]);
 end;
 
 procedure TLogging.StopLogging;
 begin
-  if Assigned(FLogTask) then
-  begin
-    FLogTask.Terminate;
-    FLogTask.WaitFor;
-    FreeAndNil(FLogTask);
-    PrintDebug('[%s] StopLogging', [FAppCode]);
-  end;
+  if not Assigned(FLogTask) then
+    Exit;
+
+  FlushLog;
+  FLogTask.Terminate;
+  FLogTask.WaitFor;
+  FreeAndNil(FLogTask);
+  PrintDebug('[%s] StopLogging', [FAppCode]);
 end;
 
 procedure TLogging._ApplicationMessage(const AType, ATitle, AMessage: String; const AOutputs: TMsgOutputs);
@@ -422,7 +426,6 @@ MyObj := TLogging.Create;
 
 finalization
 
-MyObj.StopLogging;
 MyObj.Free;
 
 end.

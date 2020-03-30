@@ -28,7 +28,6 @@ type
     N1: TMenuItem;
     Exit1: TMenuItem;
     ApplicationEvents: TApplicationEvents;
-    procedure FormCreate(Sender: TObject);
     procedure actClearLogExecute(Sender: TObject);
     procedure actOptionsExecute(Sender: TObject);
     procedure actExitExecute(Sender: TObject);
@@ -36,6 +35,7 @@ type
     procedure FormShow(Sender: TObject);
     procedure FormClose(Sender: TObject; var Action: TCloseAction);
     procedure ApplicationEventsException(Sender: TObject; E: Exception);
+    procedure FormCreate(Sender: TObject);
   private
 
   public
@@ -52,8 +52,8 @@ uses MyGlobal, MyOption, JdcGlobal, _fmOption, ServerContainerUnit;
 
 procedure TfmMain.actAboutExecute(Sender: TObject);
 begin
-  MessageDlg(APPLICATION_TITLE + ' ' + APPLICATION_VERSION + ' ' +
-    COPY_RIGHT_SIGN + #13#10#13#10 + HOME_PAGE_URL, mtInformation, [mbOK], 0);
+  MessageDlg(APPLICATION_TITLE + ' ' + APPLICATION_VERSION + ' ' + COPY_RIGHT_SIGN + #13#10#13#10 +
+    HOME_PAGE_URL, mtInformation, [mbOK], 0);
 end;
 
 procedure TfmMain.actClearLogExecute(Sender: TObject);
@@ -87,7 +87,6 @@ end;
 
 procedure TfmMain.FormCreate(Sender: TObject);
 begin
-  TGlobal.Obj.ExeName := ParamStr(0);
   TGlobal.Obj.Initialize;
 end;
 

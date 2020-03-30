@@ -30,7 +30,6 @@ uses ServerContainerUnit, JdcGlobal, MyGlobal, MyOption;
 procedure TsmDataProvider.DSServerModuleCreate(Sender: TObject);
 begin
   Randomize;
-
   TDSCommon.InitDataType(Self, ServerContainer.GetIdleConnection);
 end;
 
