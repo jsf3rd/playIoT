@@ -14,13 +14,11 @@ interface
 
 uses System.Classes, System.SysUtils, IdTCPClient, JdcMSeed.Common,
   System.DateUtils, System.Generics.Collections, WinApi.Windows,
-  IdExceptionCore, JdcGlobal;
+  IdExceptionCore, JdcGlobal, JdcLogging;
 
 type
-  TOnReceiveDataEvent = procedure(ACode: string; AFixedHeader: TFixedHeader;
-    const AData: TPeeks) of object;
-  TOnReceiveMSeedEvent = procedure(ACode: string; AFixedHeader: TFixedHeader;
-    AStream: TStream) of object;
+  TOnReceiveDataEvent = procedure(ACode: string; AFixedHeader: TFixedHeader; const AData: TPeeks) of object;
+  TOnReceiveMSeedEvent = procedure(ACode: string; AFixedHeader: TFixedHeader; AStream: TStream) of object;
 
   TSeedLinkChannel = record
     NetworkCode: string;
@@ -59,10 +57,8 @@ type
     procedure AddStation(Channel: TSeedLinkChannel);
     procedure SendEnd;
 
-    property OnReceiveData: TOnReceiveDataEvent read FOnReceiveDataEvent
-      write FOnReceiveDataEvent;
-    property OnReceiveMSeed: TOnReceiveMSeedEvent read FOnReceiveMSeed
-      write FOnReceiveMSeed;
+    property OnReceiveData: TOnReceiveDataEvent read FOnReceiveDataEvent write FOnReceiveDataEvent;
+    property OnReceiveMSeed: TOnReceiveMSeedEvent read FOnReceiveMSeed write FOnReceiveMSeed;
     property OnLog: TLogProc read FOnLogEvent write FOnLogEvent;
   end;
 
@@ -83,8 +79,7 @@ const
 
 procedure TJdcSeedLink.AddStation(Channel: TSeedLinkChannel);
 begin
-  SendCommand(COMMAND_STATION + '  ' + Channel.StationCode + ' ' +
-    Channel.NetworkCode);
+  SendCommand(COMMAND_STATION + '  ' + Channel.StationCode + ' ' + Channel.NetworkCode);
   RecvOK;
   SendCommand(COMMAND_SELECT + ' ' + Channel.ChannelCode);
   RecvOK;
@@ -219,8 +214,7 @@ begin
 
     RemoveBytes(buffer, Index);
     FIdTcpClient.IOHandler.ReadBytes(buffer, Index);
-    OnLog(msDebug, 'SEEDLink', BytesToString(buffer, 0, 8) + ',' +
-      Length(buffer).ToString);
+    OnLog(msDebug, 'SEEDLink', BytesToString(buffer, 0, 8) + ',' + Length(buffer).ToString);
   end;
 
   Stream := TMemoryStream.Create;
