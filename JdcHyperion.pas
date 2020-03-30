@@ -16,7 +16,7 @@ interface
 
 uses System.Classes, System.SysUtils, IdBaseComponent, IdComponent, IdTCPConnection,
   IdTCPClient, JdcGlobal, JdcHyperion.Common, IdGlobal, Winapi.windows, System.JSON, REST.JSON,
-  JdcGlobal.ClassHelper, IdUDPBase, IdUDPServer, IdSocketHandle;
+  JdcGlobal.ClassHelper, IdUDPBase, IdUDPServer, IdSocketHandle, JdcLogging;
 
 type
   TOnUdpPeaks = procedure(AValue: TArray<Double>) of object;
@@ -42,15 +42,14 @@ type
 
     function read_response(AComm: TIdTcpClient; printLog: boolean = true): TResponse;
     procedure write_command(ACmd: string; AParam: string; requestOptions: UInt8);
-    function execute_command(ACmd: string; AParam: string = '';
-      requestOptions: UInt8 = REQUEST_OPT_NONE): TResponse;
+    function execute_command(ACmd: string; AParam: string = ''; requestOptions: UInt8 = REQUEST_OPT_NONE)
+      : TResponse;
 
     procedure set_peak_stream_divider(streamingDivider: Integer);
 
     function GetPeaks(printLog: boolean): TPeaks;
 
-    procedure OnUDPRead(AThread: TIdUDPListenerThread; const AData: TIdBytes;
-      ABinding: TIdSocketHandle);
+    procedure OnUDPRead(AThread: TIdUDPListenerThread; const AData: TIdBytes; ABinding: TIdSocketHandle);
 
   public
     constructor Create(AConnInfo: TConnInfo; AOnLog: TLogProc);
@@ -63,8 +62,7 @@ type
     function stream_peaks: TPeaks;
     procedure disable_peak_streaming;
 
-    function enable_udp_peak_datagrams(AValue: TConnInfo;
-      streamingDivider: Integer = 1): TPeaks;
+    function enable_udp_peak_datagrams(AValue: TConnInfo; streamingDivider: Integer = 1): TPeaks;
     procedure disable_udp_peak_datagrams;
 
     function get_laser_scan_speed: Integer;
@@ -183,8 +181,7 @@ begin
   end;
 end;
 
-function THyperion.enable_udp_peak_datagrams(AValue: TConnInfo;
-  streamingDivider: Integer): TPeaks;
+function THyperion.enable_udp_peak_datagrams(AValue: TConnInfo; streamingDivider: Integer): TPeaks;
 begin
   set_peak_stream_divider(streamingDivider);
 
@@ -226,8 +223,7 @@ begin
   Size := FLastResponse.contentLength;
   if Size < SizeOf(TPeaksHeader) then
   begin
-    OnLog(msError, 'Peaks', Format('Wrong Size,expected %d but %d',
-      [SizeOf(TPeaksHeader), Size]));
+    OnLog(msError, 'Peaks', Format('Wrong Size,expected %d but %d', [SizeOf(TPeaksHeader), Size]));
     Exit;
   end;
 
@@ -352,8 +348,7 @@ begin
       OnLog(msDebug, 'Content', IdBytesToHex(Result.content));
 
     if Header.status <> H_SUCCESS then
-      OnLog(msWarning, 'readResponse', Format('Status=%d,Msg=%s',
-        [Header.status, Result.msg]));
+      OnLog(msWarning, 'readResponse', Format('Status=%d,Msg=%s', [Header.status, Result.msg]));
   except
     on E: Exception do
       OnLog(msError, 'readResponse', Format('Port=%d,E=%s', [AComm.BoundPort, E.Message]));
@@ -409,8 +404,7 @@ begin
     end;
   except
     on E: Exception do
-      OnLog(msError, 'writeCommand', Format('ACmd=%s,AParam=%s,E=%s',
-        [ACmd, AParam, E.Message]));
+      OnLog(msError, 'writeCommand', Format('ACmd=%s,AParam=%s,E=%s', [ACmd, AParam, E.Message]));
   end;
 end;
 
