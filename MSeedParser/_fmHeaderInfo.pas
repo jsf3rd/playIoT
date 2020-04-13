@@ -34,11 +34,11 @@ uses _fmMain;
 
 procedure TfmHeaderInfo.btnOKClick(Sender: TObject);
 var
-  Station: string;
+  Station: AnsiString;
 begin
-  Station := Format('%-5s', [edtStation.Text]);
-  fmMain.MSeedHeader := TMSeedHeader.Create(Station, edtLocation.Text,
-    edtChannel.Text, edtNetwork.Text, StrToInt(edtSampleRate.Text));
+  Station := AnsiString(Format('%-5s', [edtStation.Text]));
+  fmMain.MSeedHeader := TMSeedHeader.Create(Station, AnsiString(edtLocation.Text),
+    AnsiString(edtChannel.Text), AnsiString(edtNetwork.Text), StrToInt(edtSampleRate.Text));
   ModalResult := mrOk;
 end;
 
