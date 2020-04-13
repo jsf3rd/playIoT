@@ -101,6 +101,7 @@
         <DCC_MapFile>3</DCC_MapFile>
         <BT_BuildType>Debug</BT_BuildType>
         <VerInfo_Release>1</VerInfo_Release>
+        <Icon_MainIcon>MSeedParser_Icon.ico</Icon_MainIcon>
     </PropertyGroup>
     <ItemGroup>
         <DelphiCompile Include="$(MainSource)">
