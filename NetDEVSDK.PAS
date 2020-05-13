@@ -182,8 +182,8 @@ type
     byRes: Array [0 .. 10 - 1] of BYTE;
   end;
 
-  TNETDEV_ExceptionCallBack_PF = procedure(plUserID: IntPtr; dwType: Int32;
-    plExpHandle: IntPtr; plUserData: IntPtr)stdcall;
+  TNETDEV_ExceptionCallBack_PF = procedure(plUserID: IntPtr; dwType: Int32; plExpHandle: IntPtr;
+    plUserData: IntPtr)stdcall;
 
   TNetDEVLiveStreamIndex = (NETDEV_LIVE_STREAM_INDEX_MAIN, NETDEV_LIVE_STREAM_INDEX_AUX,
     NETDEV_LIVE_STREAM_INDEX_THIRD, NETDEV_LIVE_STREAM_INDEX_INVALID);
@@ -192,9 +192,8 @@ type
 
   TNetDEVPictureFormat = (NETDEV_PICTURE_BMP, NETDEV_PICTURE_JPG, NETDEV_PICTURE_INVALID);
 
-  TNETDEVException = (NETDEV_EXCEPTION_REPORT_VOD_END = 300,
-    NETDEV_EXCEPTION_REPORT_VOD_ABEND = 301, NETDEV_EXCEPTION_REPORT_BACKUP_END = 302,
-    NETDEV_EXCEPTION_REPORT_BACKUP_DISC_OUT = 303,
+  TNETDEVException = (NETDEV_EXCEPTION_REPORT_VOD_END = 300, NETDEV_EXCEPTION_REPORT_VOD_ABEND = 301,
+    NETDEV_EXCEPTION_REPORT_BACKUP_END = 302, NETDEV_EXCEPTION_REPORT_BACKUP_DISC_OUT = 303,
     NETDEV_EXCEPTION_REPORT_BACKUP_DISC_FULL = 304, NETDEV_EXCEPTION_REPORT_BACKUP_ABEND = 305,
     NETDEV_EXCEPTION_EXCHANGE = $8000, NETDEV_EXCEPTION_REPORT_INVALID = $FFFF);
 
@@ -216,8 +215,7 @@ type
     dwFluency: Int32;
     byRes: array [0 .. 259] of BYTE;
 
-    constructor Create(AHandle: HWND;
-      AType: TNetDEVLiveStreamIndex = NETDEV_LIVE_STREAM_INDEX_MAIN;
+    constructor Create(AHandle: HWND; AType: TNetDEVLiveStreamIndex = NETDEV_LIVE_STREAM_INDEX_MAIN;
       AChannel: Int32 = DEFAULT_CHANNEL; AMode: TNetDEVProtocol = NETDEV_TRANSPROTOCOL_RTPTCP;
       AFluncy: TNetDEVPictureFluency = NETDEV_PICTURE_REAL);
   end;
@@ -246,29 +244,29 @@ type
 
   TSourceDataCallBack = procedure(lpRealHandle: IntPtr; var pucBuffer: BYTE; dwBufSize: Int32;
     dwMediaDataType: Int32; lpUserParam: IntPtr)stdcall;
-  TExceptionCallBack = procedure(plUserID: IntPtr; dwType: Int32;
-    var stAlarmInfo: TNETDEVAlarmInfo; plExpHandle, plUserData: IntPtr)stdcall;
+  TExceptionCallBack = procedure(plUserID: IntPtr; dwType: Int32; var stAlarmInfo: TNETDEVAlarmInfo;
+    plExpHandle, plUserData: IntPtr)stdcall;
 
   TNETDEV_Init = function: Boolean stdcall;
   TNETDEV_Login = function(pszDevIP: PAnsiChar; wDevPort: Int16; pszUserName: PAnsiChar;
     pszPassword: PAnsiChar; var pstDevInfo: TNetDEVDeviceInfo): IntPtr stdcall;
   TNETDEV_Logout = function(lpUserID: IntPtr): Boolean stdcall;
   TNETDEV_GetDevConfig = function(lpUserID: IntPtr; dwChannelID: Int32; dwCommand: Int32;
-    var lpOutBuffer: TNETDEVVideoStreamInfo; dwOutBufferSize: Int32;
-    var pdwBytesReturned: Int32): Boolean stdcall;
+    var lpOutBuffer: TNETDEVVideoStreamInfo; dwOutBufferSize: Int32; var pdwBytesReturned: Int32)
+    : Boolean stdcall;
   TNETDEV_RealPlay = function(lpUserID: IntPtr; var pstPreviewInfo: TPreviewInfo;
     cbDataCallBack: TSourceDataCallBack; lpUserData: IntPtr): IntPtr stdcall;
   TNETDEV_StopRealPlay = function(lpRealHandle: IntPtr): Boolean stdcall;
-  TNETDEV_CapturePicture = function(lpRealHandle: IntPtr; szFileName: PAnsiChar;
-    dwCaptureMode: Int32): Boolean stdcall;
+  TNETDEV_CapturePicture = function(lpRealHandle: IntPtr; szFileName: PAnsiChar; dwCaptureMode: Int32)
+    : Boolean stdcall;
   TNETDEV_GetLastError = function(): Int32 stdcall;
   TNETDEV_SetExceptionCallBack = function(cbExceptionCallBack: TNETDEV_ExceptionCallBack_PF;
     lpUserData: IntPtr): Boolean stdcall;
   TNETDEV_Cleanup = function(): Boolean stdcall;
   NETDEV_SetLogPath = function(pszLogPath: PAnsiChar): Boolean stdcall;
 
-  TNETDEV_SetPlayDataCallBack = function(lpRealHandle: IntPtr; cbPlayDataCallBack: IntPtr;
-    bContinue: Int32; lpUserData: IntPtr): Boolean stdcall;
+  TNETDEV_SetPlayDataCallBack = function(lpRealHandle: IntPtr; cbPlayDataCallBack: IntPtr; bContinue: Int32;
+    lpUserData: IntPtr): Boolean stdcall;
 
   TCCTVInfo = record
     Enable: Boolean;
@@ -340,8 +338,7 @@ implementation
 var
   MyOnException: TOnException;
 
-procedure ExceptionCallBack(plUserID: IntPtr; dwType: Int32;
-  plExpHandle, plUserData: IntPtr)stdcall;
+procedure ExceptionCallBack(plUserID: IntPtr; dwType: Int32; plExpHandle, plUserData: IntPtr)stdcall;
 begin
   if Assigned(MyOnException) then
     MyOnException(TNETDEVException(dwType));
@@ -349,8 +346,7 @@ end;
 
 { TNetDEV }
 
-function TNetDEV.CapturePicture(const szFileName: String;
-  const dwCaptureMode: TNetDEVPictureFormat): Boolean;
+function TNetDEV.CapturePicture(const szFileName: String; const dwCaptureMode: TNetDEVPictureFormat): Boolean;
 var
   Name: AnsiString;
 begin
@@ -418,17 +414,16 @@ begin
   end;
 end;
 
-function TNetDEV.GetStreamInfo(const dwChannelID: Int32;
-  var lpOutBuffer: TNETDEVVideoStreamInfo; const dwOutBufferSize: Int32;
-  var pdwBytesReturned: Int32): Boolean;
+function TNetDEV.GetStreamInfo(const dwChannelID: Int32; var lpOutBuffer: TNETDEVVideoStreamInfo;
+  const dwOutBufferSize: Int32; var pdwBytesReturned: Int32): Boolean;
 const
   NETDEV_GET_STREAMCFG = 120;
 begin
   if FUserID = 0 then
     Exit(False);
 
-  result := FNETDEV_GetDevConfig(FUserID, dwChannelID, NETDEV_GET_STREAMCFG, lpOutBuffer,
-    dwOutBufferSize, pdwBytesReturned);
+  result := FNETDEV_GetDevConfig(FUserID, dwChannelID, NETDEV_GET_STREAMCFG, lpOutBuffer, dwOutBufferSize,
+    pdwBytesReturned);
 end;
 
 function TNetDEV.Init: Boolean;
