@@ -508,7 +508,7 @@ end;
 function TMySession.GetModule(AIndex: Integer): TModuleData;
 begin
   if (AIndex < Low(FModule)) or (AIndex > High(FModule)) then
-    raise Exception.Create('out of index GetModule, ' + AIndex.ToString);
+    raise Exception.Create('out of index GetModule, Index=' + AIndex.ToString);
 
   result := FModule[AIndex];
 end;
@@ -516,7 +516,7 @@ end;
 function TMySession.GetPart1(AIndex: Integer): TDataPart1;
 begin
   if (AIndex < Low(FModule)) or (AIndex > High(FModule)) then
-    raise Exception.Create('out of index GetPart1, ' + AIndex.ToString);
+    raise Exception.Create('out of index GetPart1, Index=' + AIndex.ToString);
 
   result := FModule[AIndex].Part1;
 end;
@@ -524,7 +524,7 @@ end;
 function TMySession.GetPart2(AIndex: Integer): TDataPart2;
 begin
   if (AIndex < Low(FModule)) or (AIndex > High(FModule)) then
-    raise Exception.Create('out of index GetPart2, ' + AIndex.ToString);
+    raise Exception.Create('out of index GetPart2, Index=' + AIndex.ToString);
 
   result := FModule[AIndex].Part2;
 end;
@@ -597,8 +597,8 @@ begin
   PowerModule := BuffToRecord<TPowerModule>(ABuff, 3);
   if FMacAddress = '' then
   begin
-    FMacAddress := ToHex(ToBytes(PowerModule.Data.EthernetMac1_1)) + '-' +
-      ToHex(ToBytes(PowerModule.Data.EthernetMac1_2));
+    FMacAddress := ToHex(ToBytes(Rev4Bytes(PowerModule.Data.EthernetMac1_1))) + '-' +
+      ToHex(ToBytes(Rev4Bytes(PowerModule.Data.EthernetMac1_2)));
     TLogging.Obj.ApplicationMessage(msInfo, 'AddMeter',
       Format('Port=%d,Mac=%s', [Self.FContext.PeerPort, FMacAddress]));
     RequestIDTable;
@@ -662,7 +662,6 @@ end;
 
 procedure TMySession.RequestFromPowerData;
 begin
-
   // 미터 요청 파라미터를 초기화 한다.
   FCurIndex := -1;
   FillChar(FModule, SizeOf(FModule), #0);
