@@ -33,6 +33,12 @@ type
   end;
 
   TLogging = class sealed
+  const
+    MESSAGE_TYPE_INFO = 'INFO';
+    MESSAGE_TYPE_ERROR = 'ERROR';
+    MESSAGE_TYPE_DEBUG = 'DEBUG';
+    MESSAGE_TYPE_WARNING = 'WARNING';
+    MESSAGE_TYPE_SYSTEM = 'SYSTEM';
   private
     FLogName: string;
     FExeVersion: string;
@@ -50,7 +56,6 @@ type
     constructor Create;
     procedure FlushLog;
 
-    procedure AppendLog(const AName: string; const AMsg: string);
     procedure _ApplicationMessage(const AType: string; const ATitle: string; const AMessage: String;
       const AOutputs: TMsgOutputs = [moDebugView, moLogFile, moCloudMessage]);
 
@@ -65,11 +70,12 @@ type
 
     procedure Init(AGlobal: TGlobalAbstract; AOption: TOptionAbstract);
 
-    procedure ApplicationMessage(const AType: TMessageType; const ATitle: String; const AMessage: String = '';
-      const DebugLog: Boolean = False); overload;
+    procedure ApplicationMessage(const AType: TMessageType; const ATitle: String;
+      const AMessage: String = ''); overload;
     procedure ApplicationMessage(const AType: TMessageType; const ATitle: String; const AFormat: String;
-      const Args: array of const; const DebugLog: Boolean = False); overload;
+      const Args: array of const); overload;
 
+    procedure AppendLog(const AName: string; const AMsg: string);
     procedure PrintUseDebug;
     Procedure PrintUseCloudLog;
 
@@ -167,15 +173,7 @@ end;
 
 { TLogging }
 
-procedure TLogging.ApplicationMessage(const AType: TMessageType; const ATitle, AMessage: String;
-  const DebugLog: Boolean);
-const
-  MESSAGE_TYPE_INFO = 'INFO';
-  MESSAGE_TYPE_ERROR = 'ERROR';
-  MESSAGE_TYPE_DEBUG = 'DEBUG';
-  MESSAGE_TYPE_WARNING = 'WARNING';
-  MESSAGE_TYPE_SYSTEM = 'SYSTEM';
-
+procedure TLogging.ApplicationMessage(const AType: TMessageType; const ATitle, AMessage: String);
 begin
   case AType of
     msDebug:
@@ -207,12 +205,12 @@ begin
 end;
 
 procedure TLogging.ApplicationMessage(const AType: TMessageType; const ATitle, AFormat: String;
-  const Args: array of const; const DebugLog: Boolean);
+  const Args: array of const);
 var
   str: string;
 begin
   FmtStr(str, AFormat, Args);
-  ApplicationMessage(AType, ATitle, str, DebugLog);
+  ApplicationMessage(AType, ATitle, str);
 end;
 
 constructor TLogging.Create;
