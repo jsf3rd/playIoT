@@ -99,10 +99,10 @@ type
     procedure ParamByJsonValue(AValue: TJSONValue; AName: String); overload;
     procedure ParamByJSONArray(AValue: TJSONArray; AName: String);
 
-    function OpenQuery(AConn: TFDConnection; AParams: TJSONObject): TStream;
-    function ExecQuery(AConn: TFDConnection; AParams: TJSONObject): Boolean; overload;
-    function ExecQuery(AConn: TFDConnection; AParams: TJSONArray): Boolean; overload;
-    function ApplyUpdate(AConn: TFDConnection; AStream: TStream): Boolean;
+    function OpenQuery(AConn: TFDConnection; AParams: TJSONObject; AType: TMessageType): TStream;
+    function ExecQuery(AConn: TFDConnection; AParams: TJSONObject; AType: TMessageType): Boolean; overload;
+    function ExecQuery(AConn: TFDConnection; AParams: TJSONArray; AType: TMessageType): Boolean; overload;
+    function ApplyUpdate(AConn: TFDConnection; AStream: TStream; AType: TMessageType): Boolean;
   public
     function Clone: TFDQuery;
     function ToStream: TStream;
@@ -117,16 +117,20 @@ type
     procedure FieldByJSONObject(AJSON: String); overload;
 
     // OpenQuery
-    function OpenInstantQuery(AConn: TFDConnection; AParams: TJSONObject): TStream; overload;
+    function OpenInstantQuery(AConn: TFDConnection; AParams: TJSONObject; AType: TMessageType = msInfo)
+      : TStream; overload;
 
     // ExecQuery
-    function ExecInstantQuery(AConn: TFDConnection; AParams: TJSONObject): Boolean; overload;
+    function ExecInstantQuery(AConn: TFDConnection; AParams: TJSONObject; AType: TMessageType = msInfo)
+      : Boolean; overload;
 
     // Array DML
-    function ExecInstantQuery(AConn: TFDConnection; AParams: TJSONArray): Boolean; overload;
+    function ExecInstantQuery(AConn: TFDConnection; AParams: TJSONArray; AType: TMessageType = msInfo)
+      : Boolean; overload;
 
     // ApplyUpdate
-    function ApplyInstantUpdate(AConn: TFDConnection; AStream: TStream): Boolean;
+    function ApplyInstantUpdate(AConn: TFDConnection; AStream: TStream; AType: TMessageType = msInfo)
+      : Boolean;
   end;
 
   TFDMemTableHelper = class helper for TFDMemTable
@@ -431,19 +435,20 @@ end;
 
 { TFDQueryHelper }
 
-function TFDQueryHelper.ApplyInstantUpdate(AConn: TFDConnection; AStream: TStream): Boolean;
+function TFDQueryHelper.ApplyInstantUpdate(AConn: TFDConnection; AStream: TStream;
+  AType: TMessageType): Boolean;
 var
   MyQuery: TFDQuery;
 begin
   MyQuery := Self.Clone;
   try
-    Result := MyQuery.ApplyUpdate(AConn, AStream);
+    Result := MyQuery.ApplyUpdate(AConn, AStream, AType);
   finally
     MyQuery.Free;
   end;
 end;
 
-function TFDQueryHelper.ApplyUpdate(AConn: TFDConnection; AStream: TStream): Boolean;
+function TFDQueryHelper.ApplyUpdate(AConn: TFDConnection; AStream: TStream; AType: TMessageType): Boolean;
 var
   ExecTime: TDateTime;
   Errors: Integer;
@@ -457,7 +462,7 @@ begin
       ExecTime := Now;
       Errors := Self.ApplyUpdates;
 
-      TLogging.Obj.ApplicationMessage(msInfo, JdcGlobal.GetCurrentProc,
+      TLogging.Obj.ApplicationMessage(AType, JdcGlobal.GetCurrentProc,
         Format('Query=%s,ChangeCount=%d,Errors=%d,ExecTime=%s,Caller=%s', [Self.Name, Self.ChangeCount,
         Errors, FormatDateTime('NN:SS.zzz', Now - ExecTime), GetExternalProc]));
 
@@ -499,31 +504,33 @@ begin
   TFDDataSet(Self).FieldByJSONObject(AObject);
 end;
 
-function TFDQueryHelper.ExecInstantQuery(AConn: TFDConnection; AParams: TJSONObject): Boolean;
+function TFDQueryHelper.ExecInstantQuery(AConn: TFDConnection; AParams: TJSONObject;
+  AType: TMessageType): Boolean;
 var
   MyQuery: TFDQuery;
 begin
   MyQuery := Self.Clone;
   try
-    Result := MyQuery.ExecQuery(AConn, AParams);
+    Result := MyQuery.ExecQuery(AConn, AParams, AType);
   finally
     MyQuery.Free;
   end;
 end;
 
-function TFDQueryHelper.ExecInstantQuery(AConn: TFDConnection; AParams: TJSONArray): Boolean;
+function TFDQueryHelper.ExecInstantQuery(AConn: TFDConnection; AParams: TJSONArray;
+  AType: TMessageType): Boolean;
 var
   MyQuery: TFDQuery;
 begin
   MyQuery := Self.Clone;
   try
-    Result := MyQuery.ExecQuery(AConn, AParams);
+    Result := MyQuery.ExecQuery(AConn, AParams, AType);
   finally
     MyQuery.Free;
   end;
 end;
 
-function TFDQueryHelper.ExecQuery(AConn: TFDConnection; AParams: TJSONArray): Boolean;
+function TFDQueryHelper.ExecQuery(AConn: TFDConnection; AParams: TJSONArray; AType: TMessageType): Boolean;
 var
   ExecTime: TDateTime;
   I: Integer;
@@ -544,7 +551,7 @@ begin
 
       ExecTime := Now;
       Self.Execute(AParams.Count);
-      TLogging.Obj.ApplicationMessage(msInfo, JdcGlobal.GetCurrentProc,
+      TLogging.Obj.ApplicationMessage(AType, JdcGlobal.GetCurrentProc,
         Format('Query=%s,Requested=%d,RowsAffected=%d,ExecTime=%s,Caller=%s', [Self.Name, AParams.Count,
         Self.RowsAffected, FormatDateTime('NN:SS.zzz', Now - ExecTime), GetExternalProc]));
       Result := Self.RowsAffected = AParams.Count;
@@ -567,7 +574,7 @@ begin
 
 end;
 
-function TFDQueryHelper.ExecQuery(AConn: TFDConnection; AParams: TJSONObject): Boolean;
+function TFDQueryHelper.ExecQuery(AConn: TFDConnection; AParams: TJSONObject; AType: TMessageType): Boolean;
 var
   ExecTime: TDateTime;
 begin
@@ -580,7 +587,7 @@ begin
 
       ExecTime := Now;
       Self.ExecSQL;
-      TLogging.Obj.ApplicationMessage(msInfo, JdcGlobal.GetCurrentProc,
+      TLogging.Obj.ApplicationMessage(AType, JdcGlobal.GetCurrentProc,
         Format('Query=%s,RowsAffected=%d,ExecTime=%s,Caller=%s', [Self.Name, Self.RowsAffected,
         FormatDateTime('NN:SS.zzz', Now - ExecTime), GetExternalProc]));
       Result := True;
@@ -613,19 +620,20 @@ begin
   TFDDataSet(Self).LoadFromDSStream(AStream);
 end;
 
-function TFDQueryHelper.OpenInstantQuery(AConn: TFDConnection; AParams: TJSONObject): TStream;
+function TFDQueryHelper.OpenInstantQuery(AConn: TFDConnection; AParams: TJSONObject;
+  AType: TMessageType): TStream;
 var
   MyQuery: TFDQuery;
 begin
   MyQuery := Self.Clone;
   try
-    Result := MyQuery.OpenQuery(AConn, AParams);
+    Result := MyQuery.OpenQuery(AConn, AParams, AType);
   finally
     MyQuery.Free;
   end;
 end;
 
-function TFDQueryHelper.OpenQuery(AConn: TFDConnection; AParams: TJSONObject): TStream;
+function TFDQueryHelper.OpenQuery(AConn: TFDConnection; AParams: TJSONObject; AType: TMessageType): TStream;
 var
   ExecTime: TDateTime;
 begin
@@ -637,7 +645,7 @@ begin
 
       ExecTime := Now;
       Result := Self.ToStream;
-      TLogging.Obj.ApplicationMessage(msInfo, JdcGlobal.GetCurrentProc,
+      TLogging.Obj.ApplicationMessage(AType, JdcGlobal.GetCurrentProc,
         Format('Query=%s,RecordCount=%d,ExecTime=%s,Caller=%s', [Self.Name, Self.RecordCount,
         FormatDateTime('NN:SS.zzz', Now - ExecTime), GetExternalProc]));
     except
