@@ -4,7 +4,7 @@ interface
 
 uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants,
-  System.Classes, Vcl.Graphics,
+  System.Classes, Vcl.Graphics, JdcLogging,
   Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls, Vcl.ExtCtrls, CR1000;
 
 type
@@ -18,12 +18,14 @@ type
     btnClose: TButton;
     edtDataIndex: TLabeledEdit;
     btnCommaData: TButton;
+    Button1: TButton;
     procedure btnOpenClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure btnCloseClick(Sender: TObject);
     procedure FormClose(Sender: TObject; var Action: TCloseAction);
     procedure btnGetDataClick(Sender: TObject);
     procedure btnCommaDataClick(Sender: TObject);
+    procedure Button1Click(Sender: TObject);
   private
     FCR1K: TCR1000;
   public
@@ -102,8 +104,7 @@ var
 begin
   FCR1K := TCR1000.Create;
 
-  Opened := FCR1K.OpenPort(string(edtPort.Text).ToInteger,
-    string(edtBaudRate.Text).ToInteger);
+  Opened := FCR1K.OpenPort(string(edtPort.Text).ToInteger, string(edtBaudRate.Text).ToInteger);
 
   if Opened then
   begin
@@ -121,6 +122,13 @@ begin
     FreeAndNil(FCR1K);
   end;
 
+end;
+
+procedure TfmMain.Button1Click(Sender: TObject);
+var
+ version: PAnsiChar;
+begin
+  caption := FCR1K.GetDllVersion(version);
 end;
 
 procedure TfmMain.FormClose(Sender: TObject; var Action: TCloseAction);

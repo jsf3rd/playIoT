@@ -98,6 +98,15 @@ object fmMain: TfmMain
       TabOrder = 6
       OnClick = btnCommaDataClick
     end
+    object Button1: TButton
+      Left = 288
+      Top = 81
+      Width = 75
+      Height = 25
+      Caption = 'Close'
+      TabOrder = 7
+      OnClick = Button1Click
+    end
   end
   object Memo1: TMemo
     Left = 0

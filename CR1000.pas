@@ -75,6 +75,7 @@ type
     function GetStatus: string;
     function GetTableNames(out Tables: PAnsiChar): Boolean;
     function UpdateFirmware(FileName: PAnsiChar; out pData: PAnsiChar): Integer;
+    function GetDllVersion(out version: PAnsiChar): string;
     function Opened: Boolean;
   end;
 
@@ -296,6 +297,18 @@ var
   Len: Integer;
 begin
   Result := FGetData(Address, LOGGER_CR1000, Table, Recrd, pData, Len);
+end;
+
+function TCR1000.GetDllVersion(out version: PAnsiChar): string;
+var
+  Len: Integer;
+  ReturnCode: Integer;
+begin
+  ReturnCode := FGetDLLVersion(version, Len);
+  Result := '';
+  // if not Result then
+  // SetLastError(ReturnCode, FN_GET_TABLENAMES);
+
 end;
 
 { -------------------------------------------------------------------------------
