@@ -121,8 +121,8 @@ uses JdcGlobal.DSCommon;
 
 function ReplaceStringNumber(const AInput: string): string;
 begin
-  result := AInput.Replace('NAN', '0', [rfReplaceAll, rfIgnoreCase]);
-  result := result.Replace('INF', '0', [rfReplaceAll, rfIgnoreCase]);
+  result := AInput.Replace('NAN', '0', [rfReplaceAll]);
+  result := result.Replace('INF', '0', [rfReplaceAll]);
 end;
 
 { TTimerHelper }
