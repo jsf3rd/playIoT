@@ -49,6 +49,8 @@ type
     procedure Max(const AValue: T3PhaseEx);
     procedure Init;
     function UnitFactor(AValue: Double): T3PhaseEx;
+
+    function CommaText: string;
   end;
 
   TAMOUNT = packed record
@@ -278,7 +280,7 @@ type
     IOCONTROL_UNIT_ID = $BC; // 188
     IOCONTROL_ADDRESS = $68B1; // 26801
 
-    ERROR_CODE = $83; //
+    ERROR_CODE = $83; // 131
 
     MBAP: array [0 .. 5] of Byte = ($00, $00, $00, $00, $00, $06);
     READ_REGISTER = $03;
@@ -365,6 +367,11 @@ begin
 end;
 
 { T3PhaseEx }
+
+function T3PhaseEx.CommaText: string;
+begin
+  result := Format('%s,%f', [Self.Phases.CommaText, Self.Extra]);
+end;
 
 procedure T3PhaseEx.Init;
 begin
@@ -488,7 +495,7 @@ class function TModbus.InvalidDataLen(ALen: Integer): Boolean;
 begin
   result := (ALen <> SizeOf(TIDTable)) and (ALen <> SizeOf(TModulePart1)) //
     and (ALen <> SizeOf(TModulePart2)) and (ALen <> SizeOf(TPowerModule)) //
-    and (ALen <> SizeOf(TErrorCode));
+    and (ALen <> SizeOf(TErrorCode)) and (ALen <> SizeOf(TIOControl));
 end;
 
 class function TModbus.TcpCommand(const AParam: TRequestParam): TIdBytes;
