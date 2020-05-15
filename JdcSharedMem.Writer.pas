@@ -14,7 +14,7 @@ unit JdcSharedMem.Writer;
 
 interface
 
-uses System.Classes, System.SysUtils, Winapi.Windows, JdcSharedMem.Common;
+uses System.Classes, System.SysUtils, Winapi.Windows, JdcSharedMem.Common, JdcLogging;
 
 type
   TJdcSharedMemWriter = class
@@ -38,8 +38,7 @@ uses SharedMMFMem, JdcGlobal;
 
 { TJdcSharedMemWriter }
 
-constructor TJdcSharedMemWriter.Create(ACodeName: String; ADataSize: Cardinal;
-  AMaxCount: TDataCount);
+constructor TJdcSharedMemWriter.Create(ACodeName: String; ADataSize: Cardinal; AMaxCount: TDataCount);
 begin
   FCodeName := ACodeName;
   FDataInfo := SharedAllocMem(FCodeName + DATA_INFO, SizeOf(TDataInfo));
@@ -49,8 +48,7 @@ begin
   FDataInfo.LastSequence := 0;
   FDataInfo.DataLength := SizeOf(Cardinal) + ADataSize;
 
-  FDataList := SharedAllocMem(FCodeName + DATA_LIST, FDataInfo.DataLength *
-    FDataInfo.MaxCount);
+  FDataList := SharedAllocMem(FCodeName + DATA_LIST, FDataInfo.DataLength * FDataInfo.MaxCount);
 end;
 
 destructor TJdcSharedMemWriter.Destroy;
@@ -75,16 +73,15 @@ var
   Position: Cardinal;
 begin
   if FDataInfo.DataLength <> AData.Size + SizeOf(Cardinal) then
-    raise Exception.Create('[DataSize] CodeName=' + FCodeName + ',Size=' +
-      AData.Size.ToString);
+    raise Exception.Create(Format('[DataSize] CodeName=%s,Size=%d,Expected=%d',
+      [FCodeName, AData.Size, FDataInfo.DataLength]));
 
   FDataInfo.LastSequence := FDataInfo.LastSequence + 1;
   Position := FDataInfo.LastSequence and FDataInfo.Mask;
 
   PData := FDataList;
   PData := Ptr(UInt32(PData) + (Position * FDataInfo.DataLength));
-  // PrintDebug('[PutData] CodeName=%s,Sequence=%u,Positon=%u',
-  // [FCodeName, FDataInfo.LastSequence, Position]);
+  // PrintDebug('[PutData] CodeName=%s,Sequence=%u,Positon=%u', [FCodeName, FDataInfo.LastSequence, Position]);
 
   CopyMemory(PData, @FDataInfo.LastSequence, SizeOf(Cardinal));
   PData := Ptr(Integer(PData) + SizeOf(Cardinal));
