@@ -40,6 +40,7 @@ type
     COMM_TCP = 'TCP';
     COMM_RS485 = 'RS485';
 
+    READ_TIME_OUT = 3000;
   public
     class function GetModuleTitle(ADevice: string): string;
     class function GetMeaDataTitle: string;

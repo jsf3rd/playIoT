@@ -101,7 +101,8 @@ type
 
     function OpenQuery(AConn: TFDConnection; AParams: TJSONObject; AType: TMessageType): TStream;
     function ExecQuery(AConn: TFDConnection; AParams: TJSONObject; AType: TMessageType): Boolean; overload;
-    function ExecQuery(AConn: TFDConnection; AParams: TJSONArray; AType: TMessageType): Boolean; overload;
+    function ExecQuery(AConn: TFDConnection; AParams: TJSONArray; AType: TMessageType;
+      CommitAnyway: Boolean = False): Boolean; overload;
     function ApplyUpdate(AConn: TFDConnection; AStream: TStream; AType: TMessageType): Boolean;
   public
     function Clone: TFDQuery;
@@ -125,8 +126,8 @@ type
       : Boolean; overload;
 
     // Array DML
-    function ExecInstantQuery(AConn: TFDConnection; AParams: TJSONArray; AType: TMessageType = msInfo)
-      : Boolean; overload;
+    function ExecInstantQuery(AConn: TFDConnection; AParams: TJSONArray; AType: TMessageType = msInfo;
+      CommitAnyway: Boolean = False): Boolean; overload;
 
     // ApplyUpdate
     function ApplyInstantUpdate(AConn: TFDConnection; AStream: TStream; AType: TMessageType = msInfo)
@@ -517,20 +518,21 @@ begin
   end;
 end;
 
-function TFDQueryHelper.ExecInstantQuery(AConn: TFDConnection; AParams: TJSONArray;
-  AType: TMessageType): Boolean;
+function TFDQueryHelper.ExecInstantQuery(AConn: TFDConnection; AParams: TJSONArray; AType: TMessageType;
+  CommitAnyway: Boolean): Boolean;
 var
   MyQuery: TFDQuery;
 begin
   MyQuery := Self.Clone;
   try
-    Result := MyQuery.ExecQuery(AConn, AParams, AType);
+    Result := MyQuery.ExecQuery(AConn, AParams, AType, CommitAnyway);
   finally
     MyQuery.Free;
   end;
 end;
 
-function TFDQueryHelper.ExecQuery(AConn: TFDConnection; AParams: TJSONArray; AType: TMessageType): Boolean;
+function TFDQueryHelper.ExecQuery(AConn: TFDConnection; AParams: TJSONArray; AType: TMessageType;
+  CommitAnyway: Boolean): Boolean;
 var
   ExecTime: TDateTime;
   I: Integer;
@@ -551,15 +553,24 @@ begin
 
       ExecTime := Now;
       Self.Execute(AParams.Count);
-      TLogging.Obj.ApplicationMessage(AType, JdcGlobal.GetCurrentProc,
-        Format('Query=%s,Requested=%d,RowsAffected=%d,ExecTime=%s,Caller=%s', [Self.Name, AParams.Count,
-        Self.RowsAffected, FormatDateTime('NN:SS.zzz', Now - ExecTime), GetExternalProc]));
       Result := Self.RowsAffected = AParams.Count;
 
-      if Result then
-        AConn.Commit
+      if CommitAnyway or Result then
+      begin
+        AConn.Commit;
+        TLogging.Obj.ApplicationMessage(AType, JdcGlobal.GetCurrentProc,
+          'Commited,Query=%s,Requested=%d,RowsAffected=%d,ExecTime=%s,Caller=%s',
+          [Self.Name, AParams.Count, Self.RowsAffected, FormatDateTime('NN:SS.zzz', Now - ExecTime),
+          GetExternalProc]);
+      end
       else
+      begin
         AConn.Rollback;
+        TLogging.Obj.ApplicationMessage(AType, JdcGlobal.GetCurrentProc,
+          'Rollbacked,Query=%s,Requested=%d,RowsAffected=%d,ExecTime=%s,Caller=%s',
+          [Self.Name, AParams.Count, Self.RowsAffected, FormatDateTime('NN:SS.zzz', Now - ExecTime),
+          GetExternalProc]);
+      end;
     except
       on E: Exception do
       begin
@@ -804,6 +815,8 @@ begin
 end;
 
 procedure TFDQueryHelper.ParamByJsonValue(AValue: TJSONValue; AName: String);
+var
+  Msg: string;
 begin
   if AValue is TJSONObject then
     ParamByJSONObject(AValue as TJSONObject)
@@ -812,7 +825,17 @@ begin
     ParamByJSONArray(AValue as TJSONArray, AName)
   end
   else
-    ParamByJsonValue(Self.FindParam(AName), AValue);
+  begin
+    try
+      ParamByJsonValue(Self.FindParam(AName), AValue);
+    except
+      on E: Exception do
+      begin
+        Msg := Format('%s=%s->%s', [AName, AValue.Value, E.Message]);
+        raise Exception.Create(Msg);
+      end;
+    end;
+  end;
 end;
 
 function TFDQueryHelper.ToStream: TStream;

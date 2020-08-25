@@ -15,7 +15,7 @@ unit JdcLogging;
 interface
 
 uses System.Classes, System.SysUtils, System.IOUtils, System.Generics.Collections, JdcGlobal, JclFileUtils,
-  Vcl.StdCtrls, Winapi.Windows, JdcOption;
+  Vcl.StdCtrls, Winapi.Windows, JdcOption, System.DateUtils;
 
 type
   TLogProc = procedure(const AType: TMessageType; const ATitle: String; const AMessage: String = '')
@@ -52,6 +52,9 @@ type
     FUseDebug: Boolean;
     FUseCloudLog: Boolean;
     FOnAfterLogging: TLogProc;
+
+    FOption: TOptionAbstract;
+    FCheckDebug: TDateTime;
 
     constructor Create;
     procedure FlushLog;
@@ -227,6 +230,8 @@ begin
   FLogServer.IntegerValue := 8094;
   FUseCloudLog := False;
   FOnAfterLogging := nil;
+
+  FCheckDebug := Now;
 end;
 
 destructor TLogging.Destroy;
@@ -285,8 +290,14 @@ begin
   if FMsgQueue.Count = 0 then
     Exit;
 
-  MyLog := FMsgQueue.Dequeue;
+  if MinuteSpan(Now, FCheckDebug) > 1 then
+  begin
+    FCheckDebug := Now;
+    FUseDebug := FOption.UseDebug;
+  end;
+  Sleep(227);
 
+  MyLog := FMsgQueue.Dequeue;
   try
     _PrintLog(MyLog);
   except
@@ -308,6 +319,8 @@ procedure TLogging.Init(AGlobal: TGlobalAbstract; AOption: TOptionAbstract);
 var
   ExeName: string;
 begin
+  FOption := AOption;
+
   FProjectCode := AGlobal.ProjectCode;
   FAppCode := AGlobal.AppCode;
   FUseDebug := AOption.UseDebug;
@@ -376,10 +389,10 @@ begin
   if not Assigned(FLogTask) then
     Exit;
 
-  FlushLog;
   FLogTask.Terminate;
   FLogTask.WaitFor;
   FreeAndNil(FLogTask);
+  FlushLog;
   PrintDebug('[%s] StopLogging', [FAppCode]);
 end;
 

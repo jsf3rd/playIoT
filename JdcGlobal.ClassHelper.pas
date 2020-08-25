@@ -75,6 +75,11 @@ type
     procedure Clear;
   end;
 
+  TJSONArrayHelper = class helper for TJSONArray
+  public
+
+  end;
+
   TJSONHelper = class helper for REST.JSON.TJSON
   public
     class function ObjectToJsonObjectEx(AObject: TObject): TJSONObject;

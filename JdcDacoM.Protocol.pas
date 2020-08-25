@@ -43,7 +43,7 @@ type
 
   T3PhaseEx = packed record
     Phases: T3Phase;
-    Extra: Single;
+    Calc: Single;
     procedure Add(const AValue: T3PhaseEx);
     procedure Min(const AValue: T3PhaseEx);
     procedure Max(const AValue: T3PhaseEx);
@@ -100,13 +100,13 @@ type
     ZeroSequenceComponentVoltage: Single;
 
     Hramonic: THarmoic; // 고주파 함유율
-    RS485: UInt16;
-    Modbus: UInt16;
-    VoltageRawData: UInt16;
-    Current1: UInt16;
-    Current2: UInt16;
-    Network: UInt16;
-    ProductType: UInt16;
+    Status_RS485: UInt16;
+    Status_Modbus: UInt16;
+    Status_Voltage_RawData: UInt16;
+    Status_Current1_RawData: UInt16;
+    Status_Current2_RawData: UInt16;
+    Status_Network_Connection: UInt16;
+    ProType: UInt16;
     Reserved3: UInt16;
     Reserved4: UInt16;
     Reserved5: UInt16;
@@ -370,37 +370,37 @@ end;
 
 function T3PhaseEx.CommaText: string;
 begin
-  result := Format('%s,%f', [Self.Phases.CommaText, Self.Extra]);
+  result := Format('%s,%f', [Self.Phases.CommaText, Self.Calc]);
 end;
 
 procedure T3PhaseEx.Init;
 begin
   Self.Phases.Init;
-  Self.Extra := 0;
+  Self.Calc := 0;
 end;
 
 procedure T3PhaseEx.Max(const AValue: T3PhaseEx);
 begin
   Self.Phases.Max(AValue.Phases);
-  Self.Extra := Math.Max(Self.Extra, AValue.Extra);
+  Self.Calc := Math.Max(Self.Calc, AValue.Calc);
 end;
 
 procedure T3PhaseEx.Min(const AValue: T3PhaseEx);
 begin
   Self.Phases.Min(AValue.Phases);
-  Self.Extra := Math.Min(Self.Extra, AValue.Extra);
+  Self.Calc := Math.Min(Self.Calc, AValue.Calc);
 end;
 
 function T3PhaseEx.UnitFactor(AValue: Double): T3PhaseEx;
 begin
   result.Phases := Self.Phases.UnitFactor(AValue);
-  result.Extra := Self.Extra * AValue;
+  result.Calc := Self.Calc * AValue;
 end;
 
 procedure T3PhaseEx.Add(const AValue: T3PhaseEx);
 begin
   Self.Phases.Add(AValue.Phases);
-  Self.Extra := Self.Extra + AValue.Extra;
+  Self.Calc := Self.Calc + AValue.Calc;
 end;
 
 { TModule }

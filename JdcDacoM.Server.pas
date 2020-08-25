@@ -52,9 +52,12 @@ type
     function GetPart2(AIndex: Integer): TDataPart2;
     procedure SetPart2(AIndex: Integer; const Value: TDataPart2);
     function GetModule(AIndex: Integer): TModuleData;
+    procedure SetModule(AIndex: Integer; const Value: TModuleData);
 
   public
-    constructor Create(AContext: TIdContext);
+    constructor Create(AContext: TIdContext); overload;
+    constructor Create(AMac: String; AMeasuringTime: TDateTime); overload;
+
     destructor Destroy; override;
 
     function ModuleList: String;
@@ -87,7 +90,7 @@ type
     property ModuleCount: Integer read FModuleCount;
     property Part1[AIndex: Integer]: TDataPart1 read GetPart1 write SetPart1;
     property Part2[AIndex: Integer]: TDataPart2 read GetPart2 write SetPart2;
-    property Module[AIndex: Integer]: TModuleData read GetModule;
+    property Module[AIndex: Integer]: TModuleData read GetModule write SetModule;
     property PowerData: TPowerData read FPowerData write FPowerData;
 
     property CurIndex: Integer read FCurIndex write FCurIndex;
@@ -148,9 +151,6 @@ uses JdcLogging;
 
 var
   MyObj: TDacoMServer = nil;
-
-const
-  READ_TIME_OUT = 3000;
 
   { TDacoMServer }
 
@@ -330,7 +330,7 @@ begin
   MySession.OnMeterData := OnMeterData;
 
   AContext.Data := MySession;
-  AContext.ReadTimeout := READ_TIME_OUT;
+  AContext.ReadTimeout := TDacoM.READ_TIME_OUT;
 
   // for MacAddress
   MySession.RequestPowerDataOnly;
@@ -349,7 +349,7 @@ procedure TDacoMServer.TCPServerException(AContext: TIdContext; AException: Exce
 begin
   if AException is EIdReadTimeout then
   begin
-    TLogging.Obj.ApplicationMessage(msDebug, 'ReadTimeout', 'NoResponse.');
+    TLogging.Obj.ApplicationMessage(msDebug, 'ReadTimeout', 'NoResponse.Port=%d', [AContext.PeerPort]);
     Exit;
   end;
 
@@ -365,8 +365,8 @@ begin
   if AException is EIdSocketError then
     Exit;
 
-  TLogging.Obj.ApplicationMessage(msError, 'TCPException', 'E=%S,EClass=%s',
-    [AException.Message, AException.ClassName]);
+  TLogging.Obj.ApplicationMessage(msError, 'TCPException', 'Port=%d,E=%S,EClass=%s',
+    [AContext.PeerPort, AException.Message, AException.ClassName]);
 end;
 
 procedure TDacoMServer.TCPServerExecute(AContext: TIdContext);
@@ -391,14 +391,14 @@ begin
       if MySession.RequestTime = 0 then
         Exit;
 
-      if AContext.ReadTimeout = READ_TIME_OUT then
+      if AContext.ReadTimeout = TDacoM.READ_TIME_OUT then
       begin
-        tmp := Abs(READ_TIME_OUT - MilliSecondsBetween(Now, MySession.RequestTime));
+        tmp := Abs(TDacoM.READ_TIME_OUT - MilliSecondsBetween(Now, MySession.RequestTime));
         if tmp < 10 then
           raise;
 
         TLogging.Obj.ApplicationMessage(msInfo, 'ExtraWait', 'Port=%d,%dms', [AContext.PeerPort, tmp]);
-        AContext.ReadTimeout := Min(tmp, READ_TIME_OUT - 1);
+        AContext.ReadTimeout := Min(tmp, TDacoM.READ_TIME_OUT - 1);
         Exit;
       end;
 
@@ -425,7 +425,7 @@ begin
   end;
 
   SetLength(buff, 0);
-  AContext.ReadTimeout := READ_TIME_OUT;
+  AContext.ReadTimeout := TDacoM.READ_TIME_OUT;
   AContext.ReadBytes(buff, DataLen);
   MySession.RequestTime := 0;
 
@@ -495,6 +495,12 @@ begin
   end;
 end;
 
+constructor TMySession.Create(AMac: String; AMeasuringTime: TDateTime);
+begin
+  FMacAddress := AMac;
+  FMeasuringTime := AMeasuringTime;
+end;
+
 destructor TMySession.Destroy;
 begin
   inherited;
@@ -538,8 +544,8 @@ begin
 
   CopyMemory(@Self.IDList[0], @IDTable.ID[0], SizeOf(TIDArray40));
   FModuleCount := Length(Self.ModuleList.Split([',']));
-  TLogging.Obj.ApplicationMessage(msInfo, 'ModuleList', Format('Port=%d,Count=%d,List=%s',
-    [FContext.PeerPort, FModuleCount, ModuleList]));
+  TLogging.Obj.ApplicationMessage(msInfo, 'ModuleList', Format('Port=%d,Serial=%s,Count=%d,List=%s',
+    [FContext.PeerPort, FMacAddress, FModuleCount, ModuleList]));
 end;
 
 procedure TMySession.OnIOControl(ABuff: TIdBytes);
@@ -687,6 +693,14 @@ begin
     Exit(FIDList[I].Hi);
   end;
   result := -1;
+end;
+
+procedure TMySession.SetModule(AIndex: Integer; const Value: TModuleData);
+begin
+  if (AIndex < Low(FModule)) or (AIndex > High(FModule)) then
+    raise Exception.Create('out of index GetModule, Index=' + AIndex.ToString);
+
+  FModule[AIndex] := Value;
 end;
 
 procedure TMySession.SetPart1(AIndex: Integer; const Value: TDataPart1);
