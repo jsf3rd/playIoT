@@ -118,7 +118,7 @@ type
     procedure TCPServerExecute(AContext: TIdContext);
     procedure TCPServerException(AContext: TIdContext; AException: Exception);
 
-    procedure _RequestData(ATime: TDateTime);
+    procedure _RequestData(ATime: TDateTime; AMac: string);
     procedure OnRequest(AContext: TIdContext; const AParam: TRequestParam);
     procedure OnModuleData(ASession: TMySession; AID: Integer);
     procedure OnMeterData(ASession: TMySession);
@@ -141,7 +141,9 @@ type
 
     destructor Destroy; override;
 
-    procedure RequestData(ATime: TDateTime);
+    procedure RequestData(ATime: TDateTime; AMac: string);
+    function GetIDList(AMac: string): String;
+    function GetOnlineMeter: TArray<String>;
     function Started: Boolean;
   end;
 
@@ -196,6 +198,66 @@ begin
   inherited;
 end;
 
+function TDacoMServer.GetIDList(AMac: string): String;
+var
+  List: TList;
+  Context: TIdContext;
+  MyContext: Pointer;
+
+  MySession: TMySession;
+begin
+  List := FTCPServer.Contexts.LockList;
+  try
+    for MyContext in List do
+    begin
+      Context := TIdContext(MyContext);
+
+      if not Assigned(Context.Data) then
+        Continue;
+
+      if not(Context.Data is TMySession) then
+        Continue;
+
+      MySession := TMySession(Context.Data);
+      if MySession.MacAddress = AMac then
+      begin
+        result := MySession.ModuleList;
+        Exit;
+      end;
+    end;
+  finally
+    FTCPServer.Contexts.UnlockList;
+  end;
+end;
+
+function TDacoMServer.GetOnlineMeter: TArray<String>;
+var
+  List: TList;
+  Context: TIdContext;
+  MyContext: Pointer;
+  MySession: TMySession;
+begin
+  result := [];
+  List := FTCPServer.Contexts.LockList;
+  try
+    for MyContext in List do
+    begin
+      Context := TIdContext(MyContext);
+
+      if not Assigned(Context.Data) then
+        Continue;
+
+      if not(Context.Data is TMySession) then
+        Continue;
+
+      MySession := TMySession(Context.Data);
+      result := result + [MySession.MacAddress]
+    end;
+  finally
+    FTCPServer.Contexts.UnlockList;
+  end;
+end;
+
 class function TDacoMServer.Obj: TDacoMServer;
 begin
   if MyObj = nil then
@@ -238,11 +300,11 @@ begin
     AContext.Write(buff);
     Session := TMySession(AContext.Data);
     Session.RequestTime := Now;
-    TLogging.Obj.ApplicationMessage(msSystem, 'SEND', 'Port=%d,Msg=%s',
+    TLogging.Obj.ApplicationMessage(msSystem, 'SEND', DACO_TAG + 'Port=%d,Msg=%s',
       [AContext.PeerPort, IdBytesToHex(buff)]);
   except
     on E: Exception do
-      TLogging.Obj.ApplicationMessage(msError, 'SEND', 'IP=%s,buff=%s,E=%s',
+      TLogging.Obj.ApplicationMessage(msError, 'SEND', DACO_TAG + 'IP=%s,buff=%s,E=%s',
         [AContext.PeerIP, IdBytesToHex(buff), E.Message]);
   end;
 end;
@@ -263,7 +325,7 @@ begin
     ptError:
       ASession.OnError(ABuff);
   else
-    TLogging.Obj.ApplicationMessage(msWarning, 'WrongProtocol', IdBytesToHex(ABuff));
+    TLogging.Obj.ApplicationMessage(msWarning, 'WrongProtocol', DACO_TAG + IdBytesToHex(ABuff));
   end;
 end;
 
@@ -282,13 +344,13 @@ begin
   FPowerSub.Remove(AProc);
 end;
 
-procedure TDacoMServer.RequestData(ATime: TDateTime);
+procedure TDacoMServer.RequestData(ATime: TDateTime; AMac: string);
 begin
   try
-    _RequestData(ATime);
+    _RequestData(ATime, AMac);
   except
     on E: Exception do
-      TLogging.Obj.ApplicationMessage(msError, 'RequestData', E.Message);
+      TLogging.Obj.ApplicationMessage(msError, 'RequestData', DACO_TAG + 'Mac=%s,E=%s', [AMac, E.Message]);
   end;
 end;
 
@@ -300,7 +362,7 @@ begin
   FTCPServer.Bindings.Clear;
   FTCPServer.DefaultPort := APort;
   FTCPServer.Active := True;
-  TLogging.Obj.ApplicationMessage(msInfo, 'DacoMServer', Format('Opened,Port=%d', [FTCPServer.DefaultPort]));
+  TLogging.Obj.ApplicationMessage(msInfo, 'Opened', DACO_TAG + 'Port=%d', [FTCPServer.DefaultPort]);
 end;
 
 function TDacoMServer.Started: Boolean;
@@ -314,14 +376,14 @@ begin
     Exit;
 
   FTCPServer.Active := False;
-  TLogging.Obj.ApplicationMessage(msInfo, 'DacoMServer', 'Closed');
+  TLogging.Obj.ApplicationMessage(msInfo, 'Closed', DACO_TAG);
 end;
 
 procedure TDacoMServer.TCPServerConnect(AContext: TIdContext);
 var
   MySession: TMySession;
 begin
-  TLogging.Obj.ApplicationMessage(msInfo, 'Connected', AContext.PeerInfo);
+  TLogging.Obj.ApplicationMessage(msInfo, 'Connected', DACO_TAG + AContext.PeerInfo);
 
   MySession := TMySession.Create(AContext);
   MySession.OnRequest := OnRequest;
@@ -341,7 +403,7 @@ begin
   if Assigned(AContext.Data) and (AContext.Data is TMySession) then
     AContext.Data.Free;
 
-  TLogging.Obj.ApplicationMessage(msInfo, 'Disconnected', AContext.PeerInfo);
+  TLogging.Obj.ApplicationMessage(msInfo, 'Disconnected', DACO_TAG + AContext.PeerInfo);
   AContext.Data := nil;
 end;
 
@@ -349,7 +411,8 @@ procedure TDacoMServer.TCPServerException(AContext: TIdContext; AException: Exce
 begin
   if AException is EIdReadTimeout then
   begin
-    TLogging.Obj.ApplicationMessage(msDebug, 'ReadTimeout', 'NoResponse.Port=%d', [AContext.PeerPort]);
+    TLogging.Obj.ApplicationMessage(msDebug, 'ReadTimeout', DACO_TAG + 'NoResponse,Port=%d',
+      [AContext.PeerPort]);
     Exit;
   end;
 
@@ -365,7 +428,7 @@ begin
   if AException is EIdSocketError then
     Exit;
 
-  TLogging.Obj.ApplicationMessage(msError, 'TCPException', 'Port=%d,E=%S,EClass=%s',
+  TLogging.Obj.ApplicationMessage(msError, 'TCPException', DACO_TAG + 'Port=%d,E=%s,EClass=%s',
     [AContext.PeerPort, AException.Message, AException.ClassName]);
 end;
 
@@ -397,7 +460,8 @@ begin
         if tmp < 10 then
           raise;
 
-        TLogging.Obj.ApplicationMessage(msInfo, 'ExtraWait', 'Port=%d,%dms', [AContext.PeerPort, tmp]);
+        TLogging.Obj.ApplicationMessage(msInfo, 'ExtraWait', DACO_TAG + 'Port=%d,%dms',
+          [AContext.PeerPort, tmp]);
         AContext.ReadTimeout := Min(tmp, TDacoM.READ_TIME_OUT - 1);
         Exit;
       end;
@@ -409,13 +473,13 @@ begin
       raise;
   end;
 
-  TLogging.Obj.ApplicationMessage(msSystem, 'RECV', 'Port=%d,Len=%d,Msg=%s',
+  TLogging.Obj.ApplicationMessage(msSystem, 'RECV', DACO_TAG + 'Port=%d,Len=%d,Msg=%s',
     [AContext.PeerPort, Length(buff), IdBytesToHex(buff)]);
 
   CopyMemory(@Header, @buff[0], SizeOf(Header));
   RevEveryWord(@Header, SizeOf(TMBAPHeader));
 
-  TLogging.Obj.ApplicationMessage(msSystem, 'HEADER', TJson.RecordToJsonString(Header));
+  TLogging.Obj.ApplicationMessage(msSystem, 'HEADER', DACO_TAG + TJson.RecordToJsonString(Header));
 
   DataLen := Header.Length;
   if TModbus.InvalidDataLen(DataLen) then
@@ -429,12 +493,12 @@ begin
   AContext.ReadBytes(buff, DataLen);
   MySession.RequestTime := 0;
 
-  TLogging.Obj.ApplicationMessage(msSystem, 'RECV', 'Port=%d,Len=%d,Msg=%s',
+  TLogging.Obj.ApplicationMessage(msSystem, 'RECV', DACO_TAG + 'Port=%d,Len=%d,Msg=%s',
     [AContext.PeerPort, Length(buff), IdBytesToHex(buff)]);
   ParsePacket(MySession, buff);
 end;
 
-procedure TDacoMServer._RequestData(ATime: TDateTime);
+procedure TDacoMServer._RequestData(ATime: TDateTime; AMac: string);
 var
   List: TList;
   Context: TIdContext;
@@ -455,6 +519,9 @@ begin
         Continue;
 
       MySession := TMySession(Context.Data);
+      if MySession.MacAddress <> AMac then
+        Continue;
+
       MySession.MeasuringTime := ATime;
       MySession.RequestFromPowerData;
     end;
@@ -474,7 +541,7 @@ begin
 
   SetLength(ABuff, 0);
   TLogging.Obj.ApplicationMessage(AType, TDSCommon.GetRecordName<T>.Substring(1),
-    TJson.RecordToJsonString(result));
+    DACO_TAG + TJson.RecordToJsonString(result));
 end;
 
 constructor TMySession.Create(AContext: TIdContext);
@@ -540,12 +607,13 @@ var
   IDTable: TIDTable;
 begin
   CopyMemory(@IDTable, @ABuff[0], SizeOf(TIDTable));
-  TLogging.Obj.ApplicationMessage(msSystem, 'IDTable', TJson.RecordToJsonString(IDTable));
+  TLogging.Obj.ApplicationMessage(msSystem, 'IDTable', DACO_TAG + TJson.RecordToJsonString(IDTable));
 
   CopyMemory(@Self.IDList[0], @IDTable.ID[0], SizeOf(TIDArray40));
   FModuleCount := Length(Self.ModuleList.Split([',']));
-  TLogging.Obj.ApplicationMessage(msInfo, 'ModuleList', Format('Port=%d,Serial=%s,Count=%d,List=%s',
-    [FContext.PeerPort, FMacAddress, FModuleCount, ModuleList]));
+  TLogging.Obj.ApplicationMessage(msInfo, 'ModuleList',
+    Format(DACO_TAG + 'Port=%d,Serial=%s,Count=%d,List=%s', [FContext.PeerPort, FMacAddress, FModuleCount,
+    ModuleList]));
 end;
 
 procedure TMySession.OnIOControl(ABuff: TIdBytes);
@@ -575,7 +643,7 @@ begin
   for I := Low(FIDList) to High(FIDList) do
   begin
     if FIDList[I].Hi > 0 then
-      str.Add(Format('%d(%x)', [FIDList[I].Hi, FIDList[I].Hi]));
+      str.Add(Format('%d', [FIDList[I].Hi]));
   end;
 
   result := str.CommaText;
@@ -605,8 +673,8 @@ begin
   begin
     FMacAddress := ToHex(ToBytes(Rev4Bytes(PowerModule.Data.EthernetMac1_1))) + '-' +
       ToHex(ToBytes(Rev4Bytes(PowerModule.Data.EthernetMac1_2)));
-    TLogging.Obj.ApplicationMessage(msInfo, 'AddMeter',
-      Format('Port=%d,Mac=%s', [Self.FContext.PeerPort, FMacAddress]));
+    TLogging.Obj.ApplicationMessage(msInfo, 'AddMeter', Format(DACO_TAG + 'Port=%d,Mac=%s',
+      [Self.FContext.PeerPort, FMacAddress]));
     RequestIDTable;
   end;
 
@@ -645,7 +713,7 @@ begin
     Exit;
   end;
 
-  Addr := TModbus.GetAddress(AID, TDacoM.DEVICE_1000APS) + AOffSet;
+  Addr := TModbus.GetAddress(AID) + AOffSet;
   OnRequest(FContext, TRequestParam.Create(AID, TModbus.READ_REGISTER, Addr, ALen));
 end;
 
@@ -688,11 +756,14 @@ begin
   begin
     if FIDList[I].Hi = 0 then
       Continue;
+    // TLogging.Obj.ApplicationMessage(msDebug, 'GetNextID1', DACO_TAG+'CurIndex=%d,result=%d',
+    // [FCurIndex, FIDList[I].Hi]);
 
     FCurIndex := I;
     Exit(FIDList[I].Hi);
   end;
   result := -1;
+  // TLogging.Obj.ApplicationMessage(msDebug, 'GetNextID2', DACO_TAG + result.ToString);
 end;
 
 procedure TMySession.SetModule(AIndex: Integer; const Value: TModuleData);
