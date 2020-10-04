@@ -58,9 +58,11 @@ type
   TJSONObjectHelper = class helper for TJSONObject
   public
     function GetValueEx(const Name: string): TJSONValue;
-    function GetString(const Name: string): String;
+    function GetString(const Name: string; const default: string = ''): String;
     function GetInt(const Name: string): Integer;
+    function GetIntDef(const Name: string; const default: Integer = -9999): Integer;
     function GetDouble(const Name: string): double;
+    function GetDoubleDef(const Name: string; const default: double = -9999): double;
     function GetJSONArray(const Name: string): TJSONArray;
     function GetJSONObject(const Name: string): TJSONObject;
 
@@ -83,6 +85,7 @@ type
   TJSONHelper = class helper for REST.JSON.TJSON
   public
     class function ObjectToJsonObjectEx(AObject: TObject): TJSONObject;
+
     class function ObjectToJsonStringEx(AObject: TObject): String;
     class function JsonToObjectEx<T: class>(AJsonObject: TJSONObject): T; overload;
     class function JsonToObjectEx<T: class>(const AJson: String): T; overload;
@@ -107,6 +110,7 @@ type
   TDateTimeHelper = record helper for TDateTime
   public
     function ToString: String;
+
     function ToISO8601: String;
     function FormatWithMSec: String;
     function FormatWithoutMSec: String;
@@ -194,13 +198,24 @@ var
   JSONValue: TJSONValue;
 begin
   JSONValue := GetValueEx(Name);
-
   try
     result := (JSONValue as TJSONNumber).AsDouble;
   except
     on E: Exception do
       raise Exception.Create(SysUtils.Format('JSON name [%s] can not cast to TJSONNumber. \n %s',
         [Name, JSONValue.ToString]));
+  end;
+end;
+
+function TJSONObjectHelper.GetDoubleDef(const Name: string; const default: double): double;
+var
+  JSONValue: TJSONValue;
+begin
+  try
+    JSONValue := GetValueEx(Name);
+    result := (JSONValue as TJSONNumber).AsDouble;
+  except
+    result := default;
   end;
 end;
 
@@ -219,9 +234,27 @@ begin
   end;
 end;
 
-function TJSONObjectHelper.GetString(const Name: string): String;
+function TJSONObjectHelper.GetIntDef(const Name: string; const default: Integer): Integer;
+var
+  JSONValue: TJSONValue;
 begin
-  result := GetValueEx(Name).Value;
+  try
+    JSONValue := GetValueEx(Name);
+    result := (JSONValue as TJSONNumber).AsInt;
+  except
+    on E: Exception do
+      result := default;
+  end;
+end;
+
+function TJSONObjectHelper.GetString(const Name: string; const default: string): String;
+begin
+  try
+    result := GetValueEx(Name).Value;
+  except
+    on E: Exception do
+      result := default;
+  end;
 end;
 
 function TJSONObjectHelper.GetValueEx(const Name: string): TJSONValue;
@@ -238,7 +271,8 @@ begin
   for MyElem in Self do
     Names := Names + MyElem.JsonString.Value + ', ';
 
-  raise Exception.Create(SysUtils.Format('JSON name [%s] is not exist. Other name list [%s]', [Name, Names]));
+  raise Exception.Create(SysUtils.Format('JSON name [%s] is not exist. Other name list [%s],caller=%s',
+    [Name, Names, GetProcByLevel(2)]));
 end;
 
 class function TJSONObjectHelper.ParseFile(FileName: String): TJSONValue;
