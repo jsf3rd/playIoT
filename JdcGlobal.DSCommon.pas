@@ -678,7 +678,7 @@ begin
   Msg := Format('DataSet=%s,ParamName=%s,DataType=%s,Value=%s',
     [Self.Name, AParam.Name, GetFieldTypeName(AParam.DataType), AValue.Value]);
 
-  TLogging.Obj.ApplicationMessage(msSystem, 'SQLParameter', Msg);
+  // TLogging.Obj.ApplicationMessage(msSystem, 'SQLParameter', Msg);
   case AParam.DataType of
     ftUnknown:
       raise Exception.Create(Format('DataSet=%s,ParamName=%s,Unknown DataType', [Self.Name, AParam.Name]));
@@ -934,7 +934,7 @@ begin
   Msg := Format('DataSet=%s,FieldName=%s,DataType=%s,Value=%s',
     [Self.Name, AField.Name, GetFieldTypeName(AField.DataType), AValue.Value]);
 
-  TLogging.Obj.ApplicationMessage(msSystem, 'SQLParameter', Msg);
+  // TLogging.Obj.ApplicationMessage(msSystem, 'SQLParameter', Msg);
   case AField.DataType of
     ftUnknown:
       raise Exception.Create(Format('DataSet=%s,ParamName=%s,Unknown DataType', [Self.Name, AField.Name]));
@@ -1053,9 +1053,9 @@ begin
       [Self.Name, AField.FieldName, GetFieldTypeName(AField.DataType)]));
   end;
 
-  TLogging.Obj.ApplicationMessage(msSystem, 'FieldToJSONVlaue',
-    'DataSet=%s,FieldName=%s,DataType=%s,Value=%s', [Self.Name, AField.FieldName,
-    GetFieldTypeName(AField.DataType), Result.Value]);
+  // TLogging.Obj.ApplicationMessage(msSystem, 'FieldToJSONVlaue',
+  // 'DataSet=%s,FieldName=%s,DataType=%s,Value=%s', [Self.Name, AField.FieldName,
+  // GetFieldTypeName(AField.DataType), Result.Value]);
 end;
 
 procedure TFDDataSetHelper.FieldByJSONArray(AValue: TJSONArray; AName: String);
