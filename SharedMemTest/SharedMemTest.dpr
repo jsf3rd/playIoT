@@ -2,7 +2,8 @@ program SharedMemTest;
 
 uses
   Vcl.Forms,
-  _fmMain in '_fmMain.pas' {Form2};
+  _fmMain in '_fmMain.pas' {Form2},
+  JdcSharedMem.Dictionary in '..\JdcSharedMem.Dictionary.pas';
 
 {$R *.res}
 

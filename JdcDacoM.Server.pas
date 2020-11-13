@@ -60,7 +60,8 @@ type
 
     destructor Destroy; override;
 
-    function ModuleList: String;
+    function ModuleStrings: String;
+    function ModuleList: TArray<Integer>;
     function GetNextID: Integer;
 
     procedure OnIDTable(ABuff: TIdBytes);
@@ -118,7 +119,7 @@ type
     procedure TCPServerExecute(AContext: TIdContext);
     procedure TCPServerException(AContext: TIdContext; AException: Exception);
 
-    procedure _RequestData(ATime: TDateTime; AMac: string);
+    procedure _RequestData(ATime: TDateTime; AMac: string = '');
     procedure OnRequest(AContext: TIdContext; const AParam: TRequestParam);
     procedure OnModuleData(ASession: TMySession; AID: Integer);
     procedure OnMeterData(ASession: TMySession);
@@ -141,9 +142,9 @@ type
 
     destructor Destroy; override;
 
-    procedure RequestData(ATime: TDateTime; AMac: string);
-    function GetIDList(AMac: string): String;
-    function GetOnlineMeter: TArray<String>;
+    procedure RequestData(ATime: TDateTime; AMac: string = '');
+    function GetIDList(AMac: string): TArray<Integer>;
+    function GetMacList: TArray<String>;
     function Started: Boolean;
   end;
 
@@ -198,7 +199,7 @@ begin
   inherited;
 end;
 
-function TDacoMServer.GetIDList(AMac: string): String;
+function TDacoMServer.GetIDList(AMac: string): TArray<Integer>;
 var
   List: TList;
   Context: TIdContext;
@@ -230,7 +231,7 @@ begin
   end;
 end;
 
-function TDacoMServer.GetOnlineMeter: TArray<String>;
+function TDacoMServer.GetMacList: TArray<String>;
 var
   List: TList;
   Context: TIdContext;
@@ -519,11 +520,13 @@ begin
         Continue;
 
       MySession := TMySession(Context.Data);
-      if MySession.MacAddress <> AMac then
+
+      if (AMac <> '') and (MySession.MacAddress <> AMac) then
         Continue;
 
       MySession.MeasuringTime := ATime;
       MySession.RequestFromPowerData;
+      sleep(1);
     end;
   finally
     FTCPServer.Contexts.UnlockList;
@@ -610,10 +613,10 @@ begin
   TLogging.Obj.ApplicationMessage(msSystem, 'IDTable', DACO_TAG + TJson.RecordToJsonString(IDTable));
 
   CopyMemory(@Self.IDList[0], @IDTable.ID[0], SizeOf(TIDArray40));
-  FModuleCount := Length(Self.ModuleList.Split([',']));
+  FModuleCount := Length(Self.ModuleList);
   TLogging.Obj.ApplicationMessage(msInfo, 'ModuleList',
     Format(DACO_TAG + 'Port=%d,Serial=%s,Count=%d,List=%s', [FContext.PeerPort, FMacAddress, FModuleCount,
-    ModuleList]));
+    Self.ModuleStrings]));
 end;
 
 procedure TMySession.OnIOControl(ABuff: TIdBytes);
@@ -634,20 +637,36 @@ begin
   RequestModule(ModulePart1.UnitId, TModbus.WORD_COUNT_PART1, TModbus.WORD_COUNT_PART2);
 end;
 
-function TMySession.ModuleList: String;
+function TMySession.ModuleList: TArray<Integer>;
 var
   I: Integer;
-  str: TStringList;
 begin
-  str := TStringList.Create;
+  result := [];
   for I := Low(FIDList) to High(FIDList) do
   begin
     if FIDList[I].Hi > 0 then
-      str.Add(Format('%d', [FIDList[I].Hi]));
+      result := result + [FIDList[I].Hi];
   end;
+end;
 
-  result := str.CommaText;
-  str.Free;
+function TMySession.ModuleStrings: String;
+var
+  I: Integer;
+  str: TStringList;
+  Module: TArray<Integer>;
+begin
+  Module := Self.ModuleList;
+
+  str := TStringList.Create;
+  try
+    for I := Low(Module) to High(Module) do
+    begin
+      str.Add(Format('%d(%x)', [Module[I], Module[I]]));
+    end;
+    result := str.CommaText;
+  finally
+    str.Free;
+  end;
 end;
 
 procedure TMySession.OnModulePart2(ABuff: TIdBytes);
@@ -713,7 +732,7 @@ begin
     Exit;
   end;
 
-  Addr := TModbus.GetAddress(AID) + AOffSet;
+  Addr := TModbus.GetAddress(AID, TDacoM.DEVICE_1000APS) + AOffSet;
   OnRequest(FContext, TRequestParam.Create(AID, TModbus.READ_REGISTER, Addr, ALen));
 end;
 

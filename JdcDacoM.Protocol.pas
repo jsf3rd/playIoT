@@ -303,6 +303,9 @@ type
     class function CheckCRC(const ABuff: TIdBytes): Boolean;
   end;
 
+const
+  DACO_TAG = '(DacoM)';
+
 implementation
 
 { TModulePart1 }

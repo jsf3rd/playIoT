@@ -104,13 +104,13 @@ begin
   end;
 
   Stream := TMemoryStream.Create;
-  Stream.Write(@Header, SizeOf(Header));
-  Stream.Write(@Data[0], Header.DataLength);
+  Stream.Write(Header, SizeOf(Header));
+  Stream.Write(Data[0], Header.DataLength);
   FMemWriter.PutData(Stream);
   Stream.Free;
 
-  PrintLog(Memo1, 'Put Data : ' + edtCodeName.Text + ', Value :' + Value.ToString + ', Seq : '
-    + FMemWriter.Sequence.ToString);
+  PrintLog(Memo1, 'Put Data : ' + edtCodeName.Text + ', Value :' + Value.ToString + ', Seq : ' +
+    FMemWriter.Sequence.ToString);
 end;
 
 procedure TForm2.btnGetFinalClick(Sender: TObject);
@@ -178,8 +178,8 @@ begin
   if Assigned(FMemWriter) then
     FreeAndNil(FMemWriter);
 
-  FMemWriter := TJdcSharedMemWriter.Create(edtCodeName.Text, SizeOf(TItemDataFormatHeader) +
-    100 * SizeOf(double));
+  FMemWriter := TJdcSharedMemWriter.Create(edtCodeName.Text, SizeOf(TItemDataFormatHeader) + 100 *
+    SizeOf(double), dc1);
 end;
 
 procedure TForm2.btnAutoPutClick(Sender: TObject);

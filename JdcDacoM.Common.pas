@@ -56,12 +56,11 @@ begin
   Header.Add('TimeStamp');
   Header.Add('Current(A)');
   Header.Add('Voltage(V)');
-  Header.Add('Power(kW)');
-  Header.Add('ActivePower(kW)');
-  Header.Add('Energy(kWh)');
   Header.Add('PowerFactor');
-  Header.Add('Peak(kW)');
-  Header.Add('ReactivePower(Var)');
+  Header.Add('Energy(kWh)');
+  Header.Add('ActivePower(kW)');
+  Header.Add('ReactivePower(kVAR)');
+  Header.Add('ApparentPower(kVA)');
   result := Header.CommaText;
   Header.Free;
 end;

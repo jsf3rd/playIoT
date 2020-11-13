@@ -93,7 +93,7 @@ type
 
     class function RecordToJsonObject<T: record >(ARecord: T): TJSONObject;
     class function RecordToJsonString<T: record >(ARecord: T): String;
-    class function JsonToRecord<T: record >(AJsonObject: TJSONObject): T; overload;
+    class function JsonToRecord<T: record >(const AJsonObject: TJSONObject): T; overload;
     class function JsonToRecord<T: record >(const AJson: String): T; overload;
     class function FileToRecord<T: record >(const FileName: String): T;
     class function ConvertRecord<T1, T2: record >(ARecord: T1): T2;
@@ -351,7 +351,7 @@ begin
   result := TSuperObject.Create(AJson).AsType<T>;
 end;
 
-class function TJSONHelper.JsonToRecord<T>(AJsonObject: TJSONObject): T;
+class function TJSONHelper.JsonToRecord<T>(const AJsonObject: TJSONObject): T;
 begin
   result := JsonToRecord<T>(AJsonObject.ToString);
 end;
