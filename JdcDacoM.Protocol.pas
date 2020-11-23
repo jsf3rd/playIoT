@@ -16,71 +16,6 @@ uses SysUtils, Classes, JdcGlobal, JdcGlobal.ClassHelper, IdGlobal, Winapi.Windo
   System.DateUtils, JdcCRC, REST.JSON, System.JSON, JdcDacoM.Common, JdcLogging;
 
 type
-  TMBAPHeader = packed record
-    TrasactionId: UInt16;
-    ProtocolId: UInt16;
-    Length: UInt16;
-  end;
-
-  TPhasor = packed record
-    X: Single;
-    Y: Single;
-  end;
-
-  T3Phase = packed record
-    A: Single;
-    B: Single;
-    C: Single;
-    function Sum: Double;
-    procedure Init;
-    procedure Add(const AValue: T3Phase);
-    procedure Min(const AValue: T3Phase);
-    procedure Max(const AValue: T3Phase);
-    function UnitFactor(AValue: Double): T3Phase;
-
-    function CommaText: String;
-  end;
-
-  T3PhaseEx = packed record
-    Phases: T3Phase;
-    Calc: Single;
-    procedure Add(const AValue: T3PhaseEx);
-    procedure Min(const AValue: T3PhaseEx);
-    procedure Max(const AValue: T3PhaseEx);
-    procedure Init;
-    function UnitFactor(AValue: Double): T3PhaseEx;
-
-    function CommaText: string;
-  end;
-
-  TAMOUNT = packed record
-    Received: Int32;
-    Delivered: Int32;
-    Sum: Int32;
-    Net: Int32;
-  end;
-
-  TMBHeader = packed record
-    UnitId: Byte;
-    FC: Byte;
-    Len: Byte;
-  end;
-
-  TErrorCode = packed record
-    UnitId: Byte;
-    FC: Byte; // 0x83
-    Msg: Byte; // 0x01
-  end;
-
-  TResponse = packed record
-    ID: Byte;
-    FC: Byte;
-    Addr: UInt16;
-    Data: UInt16;
-  end;
-
-  THarmoic = array [0 .. 30] of UInt16;
-
   TPowerData = packed record
     VoltLN: T3PhaseEx; // 전압
     VoltLL: T3PhaseEx; // 선간전압
@@ -254,16 +189,6 @@ type
     Data: TIOList;
   end;
 
-type
-  TRequestParam = record
-    ID: Byte;
-    FC: Byte;
-    Addr: UInt16;
-    Data: UInt16;
-    constructor Create(ID: Byte; FC: Byte; Addr, Data: UInt16);
-    function GetCommand: TIdBytes;
-  end;
-
   TModbus = class
   const
     ZERO_ADDRESS = $2C25; // 11301;
@@ -320,90 +245,6 @@ end;
 function TModulePart2.UnitId: Byte;
 begin
   result := Self.Header.UnitId;
-end;
-
-{ T3Phase }
-
-procedure T3Phase.Add(const AValue: T3Phase);
-begin
-  Self.A := Self.A + AValue.A;
-  Self.B := Self.B + AValue.B;
-  Self.C := Self.C + AValue.C;
-end;
-
-function T3Phase.CommaText: String;
-begin
-  result := Format('%f,%f,%f', [Self.A, Self.B, Self.C]);
-end;
-
-procedure T3Phase.Init;
-begin
-  Self.A := 0;
-  Self.B := 0;
-  Self.C := 0;
-end;
-
-procedure T3Phase.Max(const AValue: T3Phase);
-begin
-  Self.A := Math.Max(Self.A, AValue.A);
-  Self.B := Math.Max(Self.B, AValue.B);
-  Self.C := Math.Max(Self.C, AValue.C);
-end;
-
-procedure T3Phase.Min(const AValue: T3Phase);
-begin
-  Self.A := Math.Min(Self.A, AValue.A);
-  Self.B := Math.Min(Self.B, AValue.B);
-  Self.C := Math.Min(Self.C, AValue.C);
-end;
-
-function T3Phase.Sum: Double;
-begin
-  result := Self.A + Self.B + Self.C;
-end;
-
-function T3Phase.UnitFactor(AValue: Double): T3Phase;
-begin
-  result.A := Self.A * AValue;
-  result.B := Self.B * AValue;
-  result.C := Self.C * AValue;
-end;
-
-{ T3PhaseEx }
-
-function T3PhaseEx.CommaText: string;
-begin
-  result := Format('%s,%f', [Self.Phases.CommaText, Self.Calc]);
-end;
-
-procedure T3PhaseEx.Init;
-begin
-  Self.Phases.Init;
-  Self.Calc := 0;
-end;
-
-procedure T3PhaseEx.Max(const AValue: T3PhaseEx);
-begin
-  Self.Phases.Max(AValue.Phases);
-  Self.Calc := Math.Max(Self.Calc, AValue.Calc);
-end;
-
-procedure T3PhaseEx.Min(const AValue: T3PhaseEx);
-begin
-  Self.Phases.Min(AValue.Phases);
-  Self.Calc := Math.Min(Self.Calc, AValue.Calc);
-end;
-
-function T3PhaseEx.UnitFactor(AValue: Double): T3PhaseEx;
-begin
-  result.Phases := Self.Phases.UnitFactor(AValue);
-  result.Calc := Self.Calc * AValue;
-end;
-
-procedure T3PhaseEx.Add(const AValue: T3PhaseEx);
-begin
-  Self.Phases.Add(AValue.Phases);
-  Self.Calc := Self.Calc + AValue.Calc;
 end;
 
 { TModule }
@@ -515,25 +356,6 @@ begin
   result := AParam.GetCommand;
   MyCRC := ModbusCRC16(result);
   AppendBytes(result, ToBytes(MyCRC));
-end;
-
-{ TRequestParam }
-
-constructor TRequestParam.Create(ID: Byte; FC: Byte; Addr, Data: UInt16);
-begin
-  Self.ID := ID;
-  Self.FC := FC;
-  Self.Addr := Addr;
-  Self.Data := Data;
-end;
-
-function TRequestParam.GetCommand: TIdBytes;
-begin
-  SetLength(result, 0);
-  AppendByte(result, Self.ID); // unit_id
-  AppendByte(result, Self.FC); // FC
-  AppendBytes(result, ToBytes(Rev2Bytes(Self.Addr))); // 시작주소
-  AppendBytes(result, ToBytes(Rev2Bytes(Self.Data))); // 개수
 end;
 
 end.
