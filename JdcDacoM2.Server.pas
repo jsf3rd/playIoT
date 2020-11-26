@@ -1,6 +1,6 @@
 // *******************************************************
 //
-// DACO-M 1000P TCP Server
+// DACO-M 1000P TCP Server v2
 //
 // Copyright(c) 2020 DACO.
 //
@@ -8,11 +8,11 @@
 //
 // *******************************************************
 
-unit JdcDacoM.Server;
+unit JdcDacoM2.Server;
 
 interface
 
-uses System.SysUtils, System.Classes, JdcDacoM.Protocol, JdcDacoM.Common, IdContext, IdBaseComponent,
+uses System.SysUtils, System.Classes, JdcDacoM2.Protocol, JdcDacoM2.Common, IdContext, IdBaseComponent,
   IdComponent, IdCustomTCPServer, IdTCPServer, JdcGlobal, System.Generics.Collections, IdGlobal,
   Winapi.Windows, System.JSON, REST.JSON, JdcGlobal.ClassHelper, System.DateUtils, IdException,
   IdExceptionCore, IdStack, Math, JdcGlobal.DSCommon;
@@ -21,8 +21,7 @@ type
   TMySession = class;
 
   TOnPowerData = procedure(ATime: TDateTime; AMac: string; AData: TPowerData) of object; // Power 데이터 수신 이벤트
-  TOnIOList = procedure(ATime: TDateTime; AMac: string; AData: TIOList) of object; // IOControl 데이터 수신 이벤트
-  TOnModuleData = procedure(ASession: TMySession; AID: Integer) of object; // 분기모듈 데이터 수신 이벤트
+  TOnModuleData = procedure(ASession: TMySession; UnitID: Integer) of object; // 분기모듈 데이터 수신 이벤트
   TOnMeterData = procedure(ASession: TMySession) of object; // 모든 모듈 데이터 수집 완료 이벤트
   TOnRequest = procedure(AContext: TIdContext; const AParam: TRequestParam) of object;
 
@@ -40,14 +39,13 @@ type
     FMacAddress: string;
 
     FOnPowerData: TOnPowerData;
-    FOnIOList: TOnIOList;
     FOnModuleData: TOnModuleData;
     FOnMeterData: TOnMeterData;
 
     FOnRequest: TOnRequest;
     FContext: TIdContext;
 
-    function GetNextID: Integer;
+    procedure RequestPower;
 
     function GetPart1(AIndex: Integer): TDataPart1;
     procedure SetPart1(AIndex: Integer; const Value: TDataPart1);
@@ -63,11 +61,13 @@ type
 
     function ModuleStrings: String;
     function ModuleList: TArray<Integer>;
+    function GetNextID: Integer;
 
     procedure OnIDTable(ABuff: TIdBytes);
     procedure OnModulePart1(ABuff: TIdBytes);
     procedure OnModulePart2(ABuff: TIdBytes);
     procedure OnPowerModule(ABuff: TIdBytes);
+    procedure OnSystemModule(ABuff: TIdBytes);
     procedure OnIOControl(ABuff: TIdBytes);
     procedure OnError(ABuff: TIdBytes);
 
@@ -76,15 +76,12 @@ type
     function BuffToRecord<T: record >(var ABuff: TIdBytes; ReverseIndex: Integer = -1;
       AType: TMessageType = msSystem): T;
 
-    procedure RequestModule(AID: Integer; AOffSet, ALen: UInt16);
+    procedure RequestModule(UnitID: Integer; AOffSet, ALen: UInt16);
     procedure RequestNextModule;
 
-    procedure RequestPower;
-
     procedure RequestIDTable;
-
     procedure RequestFromPowerData; // Power 데이터를 시작으로 모든데이터 요청
-    procedure RequestPowerDataOnly; // Power 데이터 만 요청하기
+    procedure RequestSystemInfo;
 
     property RequestTime: TDateTime read FRequestTime write FRequestTime;
     property IDList: TIDArray40 read FIDList write FIDList;
@@ -100,7 +97,6 @@ type
 
     property OnRequest: TOnRequest read FOnRequest write FOnRequest;
     property OnPowerData: TOnPowerData read FOnPowerData write FOnPowerData;
-    property OnIOList: TOnIOList read FOnIOList write FOnIOList;
     property OnModuleData: TOnModuleData read FOnModuleData write FOnModuleData;
     property OnMeterData: TOnMeterData read FOnMeterData write FOnMeterData;
   end;
@@ -321,8 +317,6 @@ begin
       ASession.OnModulePart2(ABuff);
     ptPowerModule:
       ASession.OnPowerModule(ABuff);
-    ptIOControl:
-      ASession.OnIOControl(ABuff);
     ptError:
       ASession.OnError(ABuff);
   else
@@ -396,7 +390,7 @@ begin
   AContext.ReadTimeout := TDacoM.READ_TIME_OUT;
 
   // for MacAddress
-  MySession.RequestPowerDataOnly;
+  MySession.RequestSystemInfo;
 end;
 
 procedure TDacoMServer.TCPServerDisconnect(AContext: TIdContext);
@@ -620,21 +614,19 @@ begin
 end;
 
 procedure TMySession.OnIOControl(ABuff: TIdBytes);
-var
-  IOControl: TIOControl;
 begin
-  IOControl := BuffToRecord<TIOControl>(ABuff, 3, msSystem);
-  if Assigned(FOnIOList) then
-    FOnIOList(FRequestTime, MacAddress, IOControl.Data);
+
 end;
 
 procedure TMySession.OnModulePart1(ABuff: TIdBytes);
 var
+  UnitID: Byte;
   ModulePart1: TModulePart1;
 begin
+  UnitID := FIDList[FCurIndex].Hi;
   ModulePart1 := BuffToRecord<TModulePart1>(ABuff, 3);
-  Self.Part1[ModulePart1.UnitId] := ModulePart1.Data;
-  RequestModule(ModulePart1.UnitId, TModbus.WORD_COUNT_PART1, TModbus.WORD_COUNT_PART2);
+  Self.Part1[UnitID] := ModulePart1.Data;
+  RequestModule(UnitID, TModbus.WORD_COUNT_PART1, TModbus.WORD_COUNT_PART2);
 end;
 
 function TMySession.ModuleList: TArray<Integer>;
@@ -671,13 +663,15 @@ end;
 
 procedure TMySession.OnModulePart2(ABuff: TIdBytes);
 var
+  UnitID: Byte;
   ModulePart2: TModulePart2;
 begin
+  UnitID := FIDList[FCurIndex].Hi;
   ModulePart2 := BuffToRecord<TModulePart2>(ABuff, 3);
-  Self.Part2[ModulePart2.UnitId] := ModulePart2.Data;
+  Self.Part2[UnitID] := ModulePart2.Data;
 
   if Assigned(FOnModuleData) then
-    FOnModuleData(Self, ModulePart2.UnitId);
+    FOnModuleData(Self, UnitID);
 
   // Next 데이터 요청
   RequestNextModule;
@@ -688,15 +682,6 @@ var
   PowerModule: TPowerModule;
 begin
   PowerModule := BuffToRecord<TPowerModule>(ABuff, 3);
-  if FMacAddress = '' then
-  begin
-    FMacAddress := ToHex(ToBytes(Rev4Bytes(PowerModule.Data.EthernetMac1_1))) + '-' +
-      ToHex(ToBytes(Rev4Bytes(PowerModule.Data.EthernetMac1_2)));
-    TLogging.Obj.ApplicationMessage(msInfo, 'AddMeter', Format(DACO_TAG + 'Port=%d,Mac=%s',
-      [Self.FContext.PeerPort, FMacAddress]));
-    RequestIDTable;
-  end;
-
   if Assigned(FOnPowerData) then
     FOnPowerData(FRequestTime, MacAddress, PowerModule.Data);
 
@@ -706,21 +691,33 @@ end;
 
 procedure TMySession.OnResponse(var ABuff: TIdBytes);
 begin
-  BuffToRecord<TResponse>(ABuff, 2, msInfo);
+
+end;
+
+procedure TMySession.OnSystemModule(ABuff: TIdBytes);
+var
+  SystemModule: TSystemModule;
+begin
+  SystemModule := BuffToRecord<TSystemModule>(ABuff, 3);
+  FMacAddress := ToHex(ToBytes(Rev4Bytes(SystemModule.Data.EthernetMac1_1))) + '-' +
+    ToHex(ToBytes(Rev4Bytes(SystemModule.Data.EthernetMac1_2)));
+  TLogging.Obj.ApplicationMessage(msInfo, 'AddMeter', Format(DACO_TAG + 'Port=%d,Mac=%s',
+    [Self.FContext.PeerPort, FMacAddress]));
+  RequestIDTable;
 end;
 
 procedure TMySession.RequestIDTable;
 begin
-  OnRequest(FContext, TRequestParam.Create(TModbus.IDTABLE_UNITID, TModbus.READ_REGISTER,
-    TModbus.IDTABLE_ADDRESS, TModbus.WORD_COUNT_IDTABLE));
+  OnRequest(FContext, TRequestParam.Create(TModbus.METER_ID, TModbus.IDTABLE_ADDRESS,
+    TModbus.WORD_COUNT_IDTABLE));
 end;
 
-procedure TMySession.RequestModule(AID: Integer; AOffSet, ALen: UInt16);
+procedure TMySession.RequestModule(UnitID: Integer; AOffSet, ALen: UInt16);
 var
   Addr: UInt16;
   MySession: TMySession;
 begin
-  if AID <= 0 then
+  if UnitID <= 0 then
   begin
     MySession := FContext.Data as TMySession;
     if MinuteOf(MySession.MeasuringTime) = 0 then
@@ -732,8 +729,8 @@ begin
     Exit;
   end;
 
-  Addr := TModbus.GetAddress(AID, TDacoM.DEVICE_1000APS) + AOffSet;
-  OnRequest(FContext, TRequestParam.Create(AID, TModbus.READ_REGISTER, Addr, ALen));
+  Addr := TModbus.GetAddress(UnitID, TDacoM.DEVICE_1000APS) + AOffSet;
+  OnRequest(FContext, TRequestParam.Create(TModbus.METER_ID, Addr, ALen));
 end;
 
 procedure TMySession.RequestNextModule;
@@ -743,14 +740,14 @@ end;
 
 procedure TMySession.RequestPower;
 begin
-  OnRequest(FContext, TRequestParam.Create(TModbus.POWER_UNIT_ID, TModbus.READ_REGISTER,
-    TModbus.POWER_ADDRESS, TModbus.WORD_COUNT_POWER));
+  OnRequest(FContext, TRequestParam.Create(TModbus.METER_ID, TModbus.POWER_ADDRESS,
+    TModbus.WORD_COUNT_POWER));
 end;
 
-procedure TMySession.RequestPowerDataOnly;
+procedure TMySession.RequestSystemInfo;
 begin
-  FCurIndex := Length(FIDList);
-  RequestPower;
+  OnRequest(FContext, TRequestParam.Create(TModbus.METER_ID, TModbus.SYSTEM_ADDRESS,
+    TModbus.WORD_COUNT_SYSTEM));
 end;
 
 procedure TMySession.RequestFromPowerData;
@@ -807,7 +804,7 @@ begin
     raise Exception.Create('out of index SetPart2, ' + AIndex.ToString);
 
   FModule[AIndex].Part2 := Value;
-  FModule[AIndex].UnitId := AIndex;
+  FModule[AIndex].UnitID := AIndex;
 end;
 
 end.
