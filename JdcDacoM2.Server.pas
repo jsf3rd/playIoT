@@ -20,7 +20,8 @@ uses System.SysUtils, System.Classes, JdcDacoM2.Protocol, JdcDacoM2.Common, IdCo
 type
   TMySession = class;
 
-  TOnPowerData = procedure(ATime: TDateTime; AMac: string; AData: TPowerData) of object; // Power 데이터 수신 이벤트
+  TOnPowerData = procedure(ATime: TDateTime; AMac: string; const AData: TPowerData) of object;
+  // Power 데이터 수신 이벤트
   TOnModuleData = procedure(ASession: TMySession; UnitID: Integer) of object; // 분기모듈 데이터 수신 이벤트
   TOnMeterData = procedure(ASession: TMySession) of object; // 모든 모듈 데이터 수집 완료 이벤트
   TOnRequest = procedure(AContext: TIdContext; const AParam: TRequestParam) of object;
@@ -63,17 +64,18 @@ type
     function ModuleList: TArray<Integer>;
     function GetNextID: Integer;
 
-    procedure OnIDTable(ABuff: TIdBytes);
-    procedure OnModulePart1(ABuff: TIdBytes);
-    procedure OnModulePart2(ABuff: TIdBytes);
-    procedure OnPowerModule(ABuff: TIdBytes);
-    procedure OnSystemModule(ABuff: TIdBytes);
-    procedure OnIOControl(ABuff: TIdBytes);
-    procedure OnError(ABuff: TIdBytes);
+    procedure OnIDTable(const ABuff: TIdBytes);
+    procedure OnModulePart1(const ABuff: TIdBytes);
+    procedure OnModulePart2(const ABuff: TIdBytes);
+    procedure OnPowerModule(const ABuff: TIdBytes);
+    procedure OnSystemModule(const ABuff: TIdBytes);
+    procedure OnSubUnit(const ABuff: TIdBytes);
+    procedure OnIOControl(const ABuff: TIdBytes);
+    procedure OnError(const ABuff: TIdBytes);
 
     procedure OnResponse(var ABuff: TIdBytes);
 
-    function BuffToRecord<T: record >(var ABuff: TIdBytes; ReverseIndex: Integer = -1;
+    function BuffToRecord<T: record >(const ABuff: TIdBytes; ReverseIndex: Integer = -1;
       AType: TMessageType = msSystem): T;
 
     procedure RequestModule(UnitID: Integer; AOffSet, ALen: UInt16);
@@ -82,6 +84,7 @@ type
     procedure RequestIDTable;
     procedure RequestFromPowerData; // Power 데이터를 시작으로 모든데이터 요청
     procedure RequestSystemInfo;
+    procedure RequestSubInfo;
 
     property RequestTime: TDateTime read FRequestTime write FRequestTime;
     property IDList: TIDArray40 read FIDList write FIDList;
@@ -101,13 +104,18 @@ type
     property OnMeterData: TOnMeterData read FOnMeterData write FOnMeterData;
   end;
 
+  TDacoObserver = class
+  public
+    procedure OnMeterData(ASession: TMySession); virtual;
+    procedure OnPowerData(ATime: TDateTime; AMac: string; const AData: TPowerData); virtual;
+    procedure OnModuleData(ASession: TMySession; UnitID: Integer); virtual; abstract;
+  end;
+
   TDacoMServer = class
   strict private
     FTCPServer: TIdTCPServer;
 
-    FPowerSub: TList<TOnPowerData>;
-    FModuleSub: TList<TOnModuleData>;
-    FMeterSub: TList<TOnMeterData>;
+    FObserves: TList<TDacoObserver>;
 
     constructor Create;
     procedure TCPServerConnect(AContext: TIdContext);
@@ -116,20 +124,17 @@ type
     procedure TCPServerException(AContext: TIdContext; AException: Exception);
 
     procedure _RequestData(ATime: TDateTime; AMac: string = '');
-    procedure OnRequest(AContext: TIdContext; const AParam: TRequestParam);
-    procedure OnModuleData(ASession: TMySession; AID: Integer);
-    procedure OnMeterData(ASession: TMySession);
-    procedure OnPowerData(ATime: TDateTime; AMac: string; AData: TPowerData);
     procedure ParsePacket(ASession: TMySession; const ABuff: TIdBytes);
+
+    procedure OnMeterData(ASession: TMySession);
+    procedure OnModuleData(ASession: TMySession; AID: Integer);
+    procedure OnRequest(AContext: TIdContext; const AParam: TRequestParam);
+    procedure OnPowerData(ATime: TDateTime; AMac: string; const AData: TPowerData);
   public
     class function Obj: TDacoMServer;
 
-    procedure Add(AProc: TOnPowerData); overload;
-    procedure Remove(AProc: TOnPowerData); overload;
-    procedure Add(AProc: TOnModuleData); overload;
-    procedure Remove(AProc: TOnModuleData); overload;
-    procedure Add(AProc: TOnMeterData); overload;
-    procedure Remove(AProc: TOnMeterData); overload;
+    procedure Add(AObserver: TDacoObserver);
+    procedure Remove(AObserver: TDacoObserver);
 
     procedure Start(APort: Integer = 8900);
     procedure Stop;
@@ -153,19 +158,9 @@ var
 
   { TDacoMServer }
 
-procedure TDacoMServer.Add(AProc: TOnModuleData);
+procedure TDacoMServer.Add(AObserver: TDacoObserver);
 begin
-  FModuleSub.Add(AProc);
-end;
-
-procedure TDacoMServer.Add(AProc: TOnMeterData);
-begin
-  FMeterSub.Add(AProc);
-end;
-
-procedure TDacoMServer.Add(AProc: TOnPowerData);
-begin
-  FPowerSub.Add(AProc);
+  FObserves.Add(AObserver);
 end;
 
 function TDacoMServer.ClientCount: Integer;
@@ -181,16 +176,12 @@ begin
   FTCPServer.OnDisconnect := TCPServerDisconnect;
   FTCPServer.OnException := TCPServerException;
 
-  FPowerSub := TList<TOnPowerData>.Create;
-  FModuleSub := TList<TOnModuleData>.Create;
-  FMeterSub := TList<TOnMeterData>.Create;
+  FObserves := TList<TDacoObserver>.Create;
 end;
 
 destructor TDacoMServer.Destroy;
 begin
-  FreeAndNil(FPowerSub);
-  FreeAndNil(FModuleSub);
-  FreeAndNil(FMeterSub);
+  FreeAndNil(FObserves);
   FreeAndNil(FTCPServer);
   inherited;
 end;
@@ -264,26 +255,26 @@ end;
 
 procedure TDacoMServer.OnMeterData(ASession: TMySession);
 var
-  MyEvent: TOnMeterData;
+  MyObserver: TDacoObserver;
 begin
-  for MyEvent in FMeterSub do
-    MyEvent(ASession);
+  for MyObserver in FObserves do
+    MyObserver.OnMeterData(ASession);
 end;
 
 procedure TDacoMServer.OnModuleData(ASession: TMySession; AID: Integer);
 var
-  MyEvent: TOnModuleData;
+  MyObserver: TDacoObserver;
 begin
-  for MyEvent in FModuleSub do
-    MyEvent(ASession, AID);
+  for MyObserver in FObserves do
+    MyObserver.OnModuleData(ASession, AID);
 end;
 
-procedure TDacoMServer.OnPowerData(ATime: TDateTime; AMac: string; AData: TPowerData);
+procedure TDacoMServer.OnPowerData(ATime: TDateTime; AMac: string; const AData: TPowerData);
 var
-  MyEvent: TOnPowerData;
+  MyObserver: TDacoObserver;
 begin
-  for MyEvent in FPowerSub do
-    MyEvent(ATime, AMac, AData);
+  for MyObserver in FObserves do
+    MyObserver.OnPowerData(ATime, AMac, AData);
 end;
 
 procedure TDacoMServer.OnRequest(AContext: TIdContext; const AParam: TRequestParam);
@@ -309,6 +300,10 @@ end;
 procedure TDacoMServer.ParsePacket(ASession: TMySession; const ABuff: TIdBytes);
 begin
   case TModbus.GetProtocolType(ABuff) of
+    ptSubUnit:
+      ASession.OnSubUnit(ABuff);
+    ptSystemModule:
+      ASession.OnSystemModule(ABuff);
     ptIDTable:
       ASession.OnIDTable(ABuff);
     ptModulePart1:
@@ -324,19 +319,9 @@ begin
   end;
 end;
 
-procedure TDacoMServer.Remove(AProc: TOnModuleData);
+procedure TDacoMServer.Remove(AObserver: TDacoObserver);
 begin
-  FModuleSub.Remove(AProc);
-end;
-
-procedure TDacoMServer.Remove(AProc: TOnMeterData);
-begin
-  FMeterSub.Remove(AProc);
-end;
-
-procedure TDacoMServer.Remove(AProc: TOnPowerData);
-begin
-  FPowerSub.Remove(AProc);
+  FObserves.Remove(AObserver);
 end;
 
 procedure TDacoMServer.RequestData(ATime: TDateTime; AMac: string);
@@ -529,14 +514,13 @@ end;
 
 { TMySession }
 
-function TMySession.BuffToRecord<T>(var ABuff: TIdBytes; ReverseIndex: Integer; AType: TMessageType): T;
+function TMySession.BuffToRecord<T>(const ABuff: TIdBytes; ReverseIndex: Integer; AType: TMessageType): T;
 begin
   CopyMemory(@result, @ABuff[0], SizeOf(T));
 
   if ReverseIndex > -1 then
     RevEveryWord(@result, SizeOf(T), ReverseIndex);
 
-  SetLength(ABuff, 0);
   TLogging.Obj.ApplicationMessage(AType, TDSCommon.GetRecordName<T>.Substring(1),
     DACO_TAG + TJson.RecordToJsonString(result));
 end;
@@ -570,7 +554,7 @@ begin
   inherited;
 end;
 
-procedure TMySession.OnError(ABuff: TIdBytes);
+procedure TMySession.OnError(const ABuff: TIdBytes);
 begin
   BuffToRecord<TErrorCode>(ABuff, -1, msWarning);
 end;
@@ -599,7 +583,7 @@ begin
   result := FModule[AIndex].Part2;
 end;
 
-procedure TMySession.OnIDTable(ABuff: TIdBytes);
+procedure TMySession.OnIDTable(const ABuff: TIdBytes);
 var
   IDTable: TIDTable;
 begin
@@ -613,12 +597,12 @@ begin
     Self.ModuleStrings]));
 end;
 
-procedure TMySession.OnIOControl(ABuff: TIdBytes);
+procedure TMySession.OnIOControl(const ABuff: TIdBytes);
 begin
-
+  //
 end;
 
-procedure TMySession.OnModulePart1(ABuff: TIdBytes);
+procedure TMySession.OnModulePart1(const ABuff: TIdBytes);
 var
   UnitID: Byte;
   ModulePart1: TModulePart1;
@@ -661,7 +645,7 @@ begin
   end;
 end;
 
-procedure TMySession.OnModulePart2(ABuff: TIdBytes);
+procedure TMySession.OnModulePart2(const ABuff: TIdBytes);
 var
   UnitID: Byte;
   ModulePart2: TModulePart2;
@@ -677,7 +661,7 @@ begin
   RequestNextModule;
 end;
 
-procedure TMySession.OnPowerModule(ABuff: TIdBytes);
+procedure TMySession.OnPowerModule(const ABuff: TIdBytes);
 var
   PowerModule: TPowerModule;
 begin
@@ -694,7 +678,14 @@ begin
 
 end;
 
-procedure TMySession.OnSystemModule(ABuff: TIdBytes);
+procedure TMySession.OnSubUnit(const ABuff: TIdBytes);
+var
+  SubUnit: TSubModule;
+begin
+  SubUnit := BuffToRecord<TSubModule>(ABuff, 3);
+end;
+
+procedure TMySession.OnSystemModule(const ABuff: TIdBytes);
 var
   SystemModule: TSystemModule;
 begin
@@ -708,7 +699,7 @@ end;
 
 procedure TMySession.RequestIDTable;
 begin
-  OnRequest(FContext, TRequestParam.Create(TModbus.METER_ID, TModbus.IDTABLE_ADDRESS,
+  OnRequest(FContext, TRequestParam.Create(TModbus.TCP_METER_ID, TModbus.IDTABLE_ADDRESS,
     TModbus.WORD_COUNT_IDTABLE));
 end;
 
@@ -730,7 +721,7 @@ begin
   end;
 
   Addr := TModbus.GetAddress(UnitID, TDacoM.DEVICE_1000APS) + AOffSet;
-  OnRequest(FContext, TRequestParam.Create(TModbus.METER_ID, Addr, ALen));
+  OnRequest(FContext, TRequestParam.Create(TModbus.TCP_METER_ID, Addr, ALen));
 end;
 
 procedure TMySession.RequestNextModule;
@@ -740,13 +731,19 @@ end;
 
 procedure TMySession.RequestPower;
 begin
-  OnRequest(FContext, TRequestParam.Create(TModbus.METER_ID, TModbus.POWER_ADDRESS,
+  OnRequest(FContext, TRequestParam.Create(TModbus.TCP_METER_ID, TModbus.POWER_ADDRESS,
     TModbus.WORD_COUNT_POWER));
+end;
+
+procedure TMySession.RequestSubInfo;
+begin
+  OnRequest(FContext, TRequestParam.Create(TModbus.TCP_METER_ID, TModbus.SYSTEM_ADDRESS,
+    TModbus.WORD_COUNT_SUB));
 end;
 
 procedure TMySession.RequestSystemInfo;
 begin
-  OnRequest(FContext, TRequestParam.Create(TModbus.METER_ID, TModbus.SYSTEM_ADDRESS,
+  OnRequest(FContext, TRequestParam.Create(TModbus.TCP_METER_ID, TModbus.SYSTEM_ADDRESS,
     TModbus.WORD_COUNT_SYSTEM));
 end;
 
@@ -805,6 +802,18 @@ begin
 
   FModule[AIndex].Part2 := Value;
   FModule[AIndex].UnitID := AIndex;
+end;
+
+{ TDacoObserver }
+
+procedure TDacoObserver.OnMeterData(ASession: TMySession);
+begin
+  //
+end;
+
+procedure TDacoObserver.OnPowerData(ATime: TDateTime; AMac: string; const AData: TPowerData);
+begin
+  //
 end;
 
 end.

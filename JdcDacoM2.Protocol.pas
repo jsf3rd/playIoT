@@ -16,10 +16,28 @@ uses SysUtils, Classes, JdcGlobal, JdcGlobal.ClassHelper, IdGlobal, Winapi.Windo
   System.DateUtils, JdcCRC, REST.JSON, System.JSON, JdcDacoM2.Common, JdcLogging;
 
 type
+  TSubUnit = packed record
+    SystemINfoAccess: UInt16;
+    ProductType: UInt16;
+    SerialNumber: UInt32;
+    HardwareVersion: UInt16;
+    FirwareVersion: UInt16;
+    BootloaderVersion: UInt16;
+    SubunitGroupID: UInt16;
+    OrderOfWiring: UInt16;
+  end;
+
+  TSubModule = packed record
+    Header: TMBHeader;
+    Data: TSubUnit;
+  end;
+
+  TVenderName = Array [0 .. 19] of AnsiChar;
+
   TSystemInfo = packed record
     ProductID: UInt16;
     SerialNumber: UInt32;
-    VendorName: Array [0 .. 19] of AnsiChar;
+    VendorName: TVenderName;
     HardwareVersion: UInt16;
     ApplicationVersion: UInt16;
     FirwareVersion: UInt16;
@@ -32,6 +50,8 @@ type
     EthernetMac3_2: UInt32;
     BootloaderVersion: UInt16;
     KernelVersion: UInt16;
+    ApplicationRevisionNumber: UInt16;
+    PTBootloaderVersion: UInt16;
   end;
 
   TSystemModule = packed record
@@ -56,7 +76,7 @@ type
     Temperature: Single; // 온도
     ZeroSequenceComponentVoltage: Single;
 
-    Hramonic: THarmoic; // 고주파 함유율
+    Harmonic: THarmoic; // 고주파 함유율
     VoltageDegreePhaseA: UInt16;
     VoltageDegreePhaseB: UInt16;
     VoltageDegreePhaseC: UInt16;
@@ -87,7 +107,6 @@ type
     KW: T3PhaseEx; // 유효전력
     KVAR: T3PhaseEx; // 무효전력
     KVA: T3PhaseEx; // 피상전력
-    ZCTCurrent: Single; //
   end;
 
   TModulePart1 = packed record
@@ -96,6 +115,7 @@ type
   end;
 
   TDataPart2 = packed record
+    ZCTCurrent: Single; //
     KWh: TAMOUNT; // 유효전력량
     KVARh: TAMOUNT; // 무효전력량
     KVAh: Int32; // 피상전력량
@@ -138,7 +158,8 @@ type
 
   TModbus = class
   const
-    METER_ID = 1;
+    TCP_METER_ID = 1;
+    MAIN_UNIT_ID = 1;
 
     ZERO_ADDRESS = $2C25; // 11301;
     MODULE_OFFSET = 250;
@@ -148,6 +169,7 @@ type
     POWER_ADDRESS = $2B5D; // 11101;
 
     SYSTEM_ADDRESS = $1; // 1;
+    SUB_SYSTEM_ADDRESS = $51; // 1;
 
     IOCONTROL_ADDRESS = $EA93; // 60051
 
@@ -157,6 +179,7 @@ type
     READ_REGISTER = $03;
     WRITE_REGISTER = $06;
 
+    WORD_COUNT_SUB = SizeOf(TSubUnit) div 2;
     WORD_COUNT_SYSTEM = SizeOf(TSystemInfo) div 2;
     WORD_COUNT_POWER = SizeOf(TPowerData) div 2;
     WORD_COUNT_PART1 = SizeOf(TDataPart1) div 2;
@@ -251,6 +274,8 @@ begin
 
   if (ByteCount = SizeOf(TIDArray40)) and (Received = SizeOf(TIDTable)) then
     result := ptIDTable
+  else if (ByteCount = SizeOf(TSubUnit)) and (Received = SizeOf(TSubModule)) then
+    result := ptSubUnit
   else if (ByteCount = SizeOf(TSystemInfo)) and (Received = SizeOf(TSystemModule)) then
     result := ptSystemModule
   else if (ByteCount = SizeOf(TPowerData)) and (Received = SizeOf(TPowerModule)) then
