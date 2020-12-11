@@ -14,9 +14,10 @@ unit JdcGlobal;
 interface
 
 uses
-  Classes, SysUtils, Windows, ZLib, IdGlobal, IOUtils, JclFileUtils, Vcl.ExtCtrls, System.StrUtils,
-  IdUDPClient, JclSysInfo, psAPI, IdContext, IdExceptionCore, Vcl.StdCtrls, JclSvcCtrl, Vcl.ActnList,
-  Vcl.Dialogs, WinApi.Shellapi, UITypes, System.Generics.Collections, System.Json, REST.Json, JclDebug;
+  Classes, SysUtils, Winapi.Windows, ZLib, IdGlobal, IOUtils, JclFileUtils, Vcl.ExtCtrls, System.StrUtils,
+  IdUDPClient, JclSysInfo, Winapi.psAPI, IdContext, IdExceptionCore, Vcl.StdCtrls, JclSvcCtrl, Vcl.ActnList,
+  Vcl.Dialogs, Winapi.Shellapi, UITypes, System.Generics.Collections, System.Json, REST.Json, JclDebug,
+  JvJclUtils;
 
 type
   IExecuteFunc<T> = Interface
@@ -418,16 +419,25 @@ var
   Dummy: Cardinal;
   PVerInfo: Pointer;
   PVerValue: PVSFixedFileInfo;
+  iLastError: DWORD;
 begin
-  Result := '';
+  Result := 'v0.1';
 
   if not TFile.Exists(FileName) then
     Exit;
 
   VerInfoSize := GetFileVersionInfoSize(PChar(FileName), Dummy);
+  if VerInfoSize = 0 then
+  begin
+    iLastError := GetLastError;
+    TLogging.Obj.ApplicationMessage(msError, GetCurrentProc, SysErrorMessage(iLastError));
+    Exit;
+  end;
+
   GetMem(PVerInfo, VerInfoSize);
   try
     if GetFileVersionInfo(PChar(FileName), 0, VerInfoSize, PVerInfo) then
+    begin
       if VerQueryValue(PVerInfo, '\', Pointer(PVerValue), VerValueSize) then
         with PVerValue^ do
           Result := Format('v%d.%d.%d', [HiWord(dwFileVersionMS),
@@ -435,6 +445,12 @@ begin
             LoWord(dwFileVersionMS), // Minor
             HiWord(dwFileVersionLS) // Release
             ]);
+    end
+    else
+    begin
+      iLastError := GetLastError;
+      TLogging.Obj.ApplicationMessage(msError, GetCurrentProc, SysErrorMessage(iLastError));
+    end;
   finally
     FreeMem(PVerInfo, VerInfoSize);
   end;

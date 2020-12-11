@@ -618,12 +618,9 @@ begin
 end;
 
 function TFDQueryHelper.GetExternalProc(OnlyProcName: Boolean): string;
-var
-  Proc: string;
 begin
   // 0.ThisMethod - 1.OpenQuery - 2.OpenInstansQuery - 3.RealCaller
-  Proc := JdcGlobal.GetProcByLevel(3, OnlyProcName);
-  Result := Proc;
+  Result := JdcGlobal.GetProcByLevel(3, OnlyProcName);
 end;
 
 procedure TFDQueryHelper.LoadFromDSStream(AStream: TStream);

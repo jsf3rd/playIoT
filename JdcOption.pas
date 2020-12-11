@@ -3,7 +3,7 @@ unit JdcOption;
 interface
 
 uses
-  Classes, SysUtils, IniFiles, Registry, Winapi.Windows, JdcGlobal;
+  Classes, SysUtils, IniFiles, Win.Registry, Winapi.Windows, JdcGlobal;
 
 type
   TIniProc = reference to procedure(AIni: TIniFile);

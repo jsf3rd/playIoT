@@ -302,7 +302,7 @@ begin
     _PrintLog(MyLog);
   except
     on E: Exception do
-      PrintLog(LogName + '.tmp', MyLog.Time, MyLog.Msg);
+      PrintLog(LogName + '.tmp', MyLog.Time, MyLog.Msg + ',E=' + E.Message);
   end;
 end;
 
