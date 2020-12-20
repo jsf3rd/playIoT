@@ -14,9 +14,9 @@ unit JdcGlobal.ClassHelper;
 interface
 
 uses
-  Classes, SysUtils, REST.JSON,
+  Classes, SysUtils, REST.JSON, Winapi.Windows,
   XSuperObject, System.IOUtils, System.Generics.Collections, System.DateUtils, Data.SqlTimSt,
-  IdContext, JdcGlobal, IdGlobal, IdExceptionCore, IdIOHandler, JdcLogging
+  IdContext, JdcGlobal, IdGlobal, IdExceptionCore, IdIOHandler, JdcLogging, Vcl.StdCtrls
 
 {$IF CompilerVersion  > 26} // upper XE5
     , System.JSON
@@ -118,6 +118,11 @@ type
     function SQLTimeStamp: TSQLTimeStamp;
     function Date: string;
     function Time: string;
+  end;
+
+  TCustomComboboxHelper = class helper for TCustomCombobox
+  public
+    procedure RightAlignment;
   end;
 
 function ReplaceStringNumber(const AInput: string): string;
@@ -543,6 +548,31 @@ end;
 function TTimeHelper.ToString: String;
 begin
   result := FormatDateTime('HH:NN:SS', Self);
+end;
+
+{ TCustomComboboxHelper }
+
+procedure TCustomComboboxHelper.RightAlignment;
+var
+  Info: tagCOMBOBOXINFO;
+  old_style, new_style: NativeInt;
+  rtl: LongBool;
+begin
+  ZeroMemory(@Info, SizeOf(Info));
+  Info.cbSize := SizeOf(Info);
+
+  if not GetComboBoxInfo(Self.Handle, Info) then
+    raise Exception.Create('GetComboBoxInfo Error Code - ' + GetLastERror.ToString);
+
+  old_style := GetWindowLong(Info.hwndItem, GWL_STYLE);
+  new_style := old_style or ES_RIGHT;
+  SetWindowLong(Info.hwndItem, GWL_STYLE, new_style);
+
+  old_style := GetWindowLong(Info.hwndList, GWL_EXSTYLE);
+  new_style := old_style or WS_EX_RIGHT;
+  SetWindowLong(Info.hwndList, GWL_EXSTYLE, new_style);
+
+  Refresh;
 end;
 
 end.
