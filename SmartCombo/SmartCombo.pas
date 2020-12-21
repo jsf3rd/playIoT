@@ -6,8 +6,7 @@ unit SmartCombo;
 
   -Reference
   http://blog.devquest.co.kr/imp/219
-  
-  
+
   -Edit
   jsf3rd@nate.com
   // @Prevents a bug in which characters are deleted when re-entering after deleting UniCode characters
@@ -39,7 +38,7 @@ type
   protected
     procedure KeyPress(var Key: Char); override;
 
-    // @Prevents a bug in which characters are deleted when re-entering after deleting UniCode characters
+    // @이력중에 선택 시 입력값 남는 버그
     procedure EditWndProc(var Message: TMessage); override;
   public
     procedure FilterItems;
@@ -54,18 +53,50 @@ implementation
 
 procedure TSmartComboBox.KeyPress(var Key: Char);
 // combo dropdown must be done in keypress, if its done on CBN_EDITUPDATE it messes up whole message processing mumbo-jumbo
+var
+  xSelStart: Integer;
+  xText: string;
 begin
   inherited;
+
+  if Ord(Key) = 8 then
+    FChar := Key;
 
   if doFilter and not(Ord(Key) in [8, 13, 27]) then // BackSpace, Enter, ESC
   begin
     FChar := Key;
-    if not DroppedDown then
+
+    if DroppedDown then
+      Exit;
+
+    if Items.Count = 0 then
+      Exit;
+
+    xSelStart := SelStart;
+    if (Text = '') then // 첫 입력
+      xText := ''
+    else if SelLength > 0 then // 선택 후 입력
     begin
-      // @Prevent bug where cursor hides behind form after Combo DropDown
-      if Text = '' then
-        SendMessage(Handle, CB_SHOWDROPDOWN, 1, 0);
+      xText := Copy(Text, SelStart + 1, SelLength);
+      xText := ReplaceStr(Text, xText, '');
+    end
+    else // 이미 Edit 입력이 있는 상태에서 선택 없이 입력
+    begin
+      xText := Copy(Text, 1, SelStart);
+      xText := xText + Key;
+      xText := xText + Copy(Text, SelStart + 1, Length(Text) - SelStart);
+      xSelStart := xSelStart + 1;
+      Key := #0;
     end;
+
+    SendMessage(Handle, CB_SHOWDROPDOWN, 1, 0);
+
+    if not xText.IsEmpty then
+    begin
+      Text := xText;
+      SelStart := xSelStart;
+    end;
+
   end;
 end;
 
@@ -125,15 +156,10 @@ procedure TSmartComboBox.CNCommand(var AMessage: TWMCommand);
 begin
   // we have to process everything from our ancestor
   inherited;
-
-  if AMessage.Msg = CN_DRAWITEM then
-  begin
-    FChar := #0;
-  end;
-
-  // @Filter at the Unicode character level(default - letter level)
-  // if FChar = #0 then
-  // Exit;
+  // Text 마지막에 Append 중일때만 낱자 필터 적용
+  // 중간에 Insert 중일때는 글자 필터 적용
+  if (SelStart < Length(Text)) and (FChar = #0) then
+    Exit;
 
   // if we received the CBN_EDITUPDATE notification
   if (AMessage.NotifyCode = CBN_EDITUPDATE) and doFilter then
@@ -149,7 +175,6 @@ procedure TSmartComboBox.FilterItems;
 var
   I: Integer;
   Selection: TSelection;
-  xText: string;
 begin
   // store the current combo edit selection
   SendMessage(Handle, CB_GETEDITSEL, WPARAM(@Selection.StartPos), LPARAM(@Selection.EndPos));
@@ -180,25 +205,12 @@ begin
       // so then we'll use all what we have in the FStoredItems
       Items.Assign(FStoredItems);
     end;
-
-    // @Prevents a bug in which Text is deleted when adding text after selection
-    if not DroppedDown then
-    begin
-      xText := Text;
-      SendMessage(Handle, CB_SHOWDROPDOWN, 1, 0);
-      if Items.Count = 0 then
-        ItemIndex := -1
-      else
-        ItemIndex := 0;
-      Text := xText;
-    end;
-
   finally
     // finish the items update
     Items.EndUpdate;
   end;
-  // and restore the last combo edit selection
 
+  // and restore the last combo edit selection
   SendMessage(Handle, CB_SETEDITSEL, 0, MakeLParam(Selection.StartPos, Selection.EndPos));
 end;
 
