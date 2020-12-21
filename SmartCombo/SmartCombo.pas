@@ -3,6 +3,10 @@ unit SmartCombo;
 {
   -Origin Source
   https://stackoverflow.com/questions/9466547/how-to-make-a-combo-box-with-fulltext-search-autocomplete-support
+
+  -Reference
+  http://blog.devquest.co.kr/imp/219
+  
   
   -Edit
   jsf3rd@nate.com
