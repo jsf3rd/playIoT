@@ -9,10 +9,7 @@ unit SmartCombo;
 
   -Edit
   jsf3rd@nate.com
-  // @Prevents a bug in which characters are deleted when re-entering after deleting UniCode characters
-  // @Prevent bug where cursor hides behind form after Combo DropDown
-  // @Filter at the Unicode character level(default - letter level)
-  // @Prevents a bug in which Text is deleted when adding text after selection
+
 }
 
 interface
@@ -35,21 +32,53 @@ type
     procedure StoredItemsChange(Sender: TObject);
     procedure SetStoredItems(const Value: TStringList);
     procedure CNCommand(var AMessage: TWMCommand); message CN_COMMAND;
+    function GetXText(var Key: Char): string;
+    function GetXSelStart: Integer;
   protected
     procedure KeyPress(var Key: Char); override;
 
-    // @이력중에 선택 시 입력값 남는 버그
+    // @Prevents a bug - typing values are appended when selecting a list while typing in Unicode
     procedure EditWndProc(var Message: TMessage); override;
   public
-    procedure FilterItems;
-
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
-    property StoredItems: TStringList read FStoredItems write SetStoredItems;
+
+    procedure FilterItems;
     procedure InitSmartCombo;
+
+    property StoredItems: TStringList read FStoredItems write SetStoredItems;
   end;
 
 implementation
+
+function TSmartComboBox.GetXText(var Key: Char): string;
+var
+  tmp: string;
+begin
+  if (Text = '') then // empty edit box
+    result := ''
+  else if SelLength > 0 then // has selection
+  begin
+    tmp := Copy(Text, SelStart + 1, SelLength);
+    result := ReplaceStr(Text, tmp, '');
+  end
+  else // not empty edit box and no selection
+  begin
+    tmp := Copy(Text, 1, SelStart);
+    result := tmp + Key;
+    result := result + Copy(Text, SelStart + 1, Length(Text) - SelStart);
+    Key := #0;
+  end;
+end;
+
+function TSmartComboBox.GetXSelStart: Integer;
+begin
+  // empty edit box or has selection
+  if (Text = '') or (SelLength > 0) then
+    result := SelStart
+  else // not empty edit box and no selection
+    result := SelStart + 1;
+end;
 
 procedure TSmartComboBox.KeyPress(var Key: Char);
 // combo dropdown must be done in keypress, if its done on CBN_EDITUPDATE it messes up whole message processing mumbo-jumbo
@@ -72,31 +101,19 @@ begin
     if Items.Count = 0 then
       Exit;
 
-    xSelStart := SelStart;
-    if (Text = '') then // 첫 입력
-      xText := ''
-    else if SelLength > 0 then // 선택 후 입력
-    begin
-      xText := Copy(Text, SelStart + 1, SelLength);
-      xText := ReplaceStr(Text, xText, '');
-    end
-    else // 이미 Edit 입력이 있는 상태에서 선택 없이 입력
-    begin
-      xText := Copy(Text, 1, SelStart);
-      xText := xText + Key;
-      xText := xText + Copy(Text, SelStart + 1, Length(Text) - SelStart);
-      xSelStart := xSelStart + 1;
-      Key := #0;
-    end;
+    // backup
+    xSelStart := GetXSelStart;
+    xText := GetXText(Key);
 
+    // dropdown
     SendMessage(Handle, CB_SHOWDROPDOWN, 1, 0);
 
-    if not xText.IsEmpty then
-    begin
-      Text := xText;
-      SelStart := xSelStart;
-    end;
+    if xText.IsEmpty then
+      Exit;
 
+    // restore
+    Text := xText;
+    SelStart := xSelStart;
   end;
 end;
 
@@ -156,8 +173,10 @@ procedure TSmartComboBox.CNCommand(var AMessage: TWMCommand);
 begin
   // we have to process everything from our ancestor
   inherited;
-  // Text 마지막에 Append 중일때만 낱자 필터 적용
-  // 중간에 Insert 중일때는 글자 필터 적용
+
+  // @Filtering is applied to each Unicode being typed if it is being entered after the end of the text.
+  // @If you are typing in the middle of the text, do not apply filtering to the Unicode being typed
+  // (filtering is applied in units of completed Unicode characters)
   if (SelStart < Length(Text)) and (FChar = #0) then
     Exit;
 
