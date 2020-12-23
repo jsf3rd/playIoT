@@ -36,6 +36,12 @@ type
   end;
 {$ENDIF}
 
+  TIdIOHandlerHelper = class helper for TIdIOHandler
+  private
+  public
+    procedure FlushBuffer;
+  end;
+
   TIdContextHelper = class helper for TIdContext
   private
     function GetReadTimeout: Integer;
@@ -464,38 +470,8 @@ end;
 { TIdContextHelper }
 
 procedure TIdContextHelper.FlushBuffer;
-var
-  buff: TIdBytes;
-  OldTimeout: Integer;
 begin
-  OldTimeout := Self.Connection.IOHandler.ReadTimeout;
-
-  SetLength(buff, 0);
-  Self.Connection.IOHandler.ReadTimeout := 10;
-  try
-    try
-      while True do
-      begin
-        AppendByte(buff, Self.Connection.IOHandler.ReadByte);
-        if Length(buff) > 1000 then
-          break;
-      end;
-    except
-      // Ignore timeout.
-      on E: EIdReadTimeout do;
-
-      on E: Exception do
-        raise;
-    end;
-
-    if Length(buff) = 0 then
-      Exit;
-
-    TLogging.Obj.ApplicationMessage(msDebug, 'FlushBuffer', Format('Port=%d,Len=%d,Msg=%s',
-      [Self.PeerPort, Length(buff), IdBytesToHex(buff)]));
-  finally
-    Self.Connection.IOHandler.ReadTimeout := OldTimeout;
-  end;
+  Self.IOHandler.FlushBuffer;
 end;
 
 function TIdContextHelper.GetReadTimeout: Integer;
@@ -572,6 +548,43 @@ begin
   SetWindowLong(Info.hwndList, GWL_EXSTYLE, new_style);
 
   Refresh;
+end;
+
+{ TIdIOHandlerHelper }
+
+procedure TIdIOHandlerHelper.FlushBuffer;
+var
+  buff: TIdBytes;
+  OldTimeout: Integer;
+begin
+  OldTimeout := Self.ReadTimeout;
+
+  SetLength(buff, 0);
+  Self.ReadTimeout := 10;
+  try
+    try
+      while True do
+      begin
+        AppendByte(buff, Self.ReadByte);
+        if Length(buff) > 1000 then
+          break;
+      end;
+    except
+      // Ignore timeout.
+      on E: EIdReadTimeout do;
+
+      on E: Exception do
+        raise;
+    end;
+
+    if Length(buff) = 0 then
+      Exit;
+
+    TLogging.Obj.ApplicationMessage(msDebug, 'FlushBuffer', Format('Host=%s:%d,Len=%d,Msg=%s',
+      [Self.Host, Self.Port, Length(buff), IdBytesToHex(buff)]));
+  finally
+    Self.ReadTimeout := OldTimeout;
+  end;
 end;
 
 end.
