@@ -63,6 +63,7 @@ type
       const AOutputs: TMsgOutputs = [moDebugView, moLogFile, moCloudMessage]);
 
     function GetLogName: String;
+    procedure _PrintLog(var ALog: TJdcLog);
   public
     destructor Destroy; override;
 
@@ -112,7 +113,11 @@ begin
     if JclFileUtils.FileGetSize(AName) > AMaxSize then
     begin
       try
+{$IFDEF LOGGING_DAY_TAG}
+        FileMove(AName, ChangeFileExt(AName, FormatDateTime('_HHNNSS', Now) + '.bak'), True);
+{$ELSE}
         FileMove(AName, ChangeFileExt(AName, FormatDateTime('_YYYYMMDD_HHNNSS', Now) + '.bak'), True);
+{$ENDIF}
       except
         on E: Exception do
           AName := ChangeFileExt(AName, FormatDateTime('_YYYYMMDD', Now) + '.tmp');
@@ -242,48 +247,48 @@ begin
     FreeAndNil(FMsgQueue);
 end;
 
-procedure TLogging.FlushLog;
+procedure TLogging._PrintLog(var ALog: TJdcLog);
+var
+  Stream: TStreamWriter;
+  LogName: string;
+begin
+  LogName := ALog.LogName;
 
-  procedure _PrintLog(ALog: TJdcLog);
-  var
-    Stream: TStreamWriter;
-    LogName: string;
-  begin
-    LogName := ALog.LogName;
+  if LogName.IsEmpty then
+    Exit;
 
-    if LogName.IsEmpty then
-      Exit;
+  BackupLogFile(LogName);
+  Stream := TFile.AppendText(LogName);
+  try
+    if ALog.Msg.IsEmpty then
+      Stream.WriteLine
+    else
+      Stream.WriteLine(ALog.ToString);
 
-    BackupLogFile(LogName);
-    Stream := TFile.AppendText(LogName);
-    try
+    while FMsgQueue.Count > 0 do
+    begin
+      Sleep(1);
+      ALog := FMsgQueue.Dequeue;
+
+      if LogName <> ALog.LogName then
+      begin
+        FreeAndNil(Stream); // 기존 파일은 닫아 준다.
+        _PrintLog(ALog);
+        break;
+      end;
+
       if ALog.Msg.IsEmpty then
         Stream.WriteLine
       else
         Stream.WriteLine(ALog.ToString);
-
-      while FMsgQueue.Count > 0 do
-      begin
-        Sleep(1);
-        ALog := FMsgQueue.Dequeue;
-
-        if LogName <> ALog.LogName then
-        begin
-          _PrintLog(ALog);
-          break;
-        end;
-
-        if ALog.Msg.IsEmpty then
-          Stream.WriteLine
-        else
-          Stream.WriteLine(ALog.ToString);
-      end;
-    finally
-      FreeAndNil(Stream);
     end;
-
+  finally
+    if Assigned(Stream) then
+      FreeAndNil(Stream);
   end;
+end;
 
+procedure TLogging.FlushLog;
 var
   MyLog: TJdcLog;
 begin
@@ -295,8 +300,8 @@ begin
     FCheckDebug := Now;
     FUseDebug := FOption.UseDebug;
   end;
-  Sleep(227);
 
+  Sleep(227);
   MyLog := FMsgQueue.Dequeue;
   try
     _PrintLog(MyLog);
