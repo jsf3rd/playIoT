@@ -35,7 +35,8 @@ type
   TConnInfo = record
     StringValue: string;
     IntegerValue: Integer;
-    constructor Create(AString: string; AInteger: Integer);
+    constructor Create(AString: string; AInteger: Integer); overload;
+    constructor Create(AHost: string); overload;
     function ToString: string;
     function Equals(const ConnInfo: TConnInfo): Boolean;
   end;
@@ -777,6 +778,12 @@ constructor TConnInfo.Create(AString: string; AInteger: Integer);
 begin
   Self.StringValue := AString;
   Self.IntegerValue := AInteger;
+end;
+
+constructor TConnInfo.Create(AHost: string);
+begin
+  Self.StringValue := AHost.Split([':'])[0];
+  Self.IntegerValue := AHost.Split([':'])[1].ToInteger;
 end;
 
 function TConnInfo.Equals(const ConnInfo: TConnInfo): Boolean;
