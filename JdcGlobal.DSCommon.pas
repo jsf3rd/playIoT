@@ -492,7 +492,6 @@ begin
   Result.CachedUpdates := Self.CachedUpdates;
   Result.UpdateOptions.KeyFields := Self.UpdateOptions.KeyFields;
   Result.UpdateOptions.UpdateTableName := Self.UpdateOptions.UpdateTableName;
-
   Result.SQL.Text := Self.SQL.Text;
   Result.Name := Self.Name + '_' + Format('%0.5d', [Random(100000)]);
 

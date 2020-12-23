@@ -556,7 +556,6 @@ procedure TCustomComboboxHelper.RightAlignment;
 var
   Info: tagCOMBOBOXINFO;
   old_style, new_style: NativeInt;
-  rtl: LongBool;
 begin
   ZeroMemory(@Info, SizeOf(Info));
   Info.cbSize := SizeOf(Info);
