@@ -9,7 +9,10 @@ unit SmartCombo;
 
   -Edit
   jsf3rd@nate.com
-
+  @Prevents a bug - typing values are appended when selecting a list while typing in Unicode
+  @Filtering is applied to each Unicode being typed if it is being entered after the end of the text.
+  @Exception handling in case of entering Unicode after selecting several texts
+  @Exception handling in case of additional input of Unicode when there is already a character in edit and the listbox is closed
 }
 
 interface
@@ -55,14 +58,14 @@ function TSmartComboBox.GetXText(var Key: Char): string;
 var
   tmp: string;
 begin
-  if (Text = '') then // empty edit box
+  if (Text = '') then // @empty edit box
     result := ''
-  else if SelLength > 0 then // has selection
+  else if SelLength > 0 then // @has selection
   begin
     tmp := Copy(Text, SelStart + 1, SelLength);
     result := ReplaceStr(Text, tmp, '');
   end
-  else // not empty edit box and no selection
+  else // @not empty edit box and no selection
   begin
     tmp := Copy(Text, 1, SelStart);
     result := tmp + Key;
@@ -73,10 +76,10 @@ end;
 
 function TSmartComboBox.GetXSelStart: Integer;
 begin
-  // empty edit box or has selection
+  // @empty edit box or has selection
   if (Text = '') or (SelLength > 0) then
     result := SelStart
-  else // not empty edit box and no selection
+  else // @not empty edit box and no selection
     result := SelStart + 1;
 end;
 
