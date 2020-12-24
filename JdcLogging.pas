@@ -74,6 +74,8 @@ type
 
     procedure Init(AGlobal: TGlobalAbstract; AOption: TOptionAbstract);
 
+    function GetLogNameEx(ATag: string): string;
+
     procedure ApplicationMessage(const AType: TMessageType; const ATitle: String;
       const AMessage: String = ''); overload;
     procedure ApplicationMessage(const AType: TMessageType; const ATitle: String; const AFormat: String;
@@ -317,6 +319,15 @@ begin
   Result := ChangeFileExt(FLogName, FormatDateTime('_YYYYMMDD', Now) + '.log');
 {$ELSE}
   Result := FLogName;
+{$ENDIF}
+end;
+
+function TLogging.GetLogNameEx(ATag: string): string;
+begin
+{$IFDEF LOGGING_DAY_TAG}
+  Result := ChangeFileExt(FLogName, Format('_%s_%s.log', [ATag, FormatDateTime('YYYYMMDD', Now)]));
+{$ELSE}
+  Result := ChangeFileExt(FLogName, Format('_%s.log', [ATag]));
 {$ENDIF}
 end;
 
