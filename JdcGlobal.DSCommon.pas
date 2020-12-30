@@ -25,6 +25,7 @@ uses
     ;
 
 type
+  TOpenToFunc<T> = reference to function(AQuery: TFDQuery): T;
   TDSOpenProc = function(const ARequestFilter: string = ''): TStream of object;
   TDSOpenParamProc = function(AParams: TJSONObject; const ARequestFilter: string = ''): TStream of object;
 
@@ -68,6 +69,8 @@ type
 
     // Init TFDQuery Parameter DataType
     class procedure InitDataType(ASender: TComponent; AConn: TFDConnection);
+
+    class function CalcExecTime(ABegin: TDateTime): Double;
   end;
 
   TFDDataSetHelper = class helper for TFDDataSet
@@ -99,7 +102,11 @@ type
     procedure ParamByJsonValue(AValue: TJSONValue; AName: String); overload;
     procedure ParamByJSONArray(AValue: TJSONArray; AName: String);
 
+    function OpenTo<T>(AConn: TFDConnection; AParams: TJSONObject; AType: TMessageType;
+      AProc: TOpenToFunc<T>): T;
+
     function OpenQuery(AConn: TFDConnection; AParams: TJSONObject; AType: TMessageType): TStream;
+    function OpenToMemTab(AConn: TFDConnection; AParams: TJSONObject; AType: TMessageType): TFDMemTable;
     function ExecQuery(AConn: TFDConnection; AParams: TJSONObject; AType: TMessageType): Boolean; overload;
     function ExecQuery(AConn: TFDConnection; AParams: TJSONArray; AType: TMessageType;
       CommitAnyway: Boolean = False): Boolean; overload;
@@ -107,6 +114,7 @@ type
   public
     function Clone: TFDQuery;
     function ToStream: TStream;
+    function ToMemTable: TFDMemTable;
     procedure LoadFromDSStream(AStream: TStream);
 
     function ToJSON: TJSONObject;
@@ -120,6 +128,8 @@ type
     // OpenQuery
     function OpenInstantQuery(AConn: TFDConnection; AParams: TJSONObject; AType: TMessageType = msInfo)
       : TStream; overload;
+    function OpenInstantToMemTab(AConn: TFDConnection; AParams: TJSONObject; AType: TMessageType = msInfo)
+      : TFDMemTable; overload;
 
     // ExecQuery
     function ExecInstantQuery(AConn: TFDConnection; AParams: TJSONObject; AType: TMessageType = msInfo)
@@ -223,6 +233,14 @@ begin
   finally
     tmp.Free;
   end;
+end;
+
+class function TDSCommon.CalcExecTime(ABegin: TDateTime): Double;
+begin
+  Result := MilliSecondsBetween(Now, ABegin) / 1000;
+  if Result > 3 then
+    TLogging.Obj.ApplicationMessage(msWarning, 'Delay', 'Proc=%s,ExecSec=%0.2f',
+      [JdcGlobal.GetProcByLevel(1, True), Result]);
 end;
 
 class procedure TDSCommon.ClearJSONObject(AValue: TJSONArray);
@@ -464,8 +482,8 @@ begin
       Errors := Self.ApplyUpdates;
 
       TLogging.Obj.ApplicationMessage(AType, JdcGlobal.GetCurrentProc,
-        Format('Query=%s,ChangeCount=%d,Errors=%d,ExecTime=%s,Caller=%s', [Self.Name, Self.ChangeCount,
-        Errors, FormatDateTime('NN:SS.zzz', Now - ExecTime), GetExternalProc]));
+        Format('Query=%s,ChangeCount=%d,Errors=%d,ExecSec=%0.2f,Caller=%s', [Self.Name, Self.ChangeCount,
+        Errors, TDSCommon.CalcExecTime(ExecTime), GetExternalProc]));
 
       Result := Errors = 0;
     except
@@ -558,17 +576,15 @@ begin
       begin
         AConn.Commit;
         TLogging.Obj.ApplicationMessage(AType, JdcGlobal.GetCurrentProc,
-          'Commited,Query=%s,Requested=%d,RowsAffected=%d,ExecTime=%s,Caller=%s',
-          [Self.Name, AParams.Count, Self.RowsAffected, FormatDateTime('NN:SS.zzz', Now - ExecTime),
-          GetExternalProc]);
+          'Commited,Query=%s,Requested=%d,RowsAffected=%d,ExecSec=%0.2f,Caller=%s',
+          [Self.Name, AParams.Count, Self.RowsAffected, TDSCommon.CalcExecTime(ExecTime), GetExternalProc]);
       end
       else
       begin
         AConn.Rollback;
         TLogging.Obj.ApplicationMessage(AType, JdcGlobal.GetCurrentProc,
-          'Rollbacked,Query=%s,Requested=%d,RowsAffected=%d,ExecTime=%s,Caller=%s',
-          [Self.Name, AParams.Count, Self.RowsAffected, FormatDateTime('NN:SS.zzz', Now - ExecTime),
-          GetExternalProc]);
+          'Rollbacked,Query=%s,Requested=%d,RowsAffected=%d,ExecSec=%0.2f,Caller=%s',
+          [Self.Name, AParams.Count, Self.RowsAffected, TDSCommon.CalcExecTime(ExecTime), GetExternalProc]);
       end;
     except
       on E: Exception do
@@ -598,8 +614,8 @@ begin
       ExecTime := Now;
       Self.ExecSQL;
       TLogging.Obj.ApplicationMessage(AType, JdcGlobal.GetCurrentProc,
-        Format('Query=%s,RowsAffected=%d,ExecTime=%s,Caller=%s', [Self.Name, Self.RowsAffected,
-        FormatDateTime('NN:SS.zzz', Now - ExecTime), GetExternalProc]));
+        Format('Query=%s,RowsAffected=%d,ExecSec=%0.2f,Caller=%s', [Self.Name, Self.RowsAffected,
+        TDSCommon.CalcExecTime(ExecTime), GetExternalProc]));
       Result := True;
     except
       on E: Exception do
@@ -640,7 +656,30 @@ begin
   end;
 end;
 
+function TFDQueryHelper.OpenInstantToMemTab(AConn: TFDConnection; AParams: TJSONObject; AType: TMessageType)
+  : TFDMemTable;
+var
+  MyQuery: TFDQuery;
+begin
+  MyQuery := Self.Clone;
+  try
+    Result := MyQuery.OpenToMemTab(AConn, AParams, AType);
+  finally
+    MyQuery.Free;
+  end;
+end;
+
 function TFDQueryHelper.OpenQuery(AConn: TFDConnection; AParams: TJSONObject; AType: TMessageType): TStream;
+begin
+  Result := OpenTo<TStream>(AConn, AParams, AType,
+    function(AQuery: TFDQuery): TStream
+    begin
+      Result := AQuery.ToStream;
+    end);
+end;
+
+function TFDQueryHelper.OpenTo<T>(AConn: TFDConnection; AParams: TJSONObject; AType: TMessageType;
+AProc: TOpenToFunc<T>): T;
 var
   ExecTime: TDateTime;
 begin
@@ -651,10 +690,10 @@ begin
         ParamByJSONObject(AParams);
 
       ExecTime := Now;
-      Result := Self.ToStream;
+      Result := AProc(Self);
       TLogging.Obj.ApplicationMessage(AType, JdcGlobal.GetCurrentProc,
-        Format('Query=%s,RecordCount=%d,ExecTime=%s,Caller=%s', [Self.Name, Self.RecordCount,
-        FormatDateTime('NN:SS.zzz', Now - ExecTime), GetExternalProc]));
+        Format('Query=%s,RecordCount=%d,ExecSec=%0.2f,Caller=%s', [Self.Name, Self.RecordCount,
+        TDSCommon.CalcExecTime(ExecTime), GetExternalProc]));
     except
       on E: Exception do
         raise Exception.Create(Format('Query=%s,E=%s,Caller=%s', [Self.Name, E.Message, GetExternalProc]));
@@ -662,6 +701,16 @@ begin
   finally
     AConn.Free;
   end;
+end;
+
+function TFDQueryHelper.OpenToMemTab(AConn: TFDConnection; AParams: TJSONObject; AType: TMessageType)
+  : TFDMemTable;
+begin
+  Result := OpenTo<TFDMemTable>(AConn, AParams, AType,
+    function(AQuery: TFDQuery): TFDMemTable
+    begin
+      Result := AQuery.ToMemTable;
+    end);
 end;
 
 procedure TFDQueryHelper.ParamByJsonValue(AParam: TFDParam; AValue: TJSONValue);
@@ -852,6 +901,14 @@ end;
 function TFDQueryHelper.ToJSON: TJSONObject;
 begin
   Result := TFDDataSet(Self).ToJSON;
+end;
+
+function TFDQueryHelper.ToMemTable: TFDMemTable;
+begin
+  Result := TFDMemTable.Create(nil);
+  Self.Close;
+  Self.Open;
+  Result.CopyDataSet(Self, [coStructure, coRestart, coAppend]);
 end;
 
 function TFDQueryHelper.ToRecord<T>(AName: String): T;
