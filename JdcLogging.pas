@@ -1,10 +1,10 @@
 // *******************************************************
 //
-// DACO Logging Util
+// Jdc Logging Util
 //
-// Copyright(c) 2020 DACO.
+// Copyright(c) 2021 UDNS.
 //
-// jsf3rd@e-daco.net
+// jsf3rd@nate.net
 //
 // Define : LOCALAPPDATA, LOGGING_DAY_TAG
 //
@@ -68,6 +68,7 @@ type
     destructor Destroy; override;
 
     class function Obj: TLogging;
+    class function MessageTypeToStr(AType: TMessageType): string;
 
     procedure StartLogging;
     procedure StopLogging;
@@ -187,19 +188,15 @@ procedure TLogging.ApplicationMessage(const AType: TMessageType; const ATitle, A
 begin
   case AType of
     msDebug:
-      _ApplicationMessage(MESSAGE_TYPE_DEBUG, ATitle, AMessage, [moDebugView, moLogFile]);
-    msInfo:
-      _ApplicationMessage(MESSAGE_TYPE_INFO, ATitle, AMessage);
-    msError:
-      _ApplicationMessage(MESSAGE_TYPE_ERROR, ATitle, AMessage);
-    msWarning:
-      _ApplicationMessage(MESSAGE_TYPE_WARNING, ATitle, AMessage);
+      _ApplicationMessage(MessageTypeToStr(AType), ATitle, AMessage, [moDebugView, moLogFile]);
+    msInfo, msError, msWarning:
+      _ApplicationMessage(MessageTypeToStr(AType), ATitle, AMessage);
     msSystem:
       begin
         if FUseDebug then
-          _ApplicationMessage(MESSAGE_TYPE_SYSTEM, ATitle, AMessage, [moDebugView, moLogFile])
+          _ApplicationMessage(MessageTypeToStr(AType), ATitle, AMessage, [moDebugView, moLogFile])
         else
-          _ApplicationMessage(MESSAGE_TYPE_SYSTEM, ATitle, AMessage, [moDebugView])
+          _ApplicationMessage(MessageTypeToStr(AType), ATitle, AMessage, [moDebugView])
       end;
   else
     _ApplicationMessage('UNKNOWN', ATitle, AMessage);
@@ -347,12 +344,31 @@ begin
   FExeVersion := FileVersion(ExeName);
   FLogName := ExtractFilePath(ExeName) + 'logs\' + ChangeFileExt(ExtractFileName(ExeName), '.log');
 {$IFDEF LOCALAPPDATA}
-  FLogName := GetEnvironmentVariable('LOCALAPPDATA') + '\DACO\' + FAppCode + '\' + ExtractFileName(FLogName);
+  FLogName := GetEnvironmentVariable('LOCALAPPDATA') + '\Judico\' + FAppCode + '\logs\' +
+    ExtractFileName(FLogName);
 {$ENDIF}
   if not TDirectory.Exists(ExtractFilePath(FLogName)) then
     TDirectory.CreateDirectory(ExtractFilePath(FLogName));
 
   StartLogging;
+end;
+
+class function TLogging.MessageTypeToStr(AType: TMessageType): string;
+begin
+  case AType of
+    msDebug:
+      Result := MESSAGE_TYPE_DEBUG;
+    msInfo:
+      Result := MESSAGE_TYPE_INFO;
+    msError:
+      Result := MESSAGE_TYPE_ERROR;
+    msWarning:
+      Result := MESSAGE_TYPE_WARNING;
+    msSystem:
+      Result := MESSAGE_TYPE_SYSTEM;
+  else
+    Result := 'UNKNOWN';
+  end;
 end;
 
 class function TLogging.Obj: TLogging;

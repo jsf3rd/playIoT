@@ -1,10 +1,10 @@
 // *******************************************************
 //
-// DACO Global Library
+// Jdc Global Library
 //
-// Copyright(c) 2020 DACO.
+// Copyright(c) 2020.
 //
-// jsf3rd@e-daco.net
+// jsf3rd@nate.com
 //
 //
 // *******************************************************
@@ -65,7 +65,7 @@ type
     procedure Finalize; virtual;
 
     procedure ApplicationMessage(const AType: TMessageType; const ATitle: String;
-      const AMessage: String = ''); overload;
+      const AMessage: String = ''); overload; virtual;
     procedure ApplicationMessage(const AType: TMessageType; const ATitle: String; const AFormat: String;
       const Args: array of const); overload;
 
@@ -727,8 +727,11 @@ end;
 
 procedure TGlobalAbstract.ApplicationMessage(const AType: TMessageType; const ATitle, AFormat: String;
   const Args: array of const);
+var
+  str: string;
 begin
-  TLogging.Obj.ApplicationMessage(AType, ATitle, AFormat, Args);
+  FmtStr(str, AFormat, Args);
+  ApplicationMessage(AType, ATitle, str);
 end;
 
 procedure TGlobalAbstract.ApplicationMessage(const AType: TMessageType; const ATitle, AMessage: String);

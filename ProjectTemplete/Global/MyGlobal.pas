@@ -6,11 +6,11 @@ uses
   Classes, SysUtils, IOUtils, JdcGlobal, MyCommon, JdcLogging;
 
 const
-  PROJECT_CODE = 'DACO-Project';
-  APPLICATION_CODE = 'DACO-Application';
-  APPLICATION_TITLE = 'DACO Form Application Templete';
-  COPY_RIGHT_SIGN = 'ⓒ 2020 DACO';
-  HOME_PAGE_URL = 'http://www.i-daco.com';
+  PROJECT_CODE = 'My-Project';
+  APPLICATION_CODE = 'My-Application';
+  APPLICATION_TITLE = 'My Form Application Templete';
+  COPY_RIGHT_SIGN = 'ⓒ 2020';
+  HOME_PAGE_URL = 'http://.com';
 
 type
   TGlobal = class(TGlobalAbstract)
@@ -23,6 +23,10 @@ type
 
     procedure Initialize; override;
     procedure Finalize; override;
+
+    procedure ApplicationMessage(const AType: TMessageType; const ATitle: String;
+      const AMessage: String = ''); override;
+
   end;
 
 implementation
@@ -33,6 +37,16 @@ var
   MyObj: TGlobal = nil;
 
   { TGlobal }
+
+procedure TGlobal.ApplicationMessage(const AType: TMessageType; const ATitle, AMessage: String);
+begin
+  // 사용자 프로그램의 경우 종료 후 오류 메시지는 출력하지 않는다.
+{$IFDEF RELEASE}
+  if FIsFinalized then
+    Exit;
+{$ENDIF}
+  TLogging.Obj.ApplicationMessage(AType, ATitle, AMessage);
+end;
 
 constructor TGlobal.Create;
 begin
@@ -48,18 +62,18 @@ end;
 
 procedure TGlobal.Finalize;
 begin
-  if FIsfinalized then
+  if FIsFinalized then
     Exit;
 
   inherited;
 
   // Todo :
-  FIsfinalized := true;
+  FIsFinalized := true;
 end;
 
 procedure TGlobal.Initialize;
 begin
-  if FIsfinalized then
+  if FIsFinalized then
     Exit;
   if FIsInitialized then
     Exit;

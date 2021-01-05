@@ -5,7 +5,7 @@ interface
 uses SysUtils, Classes;
 
 const
-  PROJECT_CODE = 'DACO Project';
+  PROJECT_CODE = 'MyProject';
 
 implementation
 

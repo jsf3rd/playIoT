@@ -6,9 +6,9 @@ uses
   Classes, SysUtils, IOUtils, JdcGlobal, JdcLogging;
 
 const
-  PROJECT_CODE = 'DACO';
+  PROJECT_CODE = 'MyProject';
   SERVICE_CODE = 'DataSnapSvc';
-  SERVICE_NAME = 'DACO DataSnap Service Templete';
+  SERVICE_NAME = 'DataSnap Service Templete';
   SERVICE_DESCRIPTION = '여기에 DataSnap Service Application의 설명을 넣으세요.';
 
 type

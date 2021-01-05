@@ -6,12 +6,12 @@ uses
   Classes, SysUtils, IOUtils, JdcGlobal, JdcLogging;
 
 const
-  PROJECT_CODE = 'DACO Project';
-  APPLICATION_CODE = 'DACO Application';
+  PROJECT_CODE = 'My Project';
+  APPLICATION_CODE = 'My Application';
   APPLICATION_TITLE = 'DataSnap for Basic';
   APPLICATION_VERSION = 'v1.0';
-  COPY_RIGHT_SIGN = 'ⓒ 2020 DACO';
-  HOME_PAGE_URL = 'http://www.i-daco.com';
+  COPY_RIGHT_SIGN = 'ⓒ 2020';
+  HOME_PAGE_URL = 'http://.com';
 
   DB_DRIVER_ID = 'DriverID';
   DB_HOST = 'Server';

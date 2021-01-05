@@ -6,9 +6,9 @@ uses
   Classes, SysUtils, IOUtils, JdcGlobal, JdcLogging;
 
 const
-  PROJECT_CODE = 'DACO';
+  PROJECT_CODE = 'MyProject';
   SERVICE_CODE = 'ServiceTempleteSvc';
-  SERVICE_NAME = 'DACO Service Templete';
+  SERVICE_NAME = 'My Service Templete';
   SERVICE_DESCRIPTION = '여기에 Service Templete의 설명을 넣으세요.';
 
 type

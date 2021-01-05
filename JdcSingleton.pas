@@ -2,7 +2,7 @@
 //
 // Real Singleton Templete
 //
-// Copyright(c) 2020 DACO.
+// Copyright(c) 2020.
 //
 // jsf3rd@nate.com
 //

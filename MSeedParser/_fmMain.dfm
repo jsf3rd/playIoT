@@ -25,9 +25,8 @@ object fmMain: TfmMain
     Lines.Strings = (
       'Do not use commercial purpose.'
       ''
-      'jsf3rd@e-daco.net'
+      'jsf3rd@nate.com'
       ''
-      '(c)DACO 2020.'
       ''
       '----------------------------------------------------')
     ReadOnly = True

@@ -1,10 +1,10 @@
 // *******************************************************
 //
-// DACO Class Helper
+// Jdc Class Helper
 //
-// Copyright(c) 2020 DACO.
+// Copyright(c) 2020.
 //
-// jsf3rd@e-daco.net
+// jsf3rd@nate.com
 //
 //
 // *******************************************************

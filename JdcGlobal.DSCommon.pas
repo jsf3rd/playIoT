@@ -1,10 +1,10 @@
 ﻿// *******************************************************
 //
-// DACO DataSnap Common
+// Jdc DataSnap Common
 //
-// Copyright(c) 2020 DACO.
+// Copyright(c) 2020.
 //
-// jsf3rd@e-daco.net
+// jsf3rd@nate.com
 //
 // *******************************************************
 

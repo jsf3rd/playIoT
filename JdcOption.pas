@@ -410,7 +410,7 @@ begin
   // FIniFile := TMemIniFile.Create(FileName);
 
   // Registry...
-  // FileName := 'SOFTWARE\DACO\' + PROJECT_CODE;
+  // FileName := 'SOFTWARE\UDNS\' + PROJECT_CODE;
   // FIniFile := TRegistryIniFile.Create(FileName);
   // TRegistryIniFile(FIniFile).RegIniFile.RootKey := HKEY_CURRENT_USER;
   // TRegistryIniFile(FIniFile).RegIniFile.OpenKey(FIniFile.FileName, True);
