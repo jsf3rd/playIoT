@@ -299,12 +299,14 @@ type
     FNETDEV_SetLogPath: NETDEV_SetLogPath;
     FNETDEV_GetLastError: TNETDEV_GetLastError;
     FCCTVInfo: TCCTVInfo;
-    FTag: Cardinal;
-    FLastCapture: Cardinal;
+
+    FData: TStream;
+    FTick: Cardinal;
 
     procedure FreeDLL;
     procedure LoadDLL(APath: string);
     procedure SetOnException(const Value: TOnException);
+    procedure SetData(const Value: TStream);
   public
     constructor Create(const ALibPath: string; const ALogPath: string);
     destructor Destroy; override;
@@ -329,8 +331,9 @@ type
 
     property OnException: TOnException write SetOnException;
     property CCTVInfo: TCCTVInfo read FCCTVInfo write FCCTVInfo;
-    property Tag: Cardinal read FTag write FTag;
-    property LastCapture: Cardinal read FLastCapture write FLastCapture;
+
+    property Data: TStream read FData write SetData;
+    property Tick: Cardinal read FTick write FTick;
   end;
 
 implementation
@@ -353,7 +356,6 @@ begin
   if FRealHandle = 0 then
     raise Exception.Create('StopRealPlay');
 
-  FLastCapture := GetTickCount;
   Name := AnsiString(szFileName);
   result := FNETDEV_CapturePicture(FRealHandle, PAnsiChar(Name), Int32(dwCaptureMode));
 end;
@@ -378,8 +380,8 @@ begin
   FUserID := 0;
   FRealHandle := 0;
 
-  FTag := 0;
-  FLastCapture := 0;
+  FTick := 0;
+  FData := TMemoryStream.Create;
 
   LoadDLL(ALibPath);
 
@@ -398,6 +400,7 @@ begin
   end;
 
   FreeDLL;
+  FData.Free;
 
   inherited;
 end;
@@ -521,6 +524,12 @@ begin
 
   if result then
     FNETDEV_SetExceptionCallBack(ExceptionCallBack, 0);
+end;
+
+procedure TNetDEV.SetData(const Value: TStream);
+begin
+  FData.Free;
+  FData := Value;
 end;
 
 function TNetDEV.SetLogPath(const szPath: string): Boolean;
