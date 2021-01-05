@@ -1,10 +1,12 @@
-# playIoT
-playIoT Delphi library collections.
+# jsf3rd
+Delphi library collections.
 
-	    ____     ___     ______  ____ 
-	   / __ \   /   |   / ____/ / __ \
-	  / / / /  / /| |  / /     / / / /
-	 / /_/ /  / ___ | / /___  / /_/ / 
-	/_____/  /_/  |_| \____/  \____/ 
+      _   _  ____   _   _  ____  
+     | | | ||  _ \ | \ | |/ ___| 
+     | | | || | | ||  \| |\___ \ 
+     | |_| || |_| || |\  | ___) |
+      \___/ |____/ |_| \_||____/ 
+
+                                http://udnsk.com
  
-Judico - playIoT - DACO.
+Judico - playIoT - DACO - UDNS.
