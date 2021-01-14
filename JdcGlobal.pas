@@ -151,6 +151,8 @@ function GetLineByLevel(const Level: Integer = 0): Integer;
 function GetProcByLevel(const Level: Integer = 0; const OnlyProcedureName: Boolean = False): string;
 function GetCurrentProc: string;
 
+function IsFileInUse(const fName: string): Boolean;
+
 const
   LOG_PORT = 8094;
   LOCAL_SERVER = '\\localhost';
@@ -166,6 +168,19 @@ const
 implementation
 
 uses JdcGlobal.ClassHelper, JdcLogging;
+
+// 파일 사용 유무
+// https:// stackoverflow.com/questions/141302/checking-file-is-open-in-delphi
+function IsFileInUse(const fName: string): Boolean;
+var
+  HFileRes: HFILE;
+begin
+  HFileRes := CreateFile(PChar(fName), GENERIC_READ or GENERIC_WRITE, 0, nil, OPEN_EXISTING,
+    FILE_ATTRIBUTE_NORMAL, 0);
+  Result := (HFileRes = INVALID_HANDLE_VALUE);
+  if not Result then
+    CloseHandle(HFileRes);
+end;
 
 function GetModuleByLevel(const Level: Integer): string;
 begin
