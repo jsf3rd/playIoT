@@ -16,7 +16,7 @@ interface
 uses
   Classes, SysUtils, REST.JSON, Winapi.Windows,
   XSuperObject, System.IOUtils, System.Generics.Collections, System.DateUtils, Data.SqlTimSt,
-  IdContext, JdcGlobal, IdGlobal, IdExceptionCore, IdIOHandler, JdcLogging, Vcl.StdCtrls
+  IdContext, JdcGlobal, IdGlobal, IdExceptionCore, IdIOHandler, JdcLogging, Vcl.StdCtrls, Vcl.WinXCtrls
 
 {$IF CompilerVersion  > 26} // upper XE5
     , System.JSON
@@ -101,7 +101,7 @@ type
     class function RecordToJsonString<T: record >(ARecord: T): String;
     class function JsonToRecord<T: record >(const AJsonObject: TJSONObject): T; overload;
     class function JsonToRecord<T: record >(const AJson: String): T; overload;
-    class function FileToRecord<T: record >(const FileName: String): T;
+    class function FileToRecord<T: record >(const FileName: String; const Encoding: TEncoding = nil): T;
     class function ConvertRecord<T1, T2: record >(ARecord: T1): T2;
 
     class function RecordArrayToJsonArray<T: record >(RecordArray: TArray<T>): TJSONArray;
@@ -129,6 +129,12 @@ type
   TCustomComboboxHelper = class helper for TCustomCombobox
   public
     procedure RightAlignment;
+  end;
+
+  TActivityIndicatorHelper = class helper for TActivityIndicator
+  public
+    procedure Start;
+    procedure Stop;
   end;
 
 function ReplaceStringNumber(const AInput: string): string;
@@ -328,11 +334,14 @@ begin
   result := REST.JSON.TJSON.JsonToObjectEx<T>(JsonString);
 end;
 
-class function TJSONHelper.FileToRecord<T>(const FileName: String): T;
+class function TJSONHelper.FileToRecord<T>(const FileName: String; const Encoding: TEncoding): T;
 var
   JsonString: string;
 begin
-  JsonString := TFile.ReadAllText(FileName);
+  if Encoding = nil then
+    JsonString := TFile.ReadAllText(FileName, TEncoding.UTF8)
+  else
+    JsonString := TFile.ReadAllText(FileName, Encoding);
   result := REST.JSON.TJSON.JsonToRecord<T>(JsonString);
 end;
 
@@ -585,6 +594,20 @@ begin
   finally
     Self.ReadTimeout := OldTimeout;
   end;
+end;
+
+{ TActivityIndicatorHelper }
+
+procedure TActivityIndicatorHelper.Start;
+begin
+  Self.Animate := True;
+  Self.Visible := True;
+end;
+
+procedure TActivityIndicatorHelper.Stop;
+begin
+  Self.Visible := False;
+  Self.Animate := False;
 end;
 
 end.
