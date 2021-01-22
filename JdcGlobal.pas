@@ -152,6 +152,7 @@ function GetProcByLevel(const Level: Integer = 0; const OnlyProcedureName: Boole
 function GetCurrentProc: string;
 
 function IsFileInUse(const fName: string): Boolean;
+function CopyStream(AStream: TStream): TMemoryStream;
 
 const
   LOG_PORT = 8094;
@@ -168,6 +169,13 @@ const
 implementation
 
 uses JdcGlobal.ClassHelper, JdcLogging;
+
+function CopyStream(AStream: TStream): TMemoryStream;
+begin
+  Result := TMemoryStream.Create;
+  AStream.Position := 0;
+  Result.LoadFromStream(AStream);
+end;
 
 // 파일 사용 유무
 // https:// stackoverflow.com/questions/141302/checking-file-is-open-in-delphi
