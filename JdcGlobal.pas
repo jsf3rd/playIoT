@@ -16,8 +16,7 @@ interface
 uses
   Classes, SysUtils, Winapi.Windows, ZLib, IdGlobal, IOUtils, JclFileUtils, Vcl.ExtCtrls, System.StrUtils,
   IdUDPClient, JclSysInfo, Winapi.psAPI, IdContext, IdExceptionCore, Vcl.StdCtrls, JclSvcCtrl, Vcl.ActnList,
-  Vcl.Dialogs, Winapi.Shellapi, UITypes, System.Generics.Collections, System.Json, REST.Json, JclDebug,
-  JvJclUtils;
+  Vcl.Dialogs, Winapi.Shellapi, UITypes, System.Generics.Collections, System.Json, REST.Json, JvJclUtils;
 
 type
   IExecuteFunc<T> = Interface
@@ -35,8 +34,8 @@ type
   TConnInfo = record
     StringValue: string;
     IntegerValue: Integer;
-    constructor Create(AString: string; AInteger: Integer); overload;
-    constructor Create(AHost: string); overload;
+    constructor Create(const AString: string; const AInteger: Integer); overload;
+    constructor Create(const AHost: string); overload;
     function ToString: string;
     function Equals(const ConnInfo: TConnInfo): Boolean;
   end;
@@ -90,26 +89,26 @@ function CompressStream(Stream: TStream; OutStream: TStream; OnProgress: TNotify
 function DeCompressStream(Stream: TStream; OutStream: TStream; OnProgress: TNotifyEvent): Boolean;
 
 // 응답 검사..
-function Contains(Contents: string; const str: array of const): Boolean;
-function IsGoodResponse(Text, Command: string; Response: array of const): Boolean;
+function Contains(const Contents: string; const str: array of const): Boolean;
+function IsGoodResponse(const Text, Command: string; const Response: array of const): Boolean;
 
 // 매 Word 마다 Reverse
-procedure RevEveryWord(APointer: Pointer; ASize: Integer; AIndex: Integer = 0);
+procedure RevEveryWord(const APointer: Pointer; const ASize: Integer; const AIndex: Integer = 0);
 
 // Reverse 2Btyes..
-function Rev2Bytes(w: WORD): WORD;
+function Rev2Bytes(const w: WORD): WORD;
 
 // Reverse 4Btyes..
-function Rev4Bytes(Value: Int32): Int32;
+function Rev4Bytes(const Value: Int32): Int32;
 
 // Reverse 4Btyes..
-function Rev4BytesF(Value: Single): Single;
+function Rev4BytesF(const Value: Single): Single;
 
 // Big endian
-function WordToBytes(AValue: WORD): TIdBytes;
+function WordToBytes(const AValue: WORD): TIdBytes;
 
 // Big endian
-function DWordToBytes(AValue: DWORD): TIdBytes;
+function DWordToBytes(const AValue: DWORD): TIdBytes;
 
 // little endian
 function HexStrToWord(const ASource: string; const AIndex: Integer = 1): WORD;
@@ -124,35 +123,37 @@ function IdBytesPos(const SubIdBytes, IdBytes: TIdBytes; const AIndex: Integer =
 
 function DefaultFormatSettings: TFormatSettings;
 
-function StrDefault(str: string; Default: string): string;
+function StrDefault(const str: string; const Default: string): string;
 
 // Thread Safe
-procedure ThreadSafe(AMethod: TThreadMethod); overload;
-procedure ThreadSafe(AThreadProc: TThreadProcedure); overload;
+procedure ThreadSafe(const AMethod: TThreadMethod); overload;
+procedure ThreadSafe(const AThreadProc: TThreadProcedure); overload;
 
 procedure FreeAndNilEx(var Obj);
 
 // 서비스 관리
-procedure StartService(const ServiceName: String; var OldStatus: TJclServiceState; StartAction: TAction);
-procedure StopService(const ServiceName: String; var OldStatus: TJclServiceState; StopAction: TAction;
+procedure StartService(const ServiceName: String; var OldStatus: TJclServiceState;
+  const StartAction: TAction);
+procedure StopService(const ServiceName: String; var OldStatus: TJclServiceState; const StopAction: TAction;
   hnd: HWND);
 procedure UpdateServiceStatus(const ServiceName: String; var OldStatus: TJclServiceState;
-  StartAction, StopAction: TAction; StatusEdit: TLabeledEdit);
+  const StartAction, StopAction: TAction; const StatusEdit: TLabeledEdit);
 
 // Integer To Bit String
 function IntToBin(Value: Cardinal; Digits: Integer): String;
 
 // JsonValue에서 JsonObject의 Value 값만 추출
-procedure ExtractValues(var AList: TStrings; AValue: TJSONValue);
+procedure ExtractValues(var AList: TStrings; const AValue: TJSONValue);
 
 // JclDebug Rapper
-function GetModuleByLevel(const Level: Integer = 0): string;
-function GetLineByLevel(const Level: Integer = 0): Integer;
-function GetProcByLevel(const Level: Integer = 0; const OnlyProcedureName: Boolean = False): string;
-function GetCurrentProc: string;
-
+{
+  function GetModuleByLevel(const Level: Integer = 0): string;
+  function GetLineByLevel(const Level: Integer = 0): Integer;
+  function GetProcByLevel(const Level: Integer = 0; const OnlyProcedureName: Boolean = False): string;
+  function GetCurrentProc: string;
+}
 function IsFileInUse(const fName: string): Boolean;
-function CopyStream(AStream: TStream): TMemoryStream;
+function CopyStream(const AStream: TStream): TMemoryStream;
 
 const
   LOG_PORT = 8094;
@@ -170,7 +171,7 @@ implementation
 
 uses JdcGlobal.ClassHelper, JdcLogging;
 
-function CopyStream(AStream: TStream): TMemoryStream;
+function CopyStream(const AStream: TStream): TMemoryStream;
 begin
   Result := TMemoryStream.Create;
   AStream.Position := 0;
@@ -190,28 +191,29 @@ begin
     CloseHandle(HFileRes);
 end;
 
-function GetModuleByLevel(const Level: Integer): string;
-begin
+{
+  function GetModuleByLevel(const Level: Integer): string;
+  begin
   Result := ModuleByLevel(Level + 1) + '';
-end;
+  end;
 
-function GetLineByLevel(const Level: Integer): Integer;
-begin
+  function GetLineByLevel(const Level: Integer): Integer;
+  begin
   Result := LineByLevel(Level + 1) + 0;
-end;
+  end;
 
-function GetCurrentProc: string;
-begin
+  function GetCurrentProc: string;
+  begin
   Result := ProcByLevel(1, True) + '';
-end;
+  end;
 
-function GetProcByLevel(const Level: Integer; const OnlyProcedureName: Boolean): string;
-begin
+  function GetProcByLevel(const Level: Integer; const OnlyProcedureName: Boolean): string;
+  begin
   // 바로 리턴 하는 경우 Release에서 Level + 1 무시하는 오류 발생
   Result := ProcByLevel(Level + 1, OnlyProcedureName) + '';
-end;
-
-procedure ExtractValues(var AList: TStrings; AValue: TJSONValue);
+  end;
+}
+procedure ExtractValues(var AList: TStrings; const AValue: TJSONValue);
 var
   MyPair: TJSONPair;
   MyValue: TJSONValue;
@@ -232,7 +234,7 @@ begin
     raise Exception.Create('ExtractValues,' + AValue.ToString);
 end;
 
-procedure RevEveryWord(APointer: Pointer; ASize: Integer; AIndex: Integer);
+procedure RevEveryWord(const APointer: Pointer; const ASize: Integer; const AIndex: Integer);
 var
   src: TIdBytes;
   tmp: Byte;
@@ -282,7 +284,8 @@ begin
   end;
 end;
 
-procedure StartService(const ServiceName: String; var OldStatus: TJclServiceState; StartAction: TAction);
+procedure StartService(const ServiceName: String; var OldStatus: TJclServiceState;
+  const StartAction: TAction);
 begin
   OldStatus := ssUnknown;
 
@@ -294,7 +297,7 @@ begin
   StartAction.Enabled := True;
 end;
 
-procedure StopService(const ServiceName: String; var OldStatus: TJclServiceState; StopAction: TAction;
+procedure StopService(const ServiceName: String; var OldStatus: TJclServiceState; const StopAction: TAction;
   hnd: HWND);
 begin
   OldStatus := ssUnknown;
@@ -308,7 +311,7 @@ begin
 end;
 
 procedure UpdateServiceStatus(const ServiceName: String; var OldStatus: TJclServiceState;
-  StartAction, StopAction: TAction; StatusEdit: TLabeledEdit);
+  const StartAction, StopAction: TAction; const StatusEdit: TLabeledEdit);
 var
   Status: TJclServiceState;
 begin
@@ -347,7 +350,7 @@ begin
 
 end;
 
-procedure ThreadSafe(AMethod: TThreadMethod); overload;
+procedure ThreadSafe(const AMethod: TThreadMethod); overload;
 begin
   if TThread.CurrentThread.ThreadID = MainThreadID then
     AMethod
@@ -355,7 +358,7 @@ begin
     TThread.Queue(nil, AMethod);
 end;
 
-procedure ThreadSafe(AThreadProc: TThreadProcedure); overload;
+procedure ThreadSafe(const AThreadProc: TThreadProcedure); overload;
 begin
 {$IFDEF CONSOLE}
   AThreadProc;
@@ -454,7 +457,7 @@ begin
   if VerInfoSize = 0 then
   begin
     iLastError := GetLastError;
-    TLogging.Obj.ApplicationMessage(msError, GetCurrentProc, SysErrorMessage(iLastError));
+    TLogging.Obj.ApplicationMessage(msError, 'FileVersion', SysErrorMessage(iLastError));
     Exit;
   end;
 
@@ -473,7 +476,7 @@ begin
     else
     begin
       iLastError := GetLastError;
-      TLogging.Obj.ApplicationMessage(msError, GetCurrentProc, SysErrorMessage(iLastError));
+      TLogging.Obj.ApplicationMessage(msError, 'FileVersion', SysErrorMessage(iLastError));
     end;
   finally
     FreeMem(PVerInfo, VerInfoSize);
@@ -548,7 +551,7 @@ begin
   end;
 end;
 
-function Contains(Contents: string; const str: array of const): Boolean;
+function Contains(const Contents: string; const str: array of const): Boolean;
 var
   I: Integer;
 begin
@@ -563,7 +566,7 @@ begin
   Result := True;
 end;
 
-function IsGoodResponse(Text, Command: string; Response: array of const): Boolean;
+function IsGoodResponse(const Text, Command: string; const Response: array of const): Boolean;
 var
   SL: TStringList;
 begin
@@ -616,18 +619,18 @@ begin
   end;
 end;
 
-function Rev2Bytes(w: WORD): WORD;
+function Rev2Bytes(const w: WORD): WORD;
 asm
   XCHG   AL, AH
 end;
 
-function Rev4Bytes(Value: Int32): Int32; assembler;
+function Rev4Bytes(const Value: Int32): Int32; assembler;
 asm
   MOV EAX, Value;
   BSWAP    EAX;
 end;
 
-function Rev4BytesF(Value: Single): Single; assembler;
+function Rev4BytesF(const Value: Single): Single; assembler;
 var
   tmp1: PInteger;
   tmp2: PSingle;
@@ -664,12 +667,12 @@ begin
   CopyMemory(@Result, tmp, 1);
 end;
 
-function WordToBytes(AValue: WORD): TIdBytes;
+function WordToBytes(const AValue: WORD): TIdBytes;
 begin
   Result := ToBytes(Rev2Bytes(AValue));
 end;
 
-function DWordToBytes(AValue: DWORD): TIdBytes;
+function DWordToBytes(const AValue: DWORD): TIdBytes;
 begin
   Result := ToBytes(Rev4Bytes(AValue));
 end;
@@ -800,13 +803,13 @@ end;
 
 { TConnInfo }
 
-constructor TConnInfo.Create(AString: string; AInteger: Integer);
+constructor TConnInfo.Create(const AString: string; const AInteger: Integer);
 begin
   Self.StringValue := AString;
   Self.IntegerValue := AInteger;
 end;
 
-constructor TConnInfo.Create(AHost: string);
+constructor TConnInfo.Create(const AHost: string);
 begin
   Self.StringValue := AHost.Split([':'])[0];
   Self.IntegerValue := AHost.Split([':'])[1].ToInteger;
@@ -822,7 +825,7 @@ begin
   Result := Self.StringValue + ':' + Self.IntegerValue.ToString;
 end;
 
-function StrDefault(str: string; Default: string): string;
+function StrDefault(const str: string; const Default: string): string;
 begin
   if str.IsEmpty then
     Result := Default
