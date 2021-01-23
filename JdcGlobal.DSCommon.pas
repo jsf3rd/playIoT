@@ -16,7 +16,7 @@ uses
   Classes, SysUtils, FireDAC.Comp.Client, FireDAC.Stan.Intf, Data.DBXPlatform,
   FireDAC.Comp.DataSet, FireDAC.Stan.Param, REST.JSON,
   System.Generics.Collections, System.DateUtils, Data.DB, Data.SqlTimSt,
-  JdcGlobal, JdcLogging, JclDebug, Rtti
+  JdcGlobal, JdcLogging, Rtti
 {$IF CompilerVersion  > 26} // upper XE5
     , System.JSON
 {$ELSE}
@@ -25,9 +25,10 @@ uses
     ;
 
 type
-  TOpenToFunc<T> = reference to function(AQuery: TFDQuery): T;
+  TOpenToFunc<T> = reference to function(const AQuery: TFDQuery): T;
   TDSOpenProc = function(const ARequestFilter: string = ''): TStream of object;
-  TDSOpenParamProc = function(AParams: TJSONObject; const ARequestFilter: string = ''): TStream of object;
+  TDSOpenParamProc = function(const AParams: TJSONObject; const ARequestFilter: string = '')
+    : TStream of object;
 
   TDSCommon = class
   private
@@ -36,128 +37,133 @@ type
     class function GetRecordName<T: Record >: String;
 
     // Clear JSONObject Members
-    class procedure ClearJSONObject(AValue: TJSONObject); overload;
-    class procedure ClearJSONObject(AValue: TJSONArray); overload;
+    class procedure ClearJSONObject(const AValue: TJSONObject); overload;
+    class procedure ClearJSONObject(const AValue: TJSONArray); overload;
 
     // TDBXStream to TBytesStream
-    class function DSStreamToBytesStream(AStream: TStream): TBytesStream;
+    class function DSStreamToBytesStream(const AStream: TStream): TBytesStream;
       deprecated 'DBXStreamToMemoryStream';
 
     // TDBXStream to TMemoryStream
-    class function DBXStreamToMemoryStream(AStream: TStream): TMemoryStream;
+    class function DBXStreamToMemoryStream(const AStream: TStream): TMemoryStream;
 
     // FDQuery to TSream
-    class function DataSetToStream(AQuery: TFDQuery): TStream; overload; deprecated 'TFDQueryHelper.ToStream';
+    class function DataSetToStream(const AQuery: TFDQuery): TStream; overload;
+      deprecated 'TFDQueryHelper.ToStream';
 
     // FDMemTable to TStream
-    class function DataSetToStream(AMemTab: TFDMemTable): TStream; overload;
+    class function DataSetToStream(const AMemTab: TFDMemTable): TStream; overload;
       deprecated 'TFDMemTableHelper.ToStream';
 
     // DataSnap TStream to TFDDataSet
-    class procedure DSStreamToFDDataSet(AStream: TStream; ADataSet: TFDDataSet); static;
+    class procedure DSStreamToFDDataSet(const AStream: TStream; const ADataSet: TFDDataSet); static;
       deprecated 'TFDDataSetHelper.LoadFromDSStream';
 
-    class procedure AddJSONValue<T: record >(var AObject: TJSONObject; ARecord: T; APreFix: string = '');
-    class procedure AddJSONArray<T: record >(var AObject: TJSONObject; ARecord: T);
+    class procedure AddJSONValue<T: record >(var AObject: TJSONObject; const ARecord: T;
+      const APreFix: string = '');
+    class procedure AddJSONArray<T: record >(var AObject: TJSONObject; const ARecord: T);
 
-    class function DSProcToRecord<T: record >(AProc: TDSOpenProc): T; overload;
-    class function DSProcToRecord<T: record >(AProc: TDSOpenParamProc; AParam: TJSONObject): T; overload;
+    class function DSProcToRecord<T: record >(const AProc: TDSOpenProc): T; overload;
+    class function DSProcToRecord<T: record >(const AProc: TDSOpenParamProc; const AParam: TJSONObject)
+      : T; overload;
 
-    class function DSProcToRecordArray<T: record >(AProc: TDSOpenProc): TArray<T>; overload;
-    class function DSProcToRecordArray<T: record >(AProc: TDSOpenParamProc; AParam: TJSONObject)
+    class function DSProcToRecordArray<T: record >(const AProc: TDSOpenProc): TArray<T>; overload;
+    class function DSProcToRecordArray<T: record >(const AProc: TDSOpenParamProc; const AParam: TJSONObject)
       : TArray<T>; overload;
 
     // Init TFDQuery Parameter DataType
-    class procedure InitDataType(ASender: TComponent; AConn: TFDConnection);
+    class procedure InitDataType(const ASender: TComponent; const AConn: TFDConnection);
 
-    class function CalcExecTime(ABegin: TDateTime): Double;
+    class function CalcExecTime(const ABegin: TDateTime): Double;
   end;
 
   TFDDataSetHelper = class helper for TFDDataSet
   private
-    function FieldToJSONVlaue(AField: TField): TJSONValue;
-    function GetNameValue(AValue: TJSONValue; AName: String): TJSONValue;
-    function GetJSONObject(AValue: TJSONObject; AName: String): TJSONObject;
-    function GetJSONArray(AValue: TJSONArray; AName: String): TJSONArray;
+    function FieldToJSONVlaue(const AField: TField): TJSONValue;
+    function GetNameValue(const AValue: TJSONValue; const AName: String): TJSONValue;
+    function GetJSONObject(const AValue: TJSONObject; const AName: String): TJSONObject;
+    function GetJSONArray(const AValue: TJSONArray; const AName: String): TJSONArray;
 
-    procedure FieldByJsonValue(AField: TField; AValue: TJSONValue); overload;
-    procedure FieldByJsonValue(AValue: TJSONValue; AName: String); overload;
-    procedure FieldByJSONArray(AValue: TJSONArray; AName: String);
+    procedure FieldByJsonValue(const AField: TField; const AValue: TJSONValue); overload;
+    procedure FieldByJsonValue(const AValue: TJSONValue; const AName: String); overload;
+    procedure FieldByJSONArray(const AValue: TJSONArray; const AName: String);
   public
-    procedure LoadFromDSStream(AStream: TStream);
+    procedure LoadFromDSStream(const AStream: TStream);
 
     function ToJSON: TJSONObject;
-    function ToRecord<T: Record >(AName: String = ''): T;
-    function ToRecordArray<T: Record >(AName: String = ''): TArray<T>;
+    function ToRecord<T: Record >(const AName: String = ''): T;
+    function ToRecordArray<T: Record >(const AName: String = ''): TArray<T>;
 
-    procedure FieldByJSONObject(AObject: TJSONObject); overload;
-    procedure FieldByJSONObject(AJSON: String); overload;
+    procedure FieldByJSONObject(const AObject: TJSONObject); overload;
+    procedure FieldByJSONObject(const AJSON: String); overload;
   end;
 
   TFDQueryHelper = class helper for TFDQuery
   private
-    function GetExternalProc(OnlyProcName: Boolean = False): string;
+    procedure ParamByJsonValue(const AParam: TFDParam; const AValue: TJSONValue); overload;
+    procedure ParamByJsonValue(const AValue: TJSONValue; const AName: String); overload;
+    procedure ParamByJSONArray(const AValue: TJSONArray; const AName: String);
 
-    procedure ParamByJsonValue(AParam: TFDParam; AValue: TJSONValue); overload;
-    procedure ParamByJsonValue(AValue: TJSONValue; AName: String); overload;
-    procedure ParamByJSONArray(AValue: TJSONArray; AName: String);
+    function OpenTo<T>(const AConn: TFDConnection; const AParams: TJSONObject; const AType: TMessageType;
+      const AProc: TOpenToFunc<T>): T;
 
-    function OpenTo<T>(AConn: TFDConnection; AParams: TJSONObject; AType: TMessageType;
-      AProc: TOpenToFunc<T>): T;
-
-    function OpenQuery(AConn: TFDConnection; AParams: TJSONObject; AType: TMessageType): TStream;
-    function OpenToMemTab(AConn: TFDConnection; AParams: TJSONObject; AType: TMessageType): TFDMemTable;
-    function ExecQuery(AConn: TFDConnection; AParams: TJSONObject; AType: TMessageType): Boolean; overload;
-    function ExecQuery(AConn: TFDConnection; AParams: TJSONArray; AType: TMessageType;
-      CommitAnyway: Boolean = False): Boolean; overload;
-    function ApplyUpdate(AConn: TFDConnection; AStream: TStream; AType: TMessageType): Boolean;
+    function OpenQuery(const AConn: TFDConnection; const AParams: TJSONObject;
+      const AType: TMessageType): TStream;
+    function OpenToMemTab(const AConn: TFDConnection; const AParams: TJSONObject; const AType: TMessageType)
+      : TFDMemTable;
+    function ExecQuery(const AConn: TFDConnection; const AParams: TJSONObject; const AType: TMessageType)
+      : Boolean; overload;
+    function ExecQuery(const AConn: TFDConnection; const AParams: TJSONArray; const AType: TMessageType;
+      const CommitAnyway: Boolean = False): Boolean; overload;
+    function ApplyUpdate(const AConn: TFDConnection; const AStream: TStream;
+      const AType: TMessageType): Boolean;
   public
     function Clone: TFDQuery;
     function ToStream: TStream;
     function ToMemTable: TFDMemTable;
-    procedure LoadFromDSStream(AStream: TStream);
+    procedure LoadFromDSStream(const AStream: TStream);
 
     function ToJSON: TJSONObject;
-    function ToRecord<T: Record >(AName: String = ''): T;
-    function ToRecordArray<T: Record >(AName: String = ''): TArray<T>;
+    function ToRecord<T: Record >(const AName: String = ''): T;
+    function ToRecordArray<T: Record >(const AName: String = ''): TArray<T>;
 
-    procedure ParamByJSONObject(AObject: TJSONObject);
-    procedure FieldByJSONObject(AObject: TJSONObject); overload;
-    procedure FieldByJSONObject(AJSON: String); overload;
+    procedure ParamByJSONObject(const AObject: TJSONObject);
+    procedure FieldByJSONObject(const AObject: TJSONObject); overload;
+    procedure FieldByJSONObject(const AJSON: String); overload;
 
     // OpenQuery
-    function OpenInstantQuery(AConn: TFDConnection; AParams: TJSONObject; AType: TMessageType = msInfo)
-      : TStream; overload;
-    function OpenInstantToMemTab(AConn: TFDConnection; AParams: TJSONObject; AType: TMessageType = msInfo)
-      : TFDMemTable; overload;
+    function OpenInstantQuery(const AConn: TFDConnection; const AParams: TJSONObject;
+      const AType: TMessageType = msInfo): TStream; overload;
+    function OpenInstantToMemTab(const AConn: TFDConnection; const AParams: TJSONObject;
+      const AType: TMessageType = msInfo): TFDMemTable; overload;
 
     // ExecQuery
-    function ExecInstantQuery(AConn: TFDConnection; AParams: TJSONObject; AType: TMessageType = msInfo)
-      : Boolean; overload;
+    function ExecInstantQuery(const AConn: TFDConnection; const AParams: TJSONObject;
+      const AType: TMessageType = msInfo): Boolean; overload;
 
     // Array DML
-    function ExecInstantQuery(AConn: TFDConnection; AParams: TJSONArray; AType: TMessageType = msInfo;
-      CommitAnyway: Boolean = False): Boolean; overload;
+    function ExecInstantQuery(const AConn: TFDConnection; const AParams: TJSONArray;
+      const AType: TMessageType = msInfo; const CommitAnyway: Boolean = False): Boolean; overload;
 
     // ApplyUpdate
-    function ApplyInstantUpdate(AConn: TFDConnection; AStream: TStream; AType: TMessageType = msInfo)
-      : Boolean;
+    function ApplyInstantUpdate(const AConn: TFDConnection; const AStream: TStream;
+      const AType: TMessageType = msInfo): Boolean;
   end;
 
   TFDMemTableHelper = class helper for TFDMemTable
   public
     function Clone: TFDMemTable;
     function ToStream: TStream;
-    procedure LoadFromDSStream(AStream: TStream);
+    procedure LoadFromDSStream(const AStream: TStream);
 
     function ToJSON: TJSONObject;
-    function ToRecord<T: Record >(AName: String = ''): T;
-    function ToRecordArray<T: Record >(AName: String = ''): TArray<T>;
-    procedure FieldByJSONObject(AObject: TJSONObject); overload;
-    procedure FieldByJSONObject(AJSON: String); overload;
+    function ToRecord<T: Record >(const AName: String = ''): T;
+    function ToRecordArray<T: Record >(const AName: String = ''): TArray<T>;
+    procedure FieldByJSONObject(const AObject: TJSONObject); overload;
+    procedure FieldByJSONObject(const AJSON: String); overload;
   end;
 
-function GetFieldTypeName(AType: TFieldType): string;
+function GetFieldTypeName(const AType: TFieldType): string;
 
 const
   FieldTypeName: array [0 .. 51] of string = //
@@ -175,7 +181,7 @@ implementation
 
 uses JdcGlobal.ClassHelper;
 
-function GetFieldTypeName(AType: TFieldType): string;
+function GetFieldTypeName(const AType: TFieldType): string;
 begin
   if Integer(AType) > Length(FieldTypeName) - 1 then
     Result := Integer(AType).ToString
@@ -185,7 +191,7 @@ end;
 
 { TDSCommon }
 
-class procedure TDSCommon.AddJSONArray<T>(var AObject: TJSONObject; ARecord: T);
+class procedure TDSCommon.AddJSONArray<T>(var AObject: TJSONObject; const ARecord: T);
 var
   tmp: TJSONObject;
   MyPair: TJSONPair;
@@ -217,7 +223,7 @@ begin
   tmp.Free;
 end;
 
-class procedure TDSCommon.AddJSONValue<T>(var AObject: TJSONObject; ARecord: T; APreFix: string);
+class procedure TDSCommon.AddJSONValue<T>(var AObject: TJSONObject; const ARecord: T; const APreFix: string);
 var
   tmp: TJSONObject;
   MyPair, NewPair: TJSONPair;
@@ -235,15 +241,14 @@ begin
   end;
 end;
 
-class function TDSCommon.CalcExecTime(ABegin: TDateTime): Double;
+class function TDSCommon.CalcExecTime(const ABegin: TDateTime): Double;
 begin
   Result := MilliSecondsBetween(Now, ABegin) / 1000;
   if Result > 3 then
-    TLogging.Obj.ApplicationMessage(msWarning, 'Delay', 'Proc=%s,ExecSec=%0.2f',
-      [JdcGlobal.GetProcByLevel(1, True), Result]);
+    TLogging.Obj.ApplicationMessage(msWarning, 'Delay', 'ExecSec=%0.2f', [Result]);
 end;
 
-class procedure TDSCommon.ClearJSONObject(AValue: TJSONArray);
+class procedure TDSCommon.ClearJSONObject(const AValue: TJSONArray);
 begin
 {$IF CompilerVersion  > 26} // upper XE5
   while AValue.Count > 0 do
@@ -255,17 +260,17 @@ begin
   end;
 end;
 
-class function TDSCommon.DataSetToStream(AQuery: TFDQuery): TStream;
+class function TDSCommon.DataSetToStream(const AQuery: TFDQuery): TStream;
 begin
   Result := AQuery.ToStream;
 end;
 
-class function TDSCommon.DataSetToStream(AMemTab: TFDMemTable): TStream;
+class function TDSCommon.DataSetToStream(const AMemTab: TFDMemTable): TStream;
 begin
   Result := AMemTab.ToStream;
 end;
 
-class procedure TDSCommon.ClearJSONObject(AValue: TJSONObject);
+class procedure TDSCommon.ClearJSONObject(const AValue: TJSONObject);
 var
   Name: String;
 begin
@@ -285,7 +290,7 @@ begin
   end;
 end;
 
-class function TDSCommon.DSProcToRecord<T>(AProc: TDSOpenParamProc; AParam: TJSONObject): T;
+class function TDSCommon.DSProcToRecord<T>(const AProc: TDSOpenParamProc; const AParam: TJSONObject): T;
 var
   MemTab: TFDMemTable;
 begin
@@ -302,7 +307,7 @@ begin
   end;
 end;
 
-class function TDSCommon.DSProcToRecord<T>(AProc: TDSOpenProc): T;
+class function TDSCommon.DSProcToRecord<T>(const AProc: TDSOpenProc): T;
 var
   MemTab: TFDMemTable;
 begin
@@ -319,7 +324,8 @@ begin
   end;
 end;
 
-class function TDSCommon.DSProcToRecordArray<T>(AProc: TDSOpenParamProc; AParam: TJSONObject): TArray<T>;
+class function TDSCommon.DSProcToRecordArray<T>(const AProc: TDSOpenParamProc; const AParam: TJSONObject)
+  : TArray<T>;
 var
   MemTab: TFDMemTable;
 begin
@@ -333,7 +339,7 @@ begin
   end;
 end;
 
-class function TDSCommon.DSProcToRecordArray<T>(AProc: TDSOpenProc): TArray<T>;
+class function TDSCommon.DSProcToRecordArray<T>(const AProc: TDSOpenProc): TArray<T>;
 var
   MemTab: TFDMemTable;
 begin
@@ -347,7 +353,7 @@ begin
   end;
 end;
 
-class function TDSCommon.DSStreamToBytesStream(AStream: TStream): TBytesStream;
+class function TDSCommon.DSStreamToBytesStream(const AStream: TStream): TBytesStream;
 const
   BufferSize = 1024 * 32;
 var
@@ -365,7 +371,7 @@ begin
   Result.Position := 0;
 end;
 
-class function TDSCommon.DBXStreamToMemoryStream(AStream: TStream): TMemoryStream;
+class function TDSCommon.DBXStreamToMemoryStream(const AStream: TStream): TMemoryStream;
 const
   BufferSize = 1024 * 32;
 var
@@ -386,7 +392,7 @@ begin
   end;
 end;
 
-class procedure TDSCommon.DSStreamToFDDataSet(AStream: TStream; ADataSet: TFDDataSet);
+class procedure TDSCommon.DSStreamToFDDataSet(const AStream: TStream; const ADataSet: TFDDataSet);
 begin
   ADataSet.LoadFromDSStream(AStream);
 end;
@@ -401,7 +407,7 @@ begin
   Result := LRecord.Name;
 end;
 
-class procedure TDSCommon.InitDataType(ASender: TComponent; AConn: TFDConnection);
+class procedure TDSCommon.InitDataType(const ASender: TComponent; const AConn: TFDConnection);
 var
   tmp: TFDQuery;
   Query: TFDQuery;
@@ -454,8 +460,8 @@ end;
 
 { TFDQueryHelper }
 
-function TFDQueryHelper.ApplyInstantUpdate(AConn: TFDConnection; AStream: TStream;
-  AType: TMessageType): Boolean;
+function TFDQueryHelper.ApplyInstantUpdate(const AConn: TFDConnection; const AStream: TStream;
+  const AType: TMessageType): Boolean;
 var
   MyQuery: TFDQuery;
 begin
@@ -467,7 +473,8 @@ begin
   end;
 end;
 
-function TFDQueryHelper.ApplyUpdate(AConn: TFDConnection; AStream: TStream; AType: TMessageType): Boolean;
+function TFDQueryHelper.ApplyUpdate(const AConn: TFDConnection; const AStream: TStream;
+  const AType: TMessageType): Boolean;
 var
   ExecTime: TDateTime;
   Errors: Integer;
@@ -481,16 +488,15 @@ begin
       ExecTime := Now;
       Errors := Self.ApplyUpdates;
 
-      TLogging.Obj.ApplicationMessage(AType, JdcGlobal.GetCurrentProc,
-        Format('Query=%s,ChangeCount=%d,Errors=%d,ExecSec=%0.2f,Caller=%s', [Self.Name, Self.ChangeCount,
-        Errors, TDSCommon.CalcExecTime(ExecTime), GetExternalProc]));
+      TLogging.Obj.ApplicationMessage(AType, 'ApplyUpdate',
+        Format('Query=%s,ChangeCount=%d,Errors=%d,ExecSec=%0.2f', [Self.Name, Self.ChangeCount, Errors,
+        TDSCommon.CalcExecTime(ExecTime)]));
 
       Result := Errors = 0;
     except
       on E: Exception do
       begin
-        TLogging.Obj.ApplicationMessage(msError, JdcGlobal.GetCurrentProc, 'Query=%s,E=%s,Caller=%s',
-          [Self.Name, E.Message, GetExternalProc]);
+        TLogging.Obj.ApplicationMessage(msError, 'ApplyUpdate', 'Query=%s,E=%s', [Self.Name, E.Message]);
       end;
     end;
   finally
@@ -517,13 +523,13 @@ begin
     Result.Params.Items[I].DataType := Self.Params.Items[I].DataType;
 end;
 
-procedure TFDQueryHelper.FieldByJSONObject(AObject: TJSONObject);
+procedure TFDQueryHelper.FieldByJSONObject(const AObject: TJSONObject);
 begin
   TFDDataSet(Self).FieldByJSONObject(AObject);
 end;
 
-function TFDQueryHelper.ExecInstantQuery(AConn: TFDConnection; AParams: TJSONObject;
-  AType: TMessageType): Boolean;
+function TFDQueryHelper.ExecInstantQuery(const AConn: TFDConnection; const AParams: TJSONObject;
+  const AType: TMessageType): Boolean;
 var
   MyQuery: TFDQuery;
 begin
@@ -535,8 +541,8 @@ begin
   end;
 end;
 
-function TFDQueryHelper.ExecInstantQuery(AConn: TFDConnection; AParams: TJSONArray; AType: TMessageType;
-  CommitAnyway: Boolean): Boolean;
+function TFDQueryHelper.ExecInstantQuery(const AConn: TFDConnection; const AParams: TJSONArray;
+  const AType: TMessageType; const CommitAnyway: Boolean): Boolean;
 var
   MyQuery: TFDQuery;
 begin
@@ -548,8 +554,8 @@ begin
   end;
 end;
 
-function TFDQueryHelper.ExecQuery(AConn: TFDConnection; AParams: TJSONArray; AType: TMessageType;
-  CommitAnyway: Boolean): Boolean;
+function TFDQueryHelper.ExecQuery(const AConn: TFDConnection; const AParams: TJSONArray;
+  const AType: TMessageType; const CommitAnyway: Boolean): Boolean;
 var
   ExecTime: TDateTime;
   I: Integer;
@@ -575,23 +581,22 @@ begin
       if CommitAnyway or Result then
       begin
         AConn.Commit;
-        TLogging.Obj.ApplicationMessage(AType, JdcGlobal.GetCurrentProc,
-          'Commited,Query=%s,Requested=%d,RowsAffected=%d,ExecSec=%0.2f,Caller=%s',
-          [Self.Name, AParams.Count, Self.RowsAffected, TDSCommon.CalcExecTime(ExecTime), GetExternalProc]);
+        TLogging.Obj.ApplicationMessage(AType, 'ExecQuery',
+          'Commited,Query=%s,Requested=%d,RowsAffected=%d,ExecSec=%0.2f',
+          [Self.Name, AParams.Count, Self.RowsAffected, TDSCommon.CalcExecTime(ExecTime)]);
       end
       else
       begin
         AConn.Rollback;
-        TLogging.Obj.ApplicationMessage(AType, JdcGlobal.GetCurrentProc,
-          'Rollbacked,Query=%s,Requested=%d,RowsAffected=%d,ExecSec=%0.2f,Caller=%s',
-          [Self.Name, AParams.Count, Self.RowsAffected, TDSCommon.CalcExecTime(ExecTime), GetExternalProc]);
+        TLogging.Obj.ApplicationMessage(AType, 'ExecQuery',
+          'Rollbacked,Query=%s,Requested=%d,RowsAffected=%d,ExecSec=%0.2f',
+          [Self.Name, AParams.Count, Self.RowsAffected, TDSCommon.CalcExecTime(ExecTime)]);
       end;
     except
       on E: Exception do
       begin
         AConn.Rollback;
-        TLogging.Obj.ApplicationMessage(msError, JdcGlobal.GetCurrentProc, 'Query=%s,E=%s,Caller=%s',
-          [Self.Name, E.Message, GetExternalProc]);
+        TLogging.Obj.ApplicationMessage(msError, 'ExecQuery', 'Query=%s,E=%s', [Self.Name, E.Message]);
       end;
     end;
   finally
@@ -600,7 +605,8 @@ begin
 
 end;
 
-function TFDQueryHelper.ExecQuery(AConn: TFDConnection; AParams: TJSONObject; AType: TMessageType): Boolean;
+function TFDQueryHelper.ExecQuery(const AConn: TFDConnection; const AParams: TJSONObject;
+  const AType: TMessageType): Boolean;
 var
   ExecTime: TDateTime;
 begin
@@ -613,38 +619,30 @@ begin
 
       ExecTime := Now;
       Self.ExecSQL;
-      TLogging.Obj.ApplicationMessage(AType, JdcGlobal.GetCurrentProc,
-        Format('Query=%s,RowsAffected=%d,ExecSec=%0.2f,Caller=%s', [Self.Name, Self.RowsAffected,
-        TDSCommon.CalcExecTime(ExecTime), GetExternalProc]));
+      TLogging.Obj.ApplicationMessage(AType, 'ExecQuery', Format('Query=%s,RowsAffected=%d,ExecSec=%0.2f',
+        [Self.Name, Self.RowsAffected, TDSCommon.CalcExecTime(ExecTime)]));
       Result := True;
     except
       on E: Exception do
-        TLogging.Obj.ApplicationMessage(msError, JdcGlobal.GetCurrentProc, 'Query=%s,E=%s,Caller=%s',
-          [Self.Name, E.Message, GetExternalProc]);
+        TLogging.Obj.ApplicationMessage(msError, 'ExecQuery', 'Query=%s,E=%s', [Self.Name, E.Message]);
     end;
   finally
     AConn.Free;
   end;
 end;
 
-procedure TFDQueryHelper.FieldByJSONObject(AJSON: String);
+procedure TFDQueryHelper.FieldByJSONObject(const AJSON: String);
 begin
   TFDDataSet(Self).FieldByJSONObject(AJSON);
 end;
 
-function TFDQueryHelper.GetExternalProc(OnlyProcName: Boolean): string;
-begin
-  // 0.ThisMethod - 1.OpenQuery - 2.OpenInstansQuery - 3.RealCaller
-  Result := JdcGlobal.GetProcByLevel(3, OnlyProcName);
-end;
-
-procedure TFDQueryHelper.LoadFromDSStream(AStream: TStream);
+procedure TFDQueryHelper.LoadFromDSStream(const AStream: TStream);
 begin
   TFDDataSet(Self).LoadFromDSStream(AStream);
 end;
 
-function TFDQueryHelper.OpenInstantQuery(AConn: TFDConnection; AParams: TJSONObject;
-  AType: TMessageType): TStream;
+function TFDQueryHelper.OpenInstantQuery(const AConn: TFDConnection; const AParams: TJSONObject;
+  const AType: TMessageType): TStream;
 var
   MyQuery: TFDQuery;
 begin
@@ -656,8 +654,8 @@ begin
   end;
 end;
 
-function TFDQueryHelper.OpenInstantToMemTab(AConn: TFDConnection; AParams: TJSONObject; AType: TMessageType)
-  : TFDMemTable;
+function TFDQueryHelper.OpenInstantToMemTab(const AConn: TFDConnection; const AParams: TJSONObject;
+  const AType: TMessageType): TFDMemTable;
 var
   MyQuery: TFDQuery;
 begin
@@ -669,17 +667,18 @@ begin
   end;
 end;
 
-function TFDQueryHelper.OpenQuery(AConn: TFDConnection; AParams: TJSONObject; AType: TMessageType): TStream;
+function TFDQueryHelper.OpenQuery(const AConn: TFDConnection; const AParams: TJSONObject;
+  const AType: TMessageType): TStream;
 begin
   Result := OpenTo<TStream>(AConn, AParams, AType,
-    function(AQuery: TFDQuery): TStream
+    function(const AQuery: TFDQuery): TStream
     begin
       Result := AQuery.ToStream;
     end);
 end;
 
-function TFDQueryHelper.OpenTo<T>(AConn: TFDConnection; AParams: TJSONObject; AType: TMessageType;
-AProc: TOpenToFunc<T>): T;
+function TFDQueryHelper.OpenTo<T>(const AConn: TFDConnection; const AParams: TJSONObject;
+const AType: TMessageType; const AProc: TOpenToFunc<T>): T;
 var
   ExecTime: TDateTime;
 begin
@@ -691,29 +690,28 @@ begin
 
       ExecTime := Now;
       Result := AProc(Self);
-      TLogging.Obj.ApplicationMessage(AType, JdcGlobal.GetCurrentProc,
-        Format('Query=%s,RecordCount=%d,ExecSec=%0.2f,Caller=%s', [Self.Name, Self.RecordCount,
-        TDSCommon.CalcExecTime(ExecTime), GetExternalProc]));
+      TLogging.Obj.ApplicationMessage(AType, 'OpenTo', Format('Query=%s,RecordCount=%d,ExecSec=%0.2f',
+        [Self.Name, Self.RecordCount, TDSCommon.CalcExecTime(ExecTime)]));
     except
       on E: Exception do
-        raise Exception.Create(Format('Query=%s,E=%s,Caller=%s', [Self.Name, E.Message, GetExternalProc]));
+        raise Exception.Create(Format('Query=%s,E=%s', [Self.Name, E.Message]));
     end;
   finally
     AConn.Free;
   end;
 end;
 
-function TFDQueryHelper.OpenToMemTab(AConn: TFDConnection; AParams: TJSONObject; AType: TMessageType)
-  : TFDMemTable;
+function TFDQueryHelper.OpenToMemTab(const AConn: TFDConnection; const AParams: TJSONObject;
+const AType: TMessageType): TFDMemTable;
 begin
   Result := OpenTo<TFDMemTable>(AConn, AParams, AType,
-    function(AQuery: TFDQuery): TFDMemTable
+    function(const AQuery: TFDQuery): TFDMemTable
     begin
       Result := AQuery.ToMemTable;
     end);
 end;
 
-procedure TFDQueryHelper.ParamByJsonValue(AParam: TFDParam; AValue: TJSONValue);
+procedure TFDQueryHelper.ParamByJsonValue(const AParam: TFDParam; const AValue: TJSONValue);
 var
   Msg: String;
 begin
@@ -838,7 +836,7 @@ begin
 
 end;
 
-procedure TFDQueryHelper.ParamByJSONArray(AValue: TJSONArray; AName: String);
+procedure TFDQueryHelper.ParamByJSONArray(const AValue: TJSONArray; const AName: String);
 var
   MyElem: TJSONValue;
   Index: Integer;
@@ -851,7 +849,7 @@ begin
   end;
 end;
 
-procedure TFDQueryHelper.ParamByJSONObject(AObject: TJSONObject);
+procedure TFDQueryHelper.ParamByJSONObject(const AObject: TJSONObject);
 var
   MyElem: TJSONPair;
 begin
@@ -859,7 +857,7 @@ begin
     ParamByJsonValue(MyElem.JsonValue, MyElem.JsonString.Value);
 end;
 
-procedure TFDQueryHelper.ParamByJsonValue(AValue: TJSONValue; AName: String);
+procedure TFDQueryHelper.ParamByJsonValue(const AValue: TJSONValue; const AName: String);
 var
   Msg: string;
 begin
@@ -893,7 +891,7 @@ begin
   Result.Position := 0;
 end;
 
-function TFDQueryHelper.ToRecordArray<T>(AName: String): TArray<T>;
+function TFDQueryHelper.ToRecordArray<T>(const AName: String): TArray<T>;
 begin
   Result := TFDDataSet(Self).ToRecordArray<T>(AName);
 end;
@@ -911,7 +909,7 @@ begin
   Result.CopyDataSet(Self, [coStructure, coRestart, coAppend]);
 end;
 
-function TFDQueryHelper.ToRecord<T>(AName: String): T;
+function TFDQueryHelper.ToRecord<T>(const AName: String): T;
 begin
   Result := TFDDataSet(Self).ToRecord<T>(AName);
 end;
@@ -938,22 +936,22 @@ begin
   end;
 end;
 
-procedure TFDMemTableHelper.FieldByJSONObject(AObject: TJSONObject);
+procedure TFDMemTableHelper.FieldByJSONObject(const AObject: TJSONObject);
 begin
   TFDDataSet(Self).FieldByJSONObject(AObject);
 end;
 
-procedure TFDMemTableHelper.FieldByJSONObject(AJSON: String);
+procedure TFDMemTableHelper.FieldByJSONObject(const AJSON: String);
 begin
   TFDDataSet(Self).FieldByJSONObject(AJSON);
 end;
 
-procedure TFDMemTableHelper.LoadFromDSStream(AStream: TStream);
+procedure TFDMemTableHelper.LoadFromDSStream(const AStream: TStream);
 begin
   TFDDataSet(Self).LoadFromDSStream(AStream);
 end;
 
-function TFDMemTableHelper.ToRecordArray<T>(AName: String): TArray<T>;
+function TFDMemTableHelper.ToRecordArray<T>(const AName: String): TArray<T>;
 begin
   Result := TFDDataSet(Self).ToRecordArray<T>(AName);
 end;
@@ -963,7 +961,7 @@ begin
   Result := TFDDataSet(Self).ToJSON;
 end;
 
-function TFDMemTableHelper.ToRecord<T>(AName: String): T;
+function TFDMemTableHelper.ToRecord<T>(const AName: String): T;
 begin
   Result := TFDDataSet(Self).ToRecord<T>(AName);
 end;
@@ -977,7 +975,7 @@ end;
 
 { TFDDataSetHelper }
 
-procedure TFDDataSetHelper.FieldByJsonValue(AField: TField; AValue: TJSONValue);
+procedure TFDDataSetHelper.FieldByJsonValue(const AField: TField; const AValue: TJSONValue);
 var
   Msg: String;
 begin
@@ -1041,7 +1039,7 @@ begin
   end;
 end;
 
-procedure TFDDataSetHelper.FieldByJsonValue(AValue: TJSONValue; AName: String);
+procedure TFDDataSetHelper.FieldByJsonValue(const AValue: TJSONValue; const AName: String);
 begin
   if AValue is TJSONObject then
     FieldByJSONObject(AValue as TJSONObject)
@@ -1053,7 +1051,7 @@ begin
     FieldByJsonValue(Self.FindField(AName), AValue);
 end;
 
-function TFDDataSetHelper.FieldToJSONVlaue(AField: TField): TJSONValue;
+function TFDDataSetHelper.FieldToJSONVlaue(const AField: TField): TJSONValue;
 begin
   if not Assigned(AField) then
     Exit(TJSONString.Create);
@@ -1111,7 +1109,7 @@ begin
   // GetFieldTypeName(AField.DataType), Result.Value]);
 end;
 
-procedure TFDDataSetHelper.FieldByJSONArray(AValue: TJSONArray; AName: String);
+procedure TFDDataSetHelper.FieldByJSONArray(const AValue: TJSONArray; const AName: String);
 var
   MyElem: TJSONValue;
   Index: Integer;
@@ -1124,7 +1122,7 @@ begin
   end;
 end;
 
-procedure TFDDataSetHelper.FieldByJSONObject(AObject: TJSONObject);
+procedure TFDDataSetHelper.FieldByJSONObject(const AObject: TJSONObject);
 var
   MyElem: TJSONPair;
 begin
@@ -1132,7 +1130,7 @@ begin
     FieldByJsonValue(MyElem.JsonValue, MyElem.JsonString.Value);
 end;
 
-procedure TFDDataSetHelper.FieldByJSONObject(AJSON: String);
+procedure TFDDataSetHelper.FieldByJSONObject(const AJSON: String);
 var
   JSONObject: TJSONObject;
 begin
@@ -1144,7 +1142,7 @@ begin
   end;
 end;
 
-function TFDDataSetHelper.GetJSONArray(AValue: TJSONArray; AName: String): TJSONArray;
+function TFDDataSetHelper.GetJSONArray(const AValue: TJSONArray; const AName: String): TJSONArray;
 var
   I: Integer;
   Key: string;
@@ -1166,7 +1164,7 @@ begin
 {$ENDIF}
 end;
 
-function TFDDataSetHelper.GetJSONObject(AValue: TJSONObject; AName: String): TJSONObject;
+function TFDDataSetHelper.GetJSONObject(const AValue: TJSONObject; const AName: String): TJSONObject;
 var
   MyElem: TJSONPair;
   Key: string;
@@ -1183,7 +1181,7 @@ begin
   end;
 end;
 
-function TFDDataSetHelper.GetNameValue(AValue: TJSONValue; AName: String): TJSONValue;
+function TFDDataSetHelper.GetNameValue(const AValue: TJSONValue; const AName: String): TJSONValue;
 begin
   if AValue is TJSONObject then
     Result := GetJSONObject(AValue as TJSONObject, AName)
@@ -1193,7 +1191,7 @@ begin
     Result := FieldToJSONVlaue(Self.Fields.FindField(AName));
 end;
 
-procedure TFDDataSetHelper.LoadFromDSStream(AStream: TStream);
+procedure TFDDataSetHelper.LoadFromDSStream(const AStream: TStream);
 var
   LStream: TMemoryStream;
 begin
@@ -1208,7 +1206,7 @@ begin
   end;
 end;
 
-function TFDDataSetHelper.ToRecordArray<T>(AName: String): TArray<T>;
+function TFDDataSetHelper.ToRecordArray<T>(const AName: String): TArray<T>;
 var
   _record: T;
 begin
@@ -1236,7 +1234,7 @@ begin
   end;
 end;
 
-function TFDDataSetHelper.ToRecord<T>(AName: String): T;
+function TFDDataSetHelper.ToRecord<T>(const AName: String): T;
 var
   MyRecord: T;
   TempContainer, ResultValue: TJSONObject;

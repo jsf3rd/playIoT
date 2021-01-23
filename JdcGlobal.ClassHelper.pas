@@ -49,7 +49,7 @@ type
   public
     function IOHandler: TIdIOHandler;
     function ReadByte: Byte;
-    procedure ReadBytes(var VBuffer: TIdBytes; AByteCount: Integer; AAppend: Boolean = True);
+    procedure ReadBytes(var VBuffer: TIdBytes; const AByteCount: Integer; const AAppend: Boolean = True);
     procedure Write(const ABuffer: TIdBytes; const ALength: Integer = -1; const AOffset: Integer = 0);
 
     function PeerIP: string;
@@ -78,7 +78,7 @@ type
     function ToRecord<T: record >: T;
     function ToObject<T: class>: T;
 
-    class function ParseFile(FileName: String): TJSONValue;
+    class function ParseFile(const FileName: String): TJSONValue;
 
     procedure Clear;
   end;
@@ -90,22 +90,22 @@ type
 
   TJSONHelper = class helper for REST.JSON.TJSON
   public
-    class function ObjectToJsonObjectEx(AObject: TObject): TJSONObject;
+    class function ObjectToJsonObjectEx(const AObject: TObject): TJSONObject;
 
-    class function ObjectToJsonStringEx(AObject: TObject): String;
-    class function JsonToObjectEx<T: class>(AJsonObject: TJSONObject): T; overload;
+    class function ObjectToJsonStringEx(const AObject: TObject): String;
+    class function JsonToObjectEx<T: class>(const AJsonObject: TJSONObject): T; overload;
     class function JsonToObjectEx<T: class>(const AJson: String): T; overload;
     class function FileToObject<T: class>(const FileName: String): T;
 
-    class function RecordToJsonObject<T: record >(ARecord: T): TJSONObject;
-    class function RecordToJsonString<T: record >(ARecord: T): String;
+    class function RecordToJsonObject<T: record >(const ARecord: T): TJSONObject;
+    class function RecordToJsonString<T: record >(const ARecord: T): String;
     class function JsonToRecord<T: record >(const AJsonObject: TJSONObject): T; overload;
     class function JsonToRecord<T: record >(const AJson: String): T; overload;
     class function FileToRecord<T: record >(const FileName: String; const Encoding: TEncoding = nil): T;
-    class function ConvertRecord<T1, T2: record >(ARecord: T1): T2;
+    class function ConvertRecord<T1, T2: record >(const ARecord: T1): T2;
 
-    class function RecordArrayToJsonArray<T: record >(RecordArray: TArray<T>): TJSONArray;
-    class function JsonArrayToRecordArray<T: record >(JsonArray: TJSONArray): TArray<T>;
+    class function RecordArrayToJsonArray<T: record >(const RecordArray: TArray<T>): TJSONArray;
+    class function JsonArrayToRecordArray<T: record >(const JsonArray: TJSONArray): TArray<T>;
   end;
 
   TTimeHelper = record helper for TTime
@@ -288,11 +288,10 @@ begin
   for MyElem in Self do
     Names := Names + MyElem.JsonString.Value + ', ';
 
-  raise Exception.Create(SysUtils.Format('JSON name [%s] is not exist. Other name list [%s],caller=%s',
-    [Name, Names, GetProcByLevel(2)]));
+  raise Exception.Create(SysUtils.Format('JSON name [%s] is not exist. Other name list [%s]', [Name, Names]));
 end;
 
-class function TJSONObjectHelper.ParseFile(FileName: String): TJSONValue;
+class function TJSONObjectHelper.ParseFile(const FileName: String): TJSONValue;
 var
   JsonString: string;
 begin
@@ -312,12 +311,12 @@ end;
 
 { TJSONHelper }
 
-class function TJSONHelper.JsonToObjectEx<T>(AJsonObject: TJSONObject): T;
+class function TJSONHelper.JsonToObjectEx<T>(const AJsonObject: TJSONObject): T;
 begin
   result := JsonToObjectEx<T>(AJsonObject.ToString);
 end;
 
-class function TJSONHelper.ConvertRecord<T1, T2>(ARecord: T1): T2;
+class function TJSONHelper.ConvertRecord<T1, T2>(const ARecord: T1): T2;
 var
   JSONObject: TJSONObject;
 begin
@@ -345,7 +344,7 @@ begin
   result := REST.JSON.TJSON.JsonToRecord<T>(JsonString);
 end;
 
-class function TJSONHelper.JsonArrayToRecordArray<T>(JsonArray: TJSONArray): TArray<T>;
+class function TJSONHelper.JsonArrayToRecordArray<T>(const JsonArray: TJSONArray): TArray<T>;
 var
   MyValue: TJSONValue;
   I: Integer;
@@ -384,7 +383,7 @@ begin
   result := TSuperRecord<T>.FromJSON(JsonString);
 end;
 
-class function TJSONHelper.ObjectToJsonObjectEx(AObject: TObject): TJSONObject;
+class function TJSONHelper.ObjectToJsonObjectEx(const AObject: TObject): TJSONObject;
 var
   JSONStr: String;
 begin
@@ -392,12 +391,12 @@ begin
   result := TJSONObject.ParseJSONValue(JSONStr) as TJSONObject;
 end;
 
-class function TJSONHelper.ObjectToJsonStringEx(AObject: TObject): String;
+class function TJSONHelper.ObjectToJsonStringEx(const AObject: TObject): String;
 begin
   result := AObject.AsJSON;
 end;
 
-class function TJSONHelper.RecordArrayToJsonArray<T>(RecordArray: TArray<T>): TJSONArray;
+class function TJSONHelper.RecordArrayToJsonArray<T>(const RecordArray: TArray<T>): TJSONArray;
 var
   MyElem: T;
 begin
@@ -409,7 +408,7 @@ begin
   end;
 end;
 
-class function TJSONHelper.RecordToJsonObject<T>(ARecord: T): TJSONObject;
+class function TJSONHelper.RecordToJsonObject<T>(const ARecord: T): TJSONObject;
 var
   JsonString: string;
 begin
@@ -422,7 +421,7 @@ begin
   end;
 end;
 
-class function TJSONHelper.RecordToJsonString<T>(ARecord: T): String;
+class function TJSONHelper.RecordToJsonString<T>(const ARecord: T): String;
 begin
   result := TSuperRecord<T>.AsJSON(ARecord);
 end;
@@ -513,7 +512,8 @@ begin
   result := IOHandler.ReadByte;
 end;
 
-procedure TIdContextHelper.ReadBytes(var VBuffer: TIdBytes; AByteCount: Integer; AAppend: Boolean);
+procedure TIdContextHelper.ReadBytes(var VBuffer: TIdBytes; const AByteCount: Integer;
+  const AAppend: Boolean);
 begin
   IOHandler.ReadBytes(VBuffer, AByteCount, AAppend);
 end;
