@@ -6,8 +6,8 @@ uses
   Classes, SysUtils, IniFiles, Win.Registry, Winapi.Windows, JdcGlobal;
 
 type
-  TIniProc = reference to procedure(AIni: TIniFile);
-  TRegProc = reference to procedure(ARegistry: TRegistry);
+  TIniProc = reference to procedure(const AIni: TIniFile);
+  TRegProc = reference to procedure(const ARegistry: TRegistry);
 
   TOptionAbstract = class abstract
   protected
@@ -37,23 +37,24 @@ type
     function GetStringValue(const ASec, AIdent, ADefault: String): String; virtual; abstract;
     procedure SetStringValue(const ASec, AIdent, AValue: String); virtual; abstract;
 
-    function GetIntegerValue(const ASec, AIdent: String; ADefault: Integer): Integer; virtual; abstract;
-    procedure SetIntegerValue(const ASec, AIdent: String; AValue: Integer); virtual; abstract;
+    function GetIntegerValue(const ASec, AIdent: String; const ADefault: Integer): Integer; virtual; abstract;
+    procedure SetIntegerValue(const ASec, AIdent: String; const AValue: Integer); virtual; abstract;
 
-    function GetFloatValue(const ASec, AIdent: String; ADefault: real): real; virtual; abstract;
-    procedure SetFloatValue(const ASec, AIdent: String; AValue: real); virtual; abstract;
+    function GetFloatValue(const ASec, AIdent: String; const ADefault: real): real; virtual; abstract;
+    procedure SetFloatValue(const ASec, AIdent: String; const AValue: real); virtual; abstract;
 
-    function GetBoolValue(const ASec, AIdent: String; ADefault: boolean): boolean; virtual; abstract;
-    procedure SetBoolValue(const ASec, AIdent: String; AValue: boolean); virtual; abstract;
+    function GetBoolValue(const ASec, AIdent: String; const ADefault: boolean): boolean; virtual; abstract;
+    procedure SetBoolValue(const ASec, AIdent: String; const AValue: boolean); virtual; abstract;
 
-    function GetDateTimeValue(const ASec, AIdent: String; ADefault: TDateTime): TDateTime; virtual; abstract;
-    procedure SetDateTimeValue(const ASec, AIdent: String; AValue: TDateTime); virtual; abstract;
+    function GetDateTimeValue(const ASec, AIdent: String; const ADefault: TDateTime): TDateTime;
+      virtual; abstract;
+    procedure SetDateTimeValue(const ASec, AIdent: String; const AValue: TDateTime); virtual; abstract;
   public
     constructor Create(AOwner: TComponent); override;
 
     function ReadSections: TStrings; virtual; abstract;
-    function ReadSection(ASection: string): TStrings; virtual; abstract;
-    function ReadSectionValues(ASection: string): TStrings; virtual; abstract;
+    function ReadSection(const ASection: string): TStrings; virtual; abstract;
+    function ReadSectionValues(const ASection: string): TStrings; virtual; abstract;
 
     procedure EraseSection(const ASec: String); virtual; abstract;
     procedure DeleteKey(const ASec, AKey: String); virtual; abstract;
@@ -71,21 +72,21 @@ type
     function GetStringValue(const ASec, AIdent, ADefault: String): String; override;
     procedure SetStringValue(const ASec, AIdent, AValue: String); override;
 
-    function GetIntegerValue(const ASec, AIdent: String; ADefault: Integer): Integer; override;
-    procedure SetIntegerValue(const ASec, AIdent: String; AValue: Integer); override;
+    function GetIntegerValue(const ASec, AIdent: String; const ADefault: Integer): Integer; override;
+    procedure SetIntegerValue(const ASec, AIdent: String; const AValue: Integer); override;
 
-    function GetFloatValue(const ASec, AIdent: String; ADefault: real): real; override;
-    procedure SetFloatValue(const ASec, AIdent: String; AValue: real); override;
+    function GetFloatValue(const ASec, AIdent: String; const ADefault: real): real; override;
+    procedure SetFloatValue(const ASec, AIdent: String; const AValue: real); override;
 
-    function GetBoolValue(const ASec, AIdent: String; ADefault: boolean): boolean; override;
-    procedure SetBoolValue(const ASec, AIdent: String; AValue: boolean); override;
+    function GetBoolValue(const ASec, AIdent: String; const ADefault: boolean): boolean; override;
+    procedure SetBoolValue(const ASec, AIdent: String; const AValue: boolean); override;
 
-    function GetDateTimeValue(const ASec, AIdent: String; ADefault: TDateTime): TDateTime; override;
-    procedure SetDateTimeValue(const ASec, AIdent: String; AValue: TDateTime); override;
+    function GetDateTimeValue(const ASec, AIdent: String; const ADefault: TDateTime): TDateTime; override;
+    procedure SetDateTimeValue(const ASec, AIdent: String; const AValue: TDateTime); override;
   public
     function ReadSections: TStrings; override;
-    function ReadSection(ASection: string): TStrings; override;
-    function ReadSectionValues(ASection: string): TStrings; override;
+    function ReadSection(const ASection: string): TStrings; override;
+    function ReadSectionValues(const ASection: string): TStrings; override;
 
     procedure EraseSection(const ASec: String); override;
     procedure DeleteKey(const ASec, AKey: String); override;
@@ -97,29 +98,29 @@ type
   TOptionRegistry = class(TOptionInterface)
   private
     FRootKey: HKEY;
-    procedure RegistryTemplete(ASec: String; ACallBack: TRegProc);
+    procedure RegistryTemplete(const ASec: String; const ACallBack: TRegProc);
   protected
     function GetStringValue(const ASec, AIdent, ADefault: String): String; override;
     procedure SetStringValue(const ASec, AIdent, AValue: String); override;
 
-    function GetIntegerValue(const ASec, AIdent: String; ADefault: Integer): Integer; override;
-    procedure SetIntegerValue(const ASec, AIdent: String; AValue: Integer); override;
+    function GetIntegerValue(const ASec, AIdent: String; const ADefault: Integer): Integer; override;
+    procedure SetIntegerValue(const ASec, AIdent: String; const AValue: Integer); override;
 
-    function GetFloatValue(const ASec, AIdent: String; ADefault: real): real; override;
-    procedure SetFloatValue(const ASec, AIdent: String; AValue: real); override;
+    function GetFloatValue(const ASec, AIdent: String; const ADefault: real): real; override;
+    procedure SetFloatValue(const ASec, AIdent: String; const AValue: real); override;
 
-    function GetBoolValue(const ASec, AIdent: String; ADefault: boolean): boolean; override;
-    procedure SetBoolValue(const ASec, AIdent: String; AValue: boolean); override;
+    function GetBoolValue(const ASec, AIdent: String; const ADefault: boolean): boolean; override;
+    procedure SetBoolValue(const ASec, AIdent: String; const AValue: boolean); override;
 
-    function GetDateTimeValue(const ASec, AIdent: String; ADefault: TDateTime): TDateTime; override;
-    procedure SetDateTimeValue(const ASec, AIdent: String; AValue: TDateTime); override;
+    function GetDateTimeValue(const ASec, AIdent: String; const ADefault: TDateTime): TDateTime; override;
+    procedure SetDateTimeValue(const ASec, AIdent: String; const AValue: TDateTime); override;
   public
     constructor Create(AOwner: TComponent); overload; override;
     constructor Create(AOwner: TComponent; AKey: HKEY); reintroduce; overload;
 
     function ReadSections: TStrings; override;
-    function ReadSection(ASection: string): TStrings; override;
-    function ReadSectionValues(ASection: string): TStrings; override;
+    function ReadSection(const ASection: string): TStrings; override;
+    function ReadSectionValues(const ASection: string): TStrings; override;
 
     procedure EraseSection(const ASec: String); override;
     procedure DeleteKey(const ASec, AKey: String); override;
@@ -139,50 +140,41 @@ var
 procedure TOptionIniFiles.DeleteKey(const ASec, AKey: String);
 begin
   IniTemplete(
-    procedure(AIni: TIniFile)
+    procedure(const AIni: TIniFile)
     begin
-
       AIni.DeleteKey(ASec, AKey);
-
     end);
-
 end;
 
 procedure TOptionIniFiles.EraseSection(const ASec: String);
 begin
   IniTemplete(
-    procedure(AIni: TIniFile)
+    procedure(const AIni: TIniFile)
     begin
-
       AIni.EraseSection(ASec);
-
     end);
 end;
 
-procedure TOptionIniFiles.SetFloatValue(const ASec, AIdent: String; AValue: real);
+procedure TOptionIniFiles.SetFloatValue(const ASec, AIdent: String; const AValue: real);
 begin
   IniTemplete(
-    procedure(AIni: TIniFile)
+    procedure(const AIni: TIniFile)
     begin
-
       AIni.WriteFloat(ASec, AIdent, AValue);
-
     end);
 end;
 
-function TOptionIniFiles.ReadSection(ASection: string): TStrings;
+function TOptionIniFiles.ReadSection(const ASection: string): TStrings;
 var
   Value: TStrings;
 begin
   Value := TStringList.Create;
-
   IniTemplete(
 
-    procedure(AIni: TIniFile)
+    procedure(const AIni: TIniFile)
     begin
       AIni.ReadSection(ASection, Value);
     end);
-
   result := Value;
 end;
 
@@ -191,108 +183,84 @@ var
   Value: TStrings;
 begin
   Value := TStringList.Create;
-
   IniTemplete(
-
-    procedure(AIni: TIniFile)
+    procedure(const AIni: TIniFile)
     begin
       AIni.ReadSections(Value);
     end);
-
   result := Value;
 end;
 
-function TOptionIniFiles.ReadSectionValues(ASection: string): TStrings;
+function TOptionIniFiles.ReadSectionValues(const ASection: string): TStrings;
 var
   Value: TStrings;
 begin
   Value := TStringList.Create;
-
   IniTemplete(
-
-    procedure(AIni: TIniFile)
+    procedure(const AIni: TIniFile)
     begin
       AIni.ReadSectionValues(ASection, Value);
     end);
-
   result := Value;
 end;
 
-function TOptionIniFiles.GetBoolValue(const ASec, AIdent: String; ADefault: boolean): boolean;
+function TOptionIniFiles.GetBoolValue(const ASec, AIdent: String; const ADefault: boolean): boolean;
 var
   Value: boolean;
 begin
-
   IniTemplete(
-
-    procedure(AIni: TIniFile)
+    procedure(const AIni: TIniFile)
     begin
       Value := AIni.ReadBool(ASec, AIdent, ADefault);
     end);
-
   result := Value;
-
 end;
 
-function TOptionIniFiles.GetDateTimeValue(const ASec, AIdent: String; ADefault: TDateTime): TDateTime;
+function TOptionIniFiles.GetDateTimeValue(const ASec, AIdent: String; const ADefault: TDateTime): TDateTime;
 var
   Value: TDateTime;
 begin
-
   IniTemplete(
-
-    procedure(AIni: TIniFile)
+    procedure(const AIni: TIniFile)
     begin
       Value := AIni.ReadDateTime(ASec, AIdent, ADefault);
     end);
-
   result := Value;
-
 end;
 
-function TOptionIniFiles.GetFloatValue(const ASec, AIdent: String; ADefault: real): real;
+function TOptionIniFiles.GetFloatValue(const ASec, AIdent: String; const ADefault: real): real;
 var
   Value: real;
 begin
-
   IniTemplete(
-
-    procedure(AIni: TIniFile)
+    procedure(const AIni: TIniFile)
     begin
       Value := AIni.ReadFloat(ASec, AIdent, ADefault);
     end);
-
   result := Value;
 end;
 
-function TOptionIniFiles.GetIntegerValue(const ASec, AIdent: String; ADefault: Integer): Integer;
+function TOptionIniFiles.GetIntegerValue(const ASec, AIdent: String; const ADefault: Integer): Integer;
 var
   Value: Integer;
 begin
-
   IniTemplete(
-
-    procedure(AIni: TIniFile)
+    procedure(const AIni: TIniFile)
     begin
       Value := AIni.ReadInteger(ASec, AIdent, ADefault);
     end);
-
   result := Value;
-
 end;
 
 function TOptionIniFiles.GetStringValue(const ASec, AIdent, ADefault: String): String;
 var
   Value: String;
 begin
-
   IniTemplete(
-
-    procedure(AIni: TIniFile)
+    procedure(const AIni: TIniFile)
     begin
       Value := AIni.ReadString(ASec, AIdent, ADefault);
     end);
-
   result := Value;
 end;
 
@@ -305,12 +273,9 @@ begin
 
   IniFile := TIniFile.Create(FPath);
   try
-
     with IniFile do
     begin
-
       ACallBack(IniFile);
-
     end;
 
   finally
@@ -323,58 +288,46 @@ var
   Value: boolean;
 begin
   IniTemplete(
-
-    procedure(AIni: TIniFile)
+    procedure(const AIni: TIniFile)
     begin
       Value := AIni.ValueExists(ASec, AKey);
     end);
-
   result := Value;
 end;
 
-procedure TOptionIniFiles.SetBoolValue(const ASec, AIdent: String; AValue: boolean);
+procedure TOptionIniFiles.SetBoolValue(const ASec, AIdent: String; const AValue: boolean);
 begin
   IniTemplete(
-    procedure(AIni: TIniFile)
+    procedure(const AIni: TIniFile)
     begin
-
       AIni.WriteBool(ASec, AIdent, AValue);
-
     end);
-
 end;
 
-procedure TOptionIniFiles.SetDateTimeValue(const ASec, AIdent: String; AValue: TDateTime);
+procedure TOptionIniFiles.SetDateTimeValue(const ASec, AIdent: String; const AValue: TDateTime);
 begin
   IniTemplete(
-    procedure(AIni: TIniFile)
+    procedure(const AIni: TIniFile)
     begin
-
       AIni.WriteDateTime(ASec, AIdent, AValue);
-
     end);
-
 end;
 
-procedure TOptionIniFiles.SetIntegerValue(const ASec, AIdent: String; AValue: Integer);
+procedure TOptionIniFiles.SetIntegerValue(const ASec, AIdent: String; const AValue: Integer);
 begin
   IniTemplete(
-    procedure(AIni: TIniFile)
+    procedure(const AIni: TIniFile)
     begin
-
       AIni.WriteInteger(ASec, AIdent, AValue);
-
     end);
 end;
 
 procedure TOptionIniFiles.SetStringValue(const ASec, AIdent, AValue: String);
 begin
   IniTemplete(
-    procedure(AIni: TIniFile)
+    procedure(const AIni: TIniFile)
     begin
-
       AIni.WriteString(ASec, AIdent, AValue);
-
     end);
 end;
 
@@ -476,7 +429,7 @@ end;
 procedure TOptionRegistry.DeleteKey(const ASec, AKey: String);
 begin
   RegistryTemplete(ASec,
-    procedure(ARegistry: TRegistry)
+    procedure(const ARegistry: TRegistry)
     begin
       ARegistry.DeleteValue(AKey);
     end);
@@ -485,7 +438,7 @@ end;
 procedure TOptionRegistry.EraseSection(const ASec: String);
 begin
   RegistryTemplete(ASec,
-    procedure(ARegistry: TRegistry)
+    procedure(const ARegistry: TRegistry)
     begin
       ARegistry.CloseKey;
 
@@ -494,12 +447,12 @@ begin
     end);
 end;
 
-function TOptionRegistry.GetBoolValue(const ASec, AIdent: String; ADefault: boolean): boolean;
+function TOptionRegistry.GetBoolValue(const ASec, AIdent: String; const ADefault: boolean): boolean;
 var
   Value: boolean;
 begin
   RegistryTemplete(ASec,
-    procedure(ARegistry: TRegistry)
+    procedure(const ARegistry: TRegistry)
     begin
       if ARegistry.ValueExists(AIdent) then
         Value := ARegistry.ReadBool(AIdent)
@@ -510,12 +463,12 @@ begin
   result := Value;
 end;
 
-function TOptionRegistry.GetDateTimeValue(const ASec, AIdent: String; ADefault: TDateTime): TDateTime;
+function TOptionRegistry.GetDateTimeValue(const ASec, AIdent: String; const ADefault: TDateTime): TDateTime;
 var
   Value: TDateTime;
 begin
   RegistryTemplete(ASec,
-    procedure(ARegistry: TRegistry)
+    procedure(const ARegistry: TRegistry)
     begin
       if ARegistry.ValueExists(AIdent) then
         Value := ARegistry.ReadDateTime(AIdent)
@@ -526,12 +479,12 @@ begin
   result := Value;
 end;
 
-function TOptionRegistry.GetFloatValue(const ASec, AIdent: String; ADefault: real): real;
+function TOptionRegistry.GetFloatValue(const ASec, AIdent: String; const ADefault: real): real;
 var
   Value: Double;
 begin
   RegistryTemplete(ASec,
-    procedure(ARegistry: TRegistry)
+    procedure(const ARegistry: TRegistry)
     begin
       if ARegistry.ValueExists(AIdent) then
         Value := ARegistry.ReadFloat(AIdent)
@@ -542,12 +495,12 @@ begin
   result := Value;
 end;
 
-function TOptionRegistry.GetIntegerValue(const ASec, AIdent: String; ADefault: Integer): Integer;
+function TOptionRegistry.GetIntegerValue(const ASec, AIdent: String; const ADefault: Integer): Integer;
 var
   Value: Integer;
 begin
   RegistryTemplete(ASec,
-    procedure(ARegistry: TRegistry)
+    procedure(const ARegistry: TRegistry)
     begin
       if ARegistry.ValueExists(AIdent) then
         Value := ARegistry.ReadInteger(AIdent)
@@ -564,7 +517,7 @@ var
   Value: String;
 begin
   RegistryTemplete(ASec,
-    procedure(ARegistry: TRegistry)
+    procedure(const ARegistry: TRegistry)
     begin
       if ARegistry.ValueExists(AIdent) then
         Value := ARegistry.ReadString(AIdent)
@@ -581,7 +534,7 @@ var
 begin
 
   RegistryTemplete(ASec,
-    procedure(ARegistry: TRegistry)
+    procedure(const ARegistry: TRegistry)
     begin
       Value := ARegistry.KeyExists(AKey);
     end);
@@ -589,14 +542,14 @@ begin
   result := Value;
 end;
 
-function TOptionRegistry.ReadSection(ASection: string): TStrings;
+function TOptionRegistry.ReadSection(const ASection: string): TStrings;
 var
   Value: TStrings;
 begin
   Value := TStringList.Create;
 
   RegistryTemplete(ASection,
-    procedure(ARegistry: TRegistry)
+    procedure(const ARegistry: TRegistry)
     begin
       ARegistry.GetKeyNames(Value);
     end);
@@ -611,7 +564,7 @@ begin
   Value := TStringList.Create;
 
   RegistryTemplete('',
-    procedure(ARegistry: TRegistry)
+    procedure(const ARegistry: TRegistry)
     begin
       ARegistry.GetKeyNames(Value);
     end);
@@ -619,14 +572,14 @@ begin
   result := Value;
 end;
 
-function TOptionRegistry.ReadSectionValues(ASection: string): TStrings;
+function TOptionRegistry.ReadSectionValues(const ASection: string): TStrings;
 var
   Value: TStrings;
 begin
   Value := TStringList.Create;
 
   RegistryTemplete(ASection,
-    procedure(ARegistry: TRegistry)
+    procedure(const ARegistry: TRegistry)
     var
       tmp: TStrings;
       MyElem: String;
@@ -649,7 +602,7 @@ begin
   result := Value;
 end;
 
-procedure TOptionRegistry.RegistryTemplete(ASec: String; ACallBack: TRegProc);
+procedure TOptionRegistry.RegistryTemplete(const ASec: String; const ACallBack: TRegProc);
 var
   Registry: TRegistry;
 begin
@@ -669,37 +622,37 @@ begin
   end;
 end;
 
-procedure TOptionRegistry.SetBoolValue(const ASec, AIdent: String; AValue: boolean);
+procedure TOptionRegistry.SetBoolValue(const ASec, AIdent: String; const AValue: boolean);
 begin
   RegistryTemplete(ASec,
-    procedure(ARegistry: TRegistry)
+    procedure(const ARegistry: TRegistry)
     begin
       ARegistry.WriteBool(AIdent, AValue);
     end);
 end;
 
-procedure TOptionRegistry.SetDateTimeValue(const ASec, AIdent: String; AValue: TDateTime);
+procedure TOptionRegistry.SetDateTimeValue(const ASec, AIdent: String; const AValue: TDateTime);
 begin
   RegistryTemplete(ASec,
-    procedure(ARegistry: TRegistry)
+    procedure(const ARegistry: TRegistry)
     begin
       ARegistry.WriteDateTime(AIdent, AValue);
     end);
 end;
 
-procedure TOptionRegistry.SetFloatValue(const ASec, AIdent: String; AValue: real);
+procedure TOptionRegistry.SetFloatValue(const ASec, AIdent: String; const AValue: real);
 begin
   RegistryTemplete(ASec,
-    procedure(ARegistry: TRegistry)
+    procedure(const ARegistry: TRegistry)
     begin
       ARegistry.WriteFloat(AIdent, AValue);
     end);
 end;
 
-procedure TOptionRegistry.SetIntegerValue(const ASec, AIdent: String; AValue: Integer);
+procedure TOptionRegistry.SetIntegerValue(const ASec, AIdent: String; const AValue: Integer);
 begin
   RegistryTemplete(ASec,
-    procedure(ARegistry: TRegistry)
+    procedure(const ARegistry: TRegistry)
     begin
       ARegistry.WriteInteger(AIdent, AValue);
     end);
@@ -708,7 +661,7 @@ end;
 procedure TOptionRegistry.SetStringValue(const ASec, AIdent, AValue: String);
 begin
   RegistryTemplete(ASec,
-    procedure(ARegistry: TRegistry)
+    procedure(const ARegistry: TRegistry)
     begin
       ARegistry.WriteString(AIdent, AValue);
     end);

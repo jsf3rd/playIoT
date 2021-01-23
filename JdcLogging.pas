@@ -28,7 +28,7 @@ type
     LogName: string;
     Time: TDateTime;
     Msg: string;
-    constructor Create(AName: string; ATime: TDateTime; AMsg: string);
+    constructor Create(const AName: string; const ATime: TDateTime; const AMsg: string);
     function ToString: string;
   end;
 
@@ -68,14 +68,14 @@ type
     destructor Destroy; override;
 
     class function Obj: TLogging;
-    class function MessageTypeToStr(AType: TMessageType): string;
+    class function MessageTypeToStr(const AType: TMessageType): string;
 
     procedure StartLogging;
     procedure StopLogging;
 
     procedure Init(AGlobal: TGlobalAbstract; AOption: TOptionAbstract);
 
-    function GetLogNameEx(ATag: string): string;
+    function GetLogNameEx(const ATag: string): string;
 
     procedure ApplicationMessage(const AType: TMessageType; const ATitle: String;
       const AMessage: String = ''); overload;
@@ -100,7 +100,7 @@ type
 
   // ·Î±× Âï±â..
 procedure PrintLog(const AFile: string; const ATime: TDateTime; const AMessage: String); overload;
-procedure PrintLog(AMemo: TMemo; const AMsg: String); overload;
+procedure PrintLog(const AMemo: TMemo; const AMsg: String); overload;
 procedure PrintDebug(const Format: string; const Args: array of const); overload;
 procedure PrintDebug(const str: string); overload;
 
@@ -129,7 +129,7 @@ begin
   end;
 end;
 
-procedure PrintLog(AMemo: TMemo; const AMsg: String);
+procedure PrintLog(const AMemo: TMemo; const AMsg: String);
 begin
   if AMemo.Lines.Count > 5000 then
     AMemo.Lines.Clear;
@@ -319,7 +319,7 @@ begin
 {$ENDIF}
 end;
 
-function TLogging.GetLogNameEx(ATag: string): string;
+function TLogging.GetLogNameEx(const ATag: string): string;
 begin
 {$IFDEF LOGGING_DAY_TAG}
   Result := ChangeFileExt(FLogName, Format('_%s_%s.log', [ATag, FormatDateTime('YYYYMMDD', Now)]));
@@ -353,7 +353,7 @@ begin
   StartLogging;
 end;
 
-class function TLogging.MessageTypeToStr(AType: TMessageType): string;
+class function TLogging.MessageTypeToStr(const AType: TMessageType): string;
 begin
   case AType of
     msDebug:
@@ -451,7 +451,7 @@ end;
 
 { TJdcLog }
 
-constructor TJdcLog.Create(AName: string; ATime: TDateTime; AMsg: string);
+constructor TJdcLog.Create(const AName: string; const ATime: TDateTime; const AMsg: string);
 begin
   Self.LogName := AName;
   Self.Time := ATime;

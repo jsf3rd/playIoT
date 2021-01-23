@@ -11,7 +11,7 @@ type
     FPos: Integer;
     CritSect: TRTLCriticalSection;
   public
-    procedure Enqueue(AItem: T);
+    procedure Enqueue(const AItem: T);
     function Dequeue: T;
     function Count: Integer;
 
@@ -68,7 +68,7 @@ begin
   inherited;
 end;
 
-procedure TCircularQueue<T>.Enqueue(AItem: T);
+procedure TCircularQueue<T>.Enqueue(const AItem: T);
 begin
   FList.Add(AItem);
 end;
