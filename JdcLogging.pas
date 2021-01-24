@@ -270,11 +270,7 @@ begin
       ALog := FMsgQueue.Dequeue;
 
       if LogName <> ALog.LogName then
-      begin
-        FreeAndNil(Stream); // 기존 파일은 닫아 준다.
-        _PrintLog(ALog);
         break;
-      end;
 
       if ALog.Msg.IsEmpty then
         Stream.WriteLine
@@ -300,7 +296,7 @@ begin
     FUseDebug := FOption.UseDebug;
   end;
 
-  Sleep(227);
+  Sleep(441);
   MyLog := FMsgQueue.Dequeue;
   try
     _PrintLog(MyLog);
@@ -404,7 +400,7 @@ begin
     begin
       while not TThread.CurrentThread.CheckTerminated do
       begin
-        Sleep(507);
+        Sleep(101);
         FlushLog;
       end;
     end);
@@ -465,10 +461,12 @@ end;
 
 initialization
 
-MyObj := TLogging.Create;
+if MyObj = nil then
+  MyObj := TLogging.Create;
 
 finalization
 
-MyObj.Free;
+if Assigned(MyObj) then
+  FreeAndNil(MyObj);
 
 end.
