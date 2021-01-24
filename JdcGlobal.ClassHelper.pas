@@ -295,7 +295,7 @@ class function TJSONObjectHelper.ParseFile(const FileName: String): TJSONValue;
 var
   JsonString: string;
 begin
-  JsonString := ReplaceStringNumber(TFile.ReadAllText(FileName));
+  JsonString := ReplaceStringNumber(TFile.ReadAllText(FileName, TEncoding.UTF8));
   result := TJSONObject.ParseJSONValue(JsonString);
 end;
 
@@ -366,8 +366,15 @@ begin
 end;
 
 class function TJSONHelper.JsonToObjectEx<T>(const AJson: String): T;
+var
+  SuperObj: TSuperObject;
 begin
-  result := TSuperObject.Create(AJson).AsType<T>;
+  SuperObj := TSuperObject.Create(AJson);
+  try
+    result := SuperObj.AsType<T>;
+  finally
+    SuperObj.Free;
+  end;
 end;
 
 class function TJSONHelper.JsonToRecord<T>(const AJsonObject: TJSONObject): T;
@@ -378,9 +385,15 @@ end;
 class function TJSONHelper.JsonToRecord<T>(const AJson: String): T;
 var
   JsonString: string;
+  JSON: ISuperObject;
 begin
   JsonString := ReplaceStringNumber(AJson);
-  result := TSuperRecord<T>.FromJSON(JsonString);
+  JSON := XSuperObject.SO(JsonString);
+  try
+    result := TSuperRecord<T>.FromJSON(JSON);
+  finally
+    JSON := nil;
+  end;
 end;
 
 class function TJSONHelper.ObjectToJsonObjectEx(const AObject: TObject): TJSONObject;
@@ -422,8 +435,15 @@ begin
 end;
 
 class function TJSONHelper.RecordToJsonString<T>(const ARecord: T): String;
+var
+  JSON: ISuperObject;
 begin
-  result := TSuperRecord<T>.AsJSON(ARecord);
+  JSON := TSuperRecord<T>.AsJSONObject(ARecord);
+  try
+    result := JSON.AsJSON;
+  finally
+    JSON := nil;
+  end;
 end;
 
 { TDateTimeHelper }
