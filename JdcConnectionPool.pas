@@ -30,10 +30,8 @@ type
     FMaxItems: Integer;
     FDefName: string;
   public
-    constructor Create(CommaText, DefName, DriverID: String;
-      MaximumItems: Integer = DEFAULT_MAX_ITEMS;
-      CleanupTimeout: Integer = DEFAULT_CLEANUP_TIMEOUT;
-      ExpireTimeout: Integer = DEFAULT_EXPIRE_TIMEOUT);
+    constructor Create(CommaText, DefName, DriverID: String; MaximumItems: Integer = DEFAULT_MAX_ITEMS;
+      CleanupTimeout: Integer = DEFAULT_CLEANUP_TIMEOUT; ExpireTimeout: Integer = DEFAULT_EXPIRE_TIMEOUT);
     destructor Destroy; override;
 
     function GetIdleConnection: TFDConnection;
@@ -60,15 +58,17 @@ begin
   FDefName := DefName;
 
   List := TStringList.Create;
-  List.CommaText := CommaText;
-  List.Values[S_FD_ConnParam_Common_Pooled] := 'True';
-  List.Values[S_FD_ConnParam_Common_Pool_MaximumItems] := FMaxItems.ToString;
-  List.Values[S_FD_ConnParam_Common_Pool_CleanupTimeout] :=
-    CleanupTimeout.ToString;
-  List.Values[S_FD_ConnParam_Common_Pool_ExpireTimeout] :=
-    ExpireTimeout.ToString;
+  try
+    List.CommaText := CommaText;
+    List.Values[S_FD_ConnParam_Common_Pooled] := 'True';
+    List.Values[S_FD_ConnParam_Common_Pool_MaximumItems] := FMaxItems.ToString;
+    List.Values[S_FD_ConnParam_Common_Pool_CleanupTimeout] := CleanupTimeout.ToString;
+    List.Values[S_FD_ConnParam_Common_Pool_ExpireTimeout] := ExpireTimeout.ToString;
 
-  FDManager.AddConnectionDef(FDefName, DriverID, List);
+    FDManager.AddConnectionDef(FDefName, DriverID, List);
+  finally
+    List.Free;
+  end;
   FDManager.Open;
 end;
 
