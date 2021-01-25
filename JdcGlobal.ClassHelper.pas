@@ -85,7 +85,6 @@ type
 
   TJSONArrayHelper = class helper for TJSONArray
   public
-
   end;
 
   TJSONHelper = class helper for REST.JSON.TJSON
@@ -99,9 +98,10 @@ type
 
     class function RecordToJsonObject<T: record >(const ARecord: T): TJSONObject;
     class function RecordToJsonString<T: record >(const ARecord: T): String;
+    class procedure RecordToJsonFile<T: record >(const ARecord: T; AName: string; const Encoding: TEncoding);
     class function JsonToRecord<T: record >(const AJsonObject: TJSONObject): T; overload;
     class function JsonToRecord<T: record >(const AJson: String): T; overload;
-    class function FileToRecord<T: record >(const FileName: String; const Encoding: TEncoding = nil): T;
+    class function FileToRecord<T: record >(const FileName: String; const Encoding: TEncoding): T;
     class function ConvertRecord<T1, T2: record >(const ARecord: T1): T2;
 
     class function RecordArrayToJsonArray<T: record >(const RecordArray: TArray<T>): TJSONArray;
@@ -334,14 +334,8 @@ begin
 end;
 
 class function TJSONHelper.FileToRecord<T>(const FileName: String; const Encoding: TEncoding): T;
-var
-  JsonString: string;
 begin
-  if Encoding = nil then
-    JsonString := TFile.ReadAllText(FileName, TEncoding.UTF8)
-  else
-    JsonString := TFile.ReadAllText(FileName, Encoding);
-  result := REST.JSON.TJSON.JsonToRecord<T>(JsonString);
+  result := REST.JSON.TJSON.JsonToRecord<T>(TFile.ReadAllText(FileName, Encoding));
 end;
 
 class function TJSONHelper.JsonArrayToRecordArray<T>(const JsonArray: TJSONArray): TArray<T>;
@@ -383,25 +377,13 @@ begin
 end;
 
 class function TJSONHelper.JsonToRecord<T>(const AJson: String): T;
-var
-  JsonString: string;
-  JSON: ISuperObject;
 begin
-  JsonString := ReplaceStringNumber(AJson);
-  JSON := XSuperObject.SO(JsonString);
-  try
-    result := TSuperRecord<T>.FromJSON(JSON);
-  finally
-    JSON := nil;
-  end;
+  result := TSuperRecord<T>.FromJSON(AJson);
 end;
 
 class function TJSONHelper.ObjectToJsonObjectEx(const AObject: TObject): TJSONObject;
-var
-  JSONStr: String;
 begin
-  JSONStr := ReplaceStringNumber(AObject.AsJSON);
-  result := TJSONObject.ParseJSONValue(JSONStr) as TJSONObject;
+  result := TJSONObject.ParseJSONValue(ReplaceStringNumber(AObject.AsJSON)) as TJSONObject;
 end;
 
 class function TJSONHelper.ObjectToJsonStringEx(const AObject: TObject): String;
@@ -421,6 +403,11 @@ begin
   end;
 end;
 
+class procedure TJSONHelper.RecordToJsonFile<T>(const ARecord: T; AName: string; const Encoding: TEncoding);
+begin
+  TFile.WriteAllText(AName, REST.JSON.TJSON.RecordToJsonString<T>(ARecord), Encoding);
+end;
+
 class function TJSONHelper.RecordToJsonObject<T>(const ARecord: T): TJSONObject;
 var
   JsonString: string;
@@ -435,15 +422,8 @@ begin
 end;
 
 class function TJSONHelper.RecordToJsonString<T>(const ARecord: T): String;
-var
-  JSON: ISuperObject;
 begin
-  JSON := TSuperRecord<T>.AsJSONObject(ARecord);
-  try
-    result := JSON.AsJSON;
-  finally
-    JSON := nil;
-  end;
+  result := TSuperRecord<T>.AsJSON(ARecord);
 end;
 
 { TDateTimeHelper }
