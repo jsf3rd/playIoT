@@ -196,6 +196,12 @@ end;
 
 initialization
 
-MyObj := TView.Create(nil);
+if MyObj = nil then
+  MyObj := TView.Create(nil);
+
+finalization
+
+if Assigned(MyObj) then
+  FreeAndNil(MyObj);
 
 end.
