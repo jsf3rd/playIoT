@@ -84,7 +84,7 @@
         <DCC_RemoteDebug>true</DCC_RemoteDebug>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Cfg_1_Win32)'!=''">
-        <VerInfo_Keys>CompanyName=DACO.;FileVersion=1.0.0.0;InternalName=;LegalCopyright=;LegalTrademarks=;OriginalFilename=;ProductName=DataSnap Server Application.;ProductVersion=1.0.0.0;Comments=DataSnap Server Application.;ProgramID=com.embarcadero.$(MSBuildProjectName);FileDescription=$(MSBuildProjectName)</VerInfo_Keys>
+        <VerInfo_Keys>CompanyName=UDNS.;FileVersion=1.0.0.0;InternalName=;LegalCopyright=;LegalTrademarks=;OriginalFilename=;ProductName=DataSnap Server Application.;ProductVersion=1.0.0.0;Comments=DataSnap Server Application.;ProgramID=com.embarcadero.$(MSBuildProjectName);FileDescription=$(MSBuildProjectName)</VerInfo_Keys>
         <AppEnableRuntimeThemes>true</AppEnableRuntimeThemes>
         <DCC_DcuOutput>.\__dcu\$(Config)</DCC_DcuOutput>
         <VerInfo_IncludeVerInfo>true</VerInfo_IncludeVerInfo>
@@ -103,7 +103,7 @@
     <PropertyGroup Condition="'$(Cfg_2_Win32)'!=''">
         <AppEnableRuntimeThemes>true</AppEnableRuntimeThemes>
         <DCC_DcuOutput>.\__dcu\$(Config)</DCC_DcuOutput>
-        <VerInfo_Keys>CompanyName=DACO;FileDescription=DataSnap for Basic.;FileVersion=1.0.0.0;InternalName=DataSnap;LegalCopyright=ⓒ2019 DACO.;LegalTrademarks=;OriginalFilename=;ProductName=DataSnap4Basic;ProductVersion=1.0.0.0;Comments=DB Server Application.;ProgramID=com.embarcadero.$(MSBuildProjectName)</VerInfo_Keys>
+        <VerInfo_Keys>CompanyName=UDNS;FileDescription=DataSnap for Basic.;FileVersion=1.0.0.0;InternalName=DataSnap;LegalCopyright=ⓒ2021 UDNS.;LegalTrademarks=;OriginalFilename=;ProductName=DataSnap4Basic;ProductVersion=1.0.0.0;Comments=DB Server Application.;ProgramID=com.embarcadero.$(MSBuildProjectName)</VerInfo_Keys>
         <VerInfo_Locale>1033</VerInfo_Locale>
         <VerInfo_IncludeVerInfo>true</VerInfo_IncludeVerInfo>
         <DCC_ExeOutput>..\__bin\$(Config)</DCC_ExeOutput>

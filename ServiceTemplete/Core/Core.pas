@@ -98,6 +98,10 @@ end;
 
 initialization
 
-MyObj := TCore.Create;
+TCore.Obj;
+
+finalization
+
+FreeAndNilEx(MyObj);
 
 end.

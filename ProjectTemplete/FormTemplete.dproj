@@ -107,7 +107,7 @@
         <DCC_ExeOutput>..\__bin\$(Config)</DCC_ExeOutput>
         <VerInfo_Locale>1033</VerInfo_Locale>
         <DCC_DcuOutput>.\__dcu\$(Config)</DCC_DcuOutput>
-        <VerInfo_Keys>CompanyName=DACO.;FileDescription=DACO Form Application Default.;FileVersion=1.0.0.0;InternalName=Form Templete;LegalCopyright=ⓒ2019 DACO.;LegalTrademarks=;OriginalFilename=;ProductName=FormTemplete;ProductVersion=1.0.0.0;Comments=DACO Form Application.;ProgramID=com.embarcadero.$(MSBuildProjectName)</VerInfo_Keys>
+        <VerInfo_Keys>CompanyName=UDNS.;FileDescription=UDNS Form Application Default.;FileVersion=1.0.0.0;InternalName=Form Templete;LegalCopyright=ⓒ2021 UDNS.;LegalTrademarks=;OriginalFilename=;ProductName=FormTemplete;ProductVersion=1.0.0.0;Comments=DACO Form Application.;ProgramID=com.embarcadero.$(MSBuildProjectName)</VerInfo_Keys>
         <VerInfo_IncludeVerInfo>true</VerInfo_IncludeVerInfo>
     </PropertyGroup>
     <ItemGroup>

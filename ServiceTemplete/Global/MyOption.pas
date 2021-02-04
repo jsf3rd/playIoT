@@ -49,10 +49,10 @@ end;
 
 initialization
 
-MyObj := TOption.Create;
+TOption.Obj;
 
 finalization
 
-MyObj.Free;
+FreeAndNilEx(MyObj);
 
 end.

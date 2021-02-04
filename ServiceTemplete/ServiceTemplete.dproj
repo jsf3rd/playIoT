@@ -100,7 +100,7 @@
         <DCC_DebugInformation>0</DCC_DebugInformation>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Cfg_2_Win32)'!=''">
-        <VerInfo_Keys>CompanyName=DACO.;FileDescription=DACO Service Application Default.;FileVersion=1.0.0.0;InternalName=Service Templete;LegalCopyright=ⓒ2019 DACO.;LegalTrademarks=;OriginalFilename=;ProductName=ServiceTemplete;ProductVersion=1.0.0.0;Comments=DACO Service Application.;ProgramID=com.embarcadero.$(MSBuildProjectName)</VerInfo_Keys>
+        <VerInfo_Keys>CompanyName=UDNS.;FileDescription=UDNS Service Application Default.;FileVersion=1.0.0.0;InternalName=Service Templete;LegalCopyright=ⓒ2021 UDNS.;LegalTrademarks=;OriginalFilename=;ProductName=ServiceTemplete;ProductVersion=1.0.0.0;Comments=UDNS Service Application.;ProgramID=com.embarcadero.$(MSBuildProjectName)</VerInfo_Keys>
         <VerInfo_IncludeVerInfo>true</VerInfo_IncludeVerInfo>
         <AppEnableRuntimeThemes>true</AppEnableRuntimeThemes>
         <VerInfo_Locale>1033</VerInfo_Locale>
