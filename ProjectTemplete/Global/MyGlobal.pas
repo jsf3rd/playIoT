@@ -98,6 +98,10 @@ end;
 
 initialization
 
-MyObj := TGlobal.Create;
+TGlobal.Obj;
+
+finalization
+
+FreeAndNilEx(MyObj);
 
 end.

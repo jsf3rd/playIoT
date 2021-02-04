@@ -2,7 +2,7 @@ unit Core;
 
 interface
 
-uses Classes, SysUtils, System.IOUtils, Generics.Collections, Generics.Defaults;
+uses Classes, SysUtils, System.IOUtils, JdcGlobal;
 
 type
   TCore = class
@@ -69,6 +69,10 @@ end;
 
 initialization
 
-MyObj := TCore.Create;
+TCore.Obj;
+
+finalization
+
+FreeAndNilEx(MyObj);
 
 end.
