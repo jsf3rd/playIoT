@@ -67,13 +67,13 @@ type
     function GetString(const Name: string; const default: string = ''): String;
     function GetInt(const Name: string): Integer;
     function GetIntDef(const Name: string; const default: Integer = -9999): Integer;
-    function GetDouble(const Name: string): double;
-    function GetDoubleDef(const Name: string; const default: double = -9999): double;
+    function GetDouble(const Name: string): Double;
+    function GetDoubleDef(const Name: string; const default: Double = -9999): Double;
     function GetJSONArray(const Name: string): TJSONArray;
     function GetJSONObject(const Name: string): TJSONObject;
 
     function AddPair(const Str: string; const Val: Integer): TJSONObject; overload;
-    function AddPair(const Str: string; const Val: double): TJSONObject; overload;
+    function AddPair(const Str: string; const Val: Double): TJSONObject; overload;
 
     function ToRecord<T: record >: T;
     function ToObject<T: class>: T;
@@ -137,6 +137,13 @@ type
     procedure Stop;
   end;
 
+  TArrayHelper = class helper for TArray
+  public
+    class function Print(Value: TArray<String>): string; overload;
+    class function Print(Value: TArray<Integer>): string; overload;
+    class function Print(Value: TArray<Double>): string; overload;
+  end;
+
 function ReplaceStringNumber(const AInput: string): string;
 
 implementation
@@ -198,7 +205,7 @@ begin
   end;
 end;
 
-function TJSONObjectHelper.AddPair(const Str: string; const Val: double): TJSONObject;
+function TJSONObjectHelper.AddPair(const Str: string; const Val: Double): TJSONObject;
 begin
   if not Str.IsEmpty then
     AddPair(TJSONPair.Create(Str, TJSONNumber.Create(Val)));
@@ -210,7 +217,7 @@ begin
   TDSCommon.ClearJSONObject(Self);
 end;
 
-function TJSONObjectHelper.GetDouble(const Name: string): double;
+function TJSONObjectHelper.GetDouble(const Name: string): Double;
 var
   JSONValue: TJSONValue;
 begin
@@ -224,7 +231,7 @@ begin
   end;
 end;
 
-function TJSONObjectHelper.GetDoubleDef(const Name: string; const default: double): double;
+function TJSONObjectHelper.GetDoubleDef(const Name: string; const default: Double): Double;
 var
   JSONValue: TJSONValue;
 begin
@@ -608,6 +615,38 @@ procedure TActivityIndicatorHelper.Stop;
 begin
   Self.Visible := False;
   Self.Animate := False;
+end;
+
+{ TArrayHelper }
+
+class function TArrayHelper.Print(Value: TArray<String>): string;
+var
+  MyElem: String;
+begin
+  result := '[';
+  for MyElem in Value do
+    result := result + MyElem + ',';
+  result := result + ']';
+end;
+
+class function TArrayHelper.Print(Value: TArray<Integer>): string;
+var
+  MyElem: Integer;
+begin
+  result := '[';
+  for MyElem in Value do
+    result := result + MyElem.ToString + ',';
+  result := result + ']';
+end;
+
+class function TArrayHelper.Print(Value: TArray<Double>): string;
+var
+  MyElem: Double;
+begin
+  result := '[';
+  for MyElem in Value do
+    result := result + MyElem.ToString + ',';
+  result := result + ']';
 end;
 
 end.
