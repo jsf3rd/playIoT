@@ -9,7 +9,7 @@ unit ImageButton;
 interface
 
 uses
-  Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
+  Winapi.Windows, Winapi.Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   ExtCtrls;
 
 type
