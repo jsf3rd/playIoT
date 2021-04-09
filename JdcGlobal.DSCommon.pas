@@ -27,8 +27,7 @@ uses
 type
   TOpenToFunc<T> = reference to function(const AQuery: TFDQuery): T;
   TDSOpenProc = function(const ARequestFilter: string = ''): TStream of object;
-  TDSOpenParamProc = function(const AParams: TJSONObject; const ARequestFilter: string = '')
-    : TStream of object;
+  TDSOpenParamProc = function(AParams: TJSONObject; const ARequestFilter: string = ''): TStream of object;
 
   TDSCommon = class
   private

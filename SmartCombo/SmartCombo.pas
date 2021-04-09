@@ -17,7 +17,7 @@ unit SmartCombo;
 
 interface
 
-uses StdCtrls, Classes, Messages, Controls, Windows, SysUtils, StrUtils;
+uses StdCtrls, Classes, Winapi.Messages, Controls, Winapi.Windows, SysUtils, StrUtils;
 
 type
   TSmartComboBox = class(TComboBox)

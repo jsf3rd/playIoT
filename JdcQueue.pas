@@ -2,7 +2,7 @@ unit JdcQueue;
 
 interface
 
-uses System.SysUtils, System.Classes, System.Generics.Collections, Windows;
+uses System.SysUtils, System.Classes, System.Generics.Collections, Winapi.Windows;
 
 type
   TCircularQueue<T: class> = class
