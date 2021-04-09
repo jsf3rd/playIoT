@@ -1,6 +1,9 @@
 program DataSnap;
 
 uses
+{$IFDEF DEBUG}
+  // FastMM4, FastMM4Messages,
+{$ENDIF}
   Vcl.Forms,
   Winapi.Windows,
   JclAppInst, // 중복 실행 방지

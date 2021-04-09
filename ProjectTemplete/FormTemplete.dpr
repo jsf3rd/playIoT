@@ -1,6 +1,9 @@
 program FormTemplete;
 
 uses
+{$IFDEF DEBUG}
+  // FastMM4, FastMM4Messages,
+{$ENDIF}
   Vcl.Forms,
   _fmMain in 'View\_fmMain.pas' {fmMain},
   Core in 'Core\Core.pas',

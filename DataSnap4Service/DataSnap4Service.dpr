@@ -1,6 +1,9 @@
 program DataSnap4Service;
 
 uses
+{$IFDEF DEBUG}
+  // FastMM4, FastMM4Messages,
+{$ENDIF}
   Vcl.SvcMgr,
   _smDataProvider in 'DataSnap\_smDataProvider.pas' {smDataProvider: TDSServerModule},
   _ServerContainer in 'DataSnap\_ServerContainer.pas' {ServerContainer: TService},
