@@ -17,7 +17,7 @@ uses SysUtils, Classes, JdcGlobal, JdcGlobal.ClassHelper, IdGlobal, Winapi.Windo
 
 type
   TSubUnit = packed record
-    SystemINfoAccess: UInt16;
+    SystemInfoAccess: UInt16;
     ProductType: UInt16;
     SerialNumber: UInt32;
     HardwareVersion: UInt16;
@@ -129,9 +129,9 @@ type
     Hramonic: THarmoic; // 고주파 함유율
 
     // A,P,S 전용
-    VoltageDegreePhaseA: UInt16;
-    VoltageDegreePhaseB: UInt16;
-    VoltageDegreePhaseC: UInt16;
+    CurrentDegreePhaseA: UInt16;
+    CurrentDegreePhaseB: UInt16;
+    CurrentDegreePhaseC: UInt16;
 
     // 1000E 전용
     VoltageLL: T3PhaseEx;
@@ -156,6 +156,43 @@ type
     ID: TIDArray40;
   end;
 
+  TTemp = packed record
+    ModuleId4GeneralSetup: UInt16;
+    ModuleSetupAccess: UInt16;
+    TemperatureUnit: UInt16;
+    EventEnable: UInt16;
+    TemperatureThreshold: UInt16;
+    TemperatureHysteresis: UInt16;
+    DifferenceTempratureThreshold: UInt16;
+    DifferenceTempratureHysteresis: UInt16;
+    InChannelTemperature: UInt16;
+    OutChannelTempature: UInt16;
+    Reserved1: UInt16;
+  end;
+
+  TTempModule = packed record
+    Header: TMBHeader;
+    Data: TTemp;
+  end;
+
+  TIOControl = packed record
+    InputStatus1: UInt16;
+    OutputStatus1: UInt16;
+    ReservedAnalogChanne0: UInt16;
+    ReservedAnalogChanne1: UInt16;
+    ReservedAnalogChanne2: UInt16;
+    ReservedAnalogChanne3: UInt16;
+    ReservedAnalogChanne4: UInt16;
+    ReservedAnalogChanne5: UInt16;
+    ReservedAnalogChanne6: UInt16;
+    ReservedAnalogChanne7: UInt16;
+  end;
+
+  TIOModule = packed record
+    Header: TMBHeader;
+    Data: TIOControl;
+  end;
+
   TModbus = class
   const
     TCP_METER_ID = 1;
@@ -169,9 +206,12 @@ type
     POWER_ADDRESS = $2B5D; // 11101;
 
     SYSTEM_ADDRESS = $1; // 1;
-    SUB_SYSTEM_ADDRESS = $51; // 1;
+    SUB_SYSTEM_ADDRESS = $33; // 1;
 
-    IOCONTROL_ADDRESS = $EA93; // 60051
+    TEMPERATURE_ADDRESS = $C351;
+
+    IOCONTROL_1_ADDRESS = $C379; // 50041
+    IOCONTROL_2_ADDRESS = $C38D; // 50061
 
     ERROR_CODE = $83; // 131
 
@@ -185,6 +225,8 @@ type
     WORD_COUNT_PART1 = SizeOf(TDataPart1) div 2;
     WORD_COUNT_PART2 = SizeOf(TDataPart2) div 2;
     WORD_COUNT_IDTABLE = SizeOf(TIDArray40) div 2;
+    WORD_COUNT_TEMPERATURE = SizeOf(TTemp) div 2;
+    WORD_COUNT_IOCONTROL = SizeOf(TIOControl) div 2;
   public
     // DACO-M 1000(A,P,S) 주소 계산
     class function GetAddress(UnitId: Byte; ADevice: String): UInt16;
@@ -233,7 +275,7 @@ begin
   // AProc(msDebug, 'DATA', IdBytesToHex(buff));
   // AProc(msDebug, 'CRC', ToHex(ABuff, 2, Length(buff)));
   if MyCRC <> ReceivedCRC then
-    TLogging.Obj.ApplicationMessage(msWarning, 'Wrong CRC', Format('MyCRC=%d,Received=%d',
+    TLogging.Obj.ApplicationMessage(msWarning, 'Wrong CRC', Format('MyCRC=%0.4x,Received=%0.4x',
       [MyCRC, ReceivedCRC]));
 
   result := MyCRC = ReceivedCRC;
@@ -286,6 +328,12 @@ begin
     result := ptModulePart2
   else if (ByteCount = SizeOf(TIDArray40)) and (Received = SizeOf(TIDTable)) then
     result := ptCheck // ReadConfig에서 사용
+  else if (ByteCount = SizeOf(TSystemInfo)) and (Received = SizeOf(TSystemModule)) then
+    result := ptSystemModule
+  else if (ByteCount = SizeOf(TTemp)) and (Received = SizeOf(TTempModule)) then
+    result := ptTemperature
+  else if (ByteCount = SizeOf(TIOControl)) and (Received = SizeOf(TIOModule)) then
+    result := ptIOControl
   else if (ABuff[1] = TModbus.ERROR_CODE) and (Received = SizeOf(TErrorCode)) then
     result := ptError;
 end;
