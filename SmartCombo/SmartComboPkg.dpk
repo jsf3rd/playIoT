@@ -29,7 +29,11 @@ package SmartComboPkg;
 
 requires
   rtl,
-  vcl;
+  vcl,
+  designide,
+  vclactnband,
+  vclx,
+  xmlrtl;
 
 contains
   SmartComboReg in 'SmartComboReg.pas';
