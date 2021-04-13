@@ -546,6 +546,9 @@ type
     byRes: Array [0 .. 10 - 1] of BYTE;
   end;
 
+  TSourceDataCallBack = procedure(lpRealHandle: IntPtr; var pucBuffer: BYTE; dwBufSize: Int32;
+    dwMediaDataType: Int32; lpUserParam: Pointer)stdcall;
+
   TNETDEV_ExceptionCallBack_PF = procedure(plUserID: IntPtr; dwType: Int32; plExpHandle: IntPtr;
     plUserData: Pointer)stdcall;
 
@@ -586,7 +589,7 @@ type
     dwStreamMode: Int32;
     dwLiveMode: Int32;
     dwDisTributeCloud: Int32;
-    dwallowDistribution: BOOL;
+    dwallowDistribution: Int32;
     // dwTransType: Int32;
     byRes: array [0 .. NETDEV_LEN_244] of BYTE;
 
@@ -630,19 +633,26 @@ type
   TNETDEVSelogInfo = packed record
     dwSELogCount: Int32;
     dwSELogTime: Int32;
-    byRes: Array [0 .. NETDEV_LEN_64] of AnsiChar;
+    byRes: Array [0 .. NETDEV_LEN_64] of BYTE;
   end;
 
-  TSourceDataCallBack = procedure(lpRealHandle: IntPtr; var pucBuffer: BYTE; dwBufSize: Int32;
-    dwMediaDataType: Int32; lpUserParam: Pointer)stdcall;
-  // TExceptionCallBack = procedure(plUserID: IntPtr; dwType: Int32; var stAlarmInfo: TNETDEVAlarmInfo;
-  // plExpHandle, plUserData: Pointer)stdcall;
+  TNETDEVVideoCHLDetailInfo = packed record
+    dwChannelID: Int32;
+    bPtzSupported: BOOL;
+    enStatus: Int32; // 0:OFFLINE, 1:ONLINE, 2:UNBIND
+    dwStreamNum: Int32;
+    szChnName: Array [0 .. NETDEV_LEN_64] of AnsiChar;
+    byRes: Array [0 .. 3] of BYTE;
+  end;
 
   TNETDEV_Init = function: Boolean stdcall;
   TNETDEV_Login = function(pszDevIP: PAnsiChar; wDevPort: Int16; pszUserName: PAnsiChar;
     pszPassword: PAnsiChar; var pstDevInfo: TNetDEVDeviceInfo): IntPtr stdcall;
-  TFNETDEV_Login_V30 = function(var pstDevLoginInfo: TNETDEVLoginInfo; var pstSELogInfo: TNETDEVSelogInfo)
+  TNETDEV_Login_V30 = function(var pstDevLoginInfo: TNETDEVLoginInfo; var pstSELogInfo: TNETDEVSelogInfo)
     : IntPtr stdcall;
+  TNETDEV_QueryVideoChlDetailList = function(lpUserID: IntPtr; var pdwChlCount: IntPtr;
+    var pstVideoChlList: TNETDEVVideoCHLDetailInfo): IntPtr stdcall;
+
   TNETDEV_Logout = function(lpUserID: IntPtr): Boolean stdcall;
   TNETDEV_GetDevConfig = function(lpUserID: IntPtr; dwChannelID: Int32; dwCommand: Int32;
     var lpOutBuffer: TNETDEVVideoStreamInfo; dwOutBufferSize: Int32; var pdwBytesReturned: Int32)
@@ -761,7 +771,8 @@ var
   FNETDEV_Logout: TNETDEV_Logout;
   FNETDEV_GetDevConfig: TNETDEV_GetDevConfig;
   FNETDEV_Login: TNETDEV_Login;
-  FNETDEV_Login_V30: TFNETDEV_Login_V30;
+  FNETDEV_QueryVideoChlDetailList: TNETDEV_QueryVideoChlDetailList;
+  FNETDEV_Login_V30: TNETDEV_Login_V30;
   FNETDEV_Cleanup: TNETDEV_Cleanup;
   FNETDEV_SetLogPath: NETDEV_SetLogPath;
   FNETDEV_GetLastError: TNETDEV_GetLastError;
@@ -962,6 +973,7 @@ begin
   @FNETDEV_Init := GetProcAddress(FDLLHandle, 'NETDEV_Init');
   @FNETDEV_Login := GetProcAddress(FDLLHandle, 'NETDEV_Login');
   @FNETDEV_Login_V30 := GetProcAddress(FDLLHandle, 'NETDEV_Login_V30');
+  @FNETDEV_QueryVideoChlDetailList := GetProcAddress(FDLLHandle, 'NETDEV_QueryVideoChlDetailList');
   @FNETDEV_Logout := GetProcAddress(FDLLHandle, 'NETDEV_Logout');
   @FNETDEV_RealPlay := GetProcAddress(FDLLHandle, 'NETDEV_RealPlay');
   @FNETDEV_GetDevConfig := GetProcAddress(FDLLHandle, 'NETDEV_GetDevConfig');
@@ -1010,7 +1022,7 @@ begin
   Self.dwStreamMode := Int32(TNetDEVStreamMode.NETDEV_STREAM_MODE_ALL);
   Self.dwLiveMode := Int32(TNetDEVPullStreamMode.NETDEV_STREAM_MODE_SERVER_DISTRIBUTE);
   Self.dwDisTributeCloud := Int32(TNetDEVDistributeCloudSrv.NETDEV_DISTRIBUTE_CLOUD_NONE);
-  Self.dwallowDistribution := False;
+  Self.dwallowDistribution := 0;
   // Self.dwTransType := Int32(TNetDEVTransType.NETDEV_TRANS_TYPE_STRAIGHT);
   FillChar(Self.byRes, NETDEV_LEN_244, #0);
 end;
@@ -1036,7 +1048,7 @@ begin
   CopyMemory(@Result.szPassword[0], @tmp[1], Length(Self.Password));
   Result.dwPort := Self.Port;
   Result.dwLoginProto := NETDEV_LOGIN_PROTO_ONVIF;
-  Result.dwDeiveType := NETDEV_DTYPE_IPC;
+  Result.dwDeiveType := 0;
 end;
 
 { TPlayerInfo }
@@ -1121,6 +1133,9 @@ function TPlayerInfo.Login_V30(AInfo: TCCTVInfo): Boolean;
 var
   pstDevLoginInfo: TNETDEVLoginInfo;
   pstDevSelogInfo: TNETDEVSelogInfo;
+  ret, ChCount: IntPtr;
+  Info: TNETDEVVideoCHLDetailInfo;
+
 begin
   pstDevLoginInfo := AInfo.ToNetNETDEVDeviceLoginInfo;
   FUserID := FNETDEV_Login_V30(pstDevLoginInfo, pstDevSelogInfo);
@@ -1128,12 +1143,14 @@ begin
   if Result then
   begin
     FNETDEV_SetExceptionCallBack(ExceptionCallBack, nil);
-    TLogging.Obj.ApplicationMessage(msDebug, 'NetDEV_Login', 'Key=%s,ID=%d', [FID, FUserID]);
+    TLogging.Obj.ApplicationMessage(msDebug, 'NetDEV_Login_V30', 'Key=%s,ID=%d', [FID, FUserID]);
+    ret := FNETDEV_QueryVideoChlDetailList(FUserID, ChCount, Info);
+    TLogging.Obj.ApplicationMessage(msDebug, 'ChannelList', 'Key=%s,Count=%d', [FID, ChCount]);
   end
   else
   begin
     FRetryCount := FRetryCount + 1;
-    TLogging.Obj.ApplicationMessage(msWarning, 'NetDEV_Login', 'Key=%s,E=%s',
+    TLogging.Obj.ApplicationMessage(msWarning, 'NetDEV_Login_V30', 'Key=%s,E=%s',
       [FID, TNetDEV.Obj.GetLastError]);
   end;
 end;
