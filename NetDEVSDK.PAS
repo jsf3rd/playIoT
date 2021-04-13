@@ -2,175 +2,539 @@ unit NetDEVSDK;
 
 interface
 
-uses System.Classes, System.SysUtils, Winapi.Windows, System.IOUtils;
+uses System.Classes, System.SysUtils, Winapi.Windows, System.IOUtils, System.Generics.Collections, JdcLogging,
+  JdcGlobal, System.DateUtils;
 
 const
   NETDEVSDK_DLL = 'NetDEVSDK.DLL';
   DEFAULT_CHANNEL = 1;
-  NETDEV_LEN_64 = 63;
 
-  ERROR_CODE: array [0 .. 157, 0 .. 1] of string = //
-    (('0', 'Succeeded'), //
+  NETDEV_LEN_64 = 63;
+  NETDEV_LEN_128 = 127;
+  NETDEV_LEN_132 = 131;
+  NETDEV_LEN_244 = 243;
+  NETDEV_LEN_256 = 255;
+  NETDEV_LEN_260 = 259;
+
+  NETDEV_LOGIN_PROTO_ONVIF = 0;
+  NETDEV_DTYPE_IPC = 1;
+  NETDEV_DTYPE_NVR = 101;
+
+  ERROR_CODE: array [0 .. 444, 0 .. 1] of string = //
+    (
+    // Common Error Codes
     ('-1', 'Failed'), //
-    ('1', 'Common error'), //
-    ('2', 'Common error returned by device'), //
-    ('3', 'Failed to call system function. See errno'), //
-    ('4', 'Null pointer'), //
-    ('5', 'Invalid parameter'), //
-    ('6', 'Invalid module ID'), //
-    ('7', 'Failed to allocate memory'), //
-    ('8', 'Not supported by device'), //
-    ('9', 'listen  Failed to create socketlisten'), //
-    ('10', 'Failed to initialize lock'), //
-    ('11', 'Failed to initialize semaphore'), //
-    ('12', 'Error occurred during SDK resource allocation'), //
-    ('13', 'SDK not initialized'), //
-    ('14', 'SDK already initialized'), //
-    ('15', 'Data not all sent'), //
-    ('16', 'More data required'), //
-    ('17', 'Failed to create connection'), //
-    ('18', 'Failed to send request message'), //
-    ('19', 'Message timeout'), //
-    ('20', 'Failed to decode response message'), //
-    ('21', 'Socket failed to receive message'), //
-    ('22', 'Maximum number reached. The assigned numbers of registration connections and preview connections reached the maximum supported by SDK'),
-    ('24', 'Failed to obtain local port number'), //
-    ('25', 'Failed to create thread'), //
-    ('26', 'Buffer is too small for receiving device data'), //
-    ('27', 'Failed to obtain the IP or MACaddress of the local PC'), //
-    ('28', 'Resource code not exist'), //
-    ('31', 'Incorrect message content'), //
-    ('32', 'Failed to obtain capabilities'), //
-    ('33', 'User not subscribed to alarms'), //
-    ('34', 'User authentication failed'), //
-    ('35', 'Failed to bind alarms'), //
-    ('36', 'Not enough permission. In Windows, it is normally because the operator is not an administrator.'),
-    ('37', 'Manufacturers that are not supported'), //
-    ('38', 'Function not supported'), //
-    ('39', 'File transmission failed'), //
-    ('40', 'Json common error'), //
-    ('41', 'No result'), //
-    ('42', 'Device type that are not supported'), //
-    ('101', 'Incorrect password'), //
-    ('102', 'Number of login users reachedthe upper limit'), //
-    ('103', 'User not online'), //
-    ('104', 'User not online'), //
-    ('105', 'User has no rights'), //
-    ('106', 'Reached the upper limitno moreusers can be added'), //
-    ('107', 'User already exists'), //
-    ('108', 'Password changed'), //
-    ('109', 'Remote user with weak password'), //
-    ('250', 'Playback ended'), //
-    ('251', 'Playback controlling module not exist'), //
-    ('252', 'Beyond playback capability'), //
-    ('253', 'Recording file controlling module not exist'), //
-    ('254', 'No recording'), //
-    ('255', 'Cannot get the URL for playback'), //
-    ('300', 'Failed to set preset'), //
-    ('301', 'Failed to query preset'), //
-    ('302', 'Failed to query route'), //
-    ('303', 'Failed to start route recording'), //
-    ('304', 'Failed to end route recording'), //
-    ('305', 'Failed to query patrol route'), //
-    ('306', 'Failed to set patrol route'), //
-    ('307', 'PTZ operation failed'), //
-    ('308', 'Preset is being used in patrol route and cannot be deleted'), //
-    ('309', 'Discontinuous presets'), //
-    ('310', 'Route is in use and cannotbe deleted'), //
-    ('311', 'Serial modes do not match'), //
-    ('312', 'Route does not exist'), //
-    ('313', 'Route points are full'), //
-    ('500', 'Device stream full'), //
-    ('501', 'Device stream closed'), //
-    ('502', 'Device stream does not exist'), //
-    ('503', 'Failed to read file (directory) status'), //
-    ('504', 'File does not exist'), //
-    ('505', 'Failed to create directory'), //
-    ('506', 'Subscription is full for current user'), //
-    ('507', 'Only admin can upgrade'), //
-    ('508', 'Upgrade not started'), //
-    ('509', 'Upgrade in process'), //
-    ('510', 'Insufficient memory for upgrade'), //
-    ('511', 'Error occurred while opening the mirror file during upgrade'), //
-    ('512', 'Error occurred while upgrading FLASH'), //
-    ('513', 'Cannot load multiple upgrade processes at the same time'), //
-    ('514', 'Upgrade timeout'), //
-    ('515', 'Invalid configuration file'), //
-    ('516', 'Storage resource not allocated'), //
-    ('1000', 'Basic decoding error code'), //
-    ('1001', 'Basic decoding error code'), //
-    ('1002', 'Invalid input parameter'), //
-    ('1003', 'Not enough system memory'), //
-    ('1004', 'Failed to create SOCKET'), //
-    ('1005', 'Failed to receive'), //
-    ('1006', 'None received'), //
-    ('1007', 'Currently not supported'), //
-    ('1008', 'Failed to create the thread'), //
-    ('1009', 'Failed to load the dynamiclibrary'), //
-    ('1010', 'Failed to get the dynamiclibrary'), //
-    ('1011', 'Failed to send'), //
-    ('1012', 'No permission to create the file'), //
-    ('1013', 'Failed to find the file toread'), //
-    ('1014', 'Close log'), //
-    ('1257', 'Failed to initialize the player'), //
-    ('1258', 'Failed to allocate playingchannel resources'), //
-    ('1259', 'Failed to get playing channel resources'), //
+    ('0', 'No Error'), //
+    ('1', 'Common Failed'), //
+    ('5', 'User does not exist'), //
+
+    ('11', 'No result'), //
+    ('12', 'Buffer is too small for receiving device data'), //
+    ('13', 'socket listen  Failed to create socket listen'), //
+    ('14', 'Failed to initialize lock'), //
+    ('15', 'Failed to initialize semaphore'), //
+    ('16', 'SDK  Error occurred during SDK resource allocation'), //
+    ('17', 'Data not all sent'), //
+    ('18', 'More data required'), //
+    ('19', 'File transmission failed'), //
+    ('20', 'Device type that are not supported'), //
+    ('21', 'nonce Nonce expired'), //
+    ('22', 'System internal error'), //
+    ('24', 'Failed to bind alarms'), //
+
+    ('100', 'errno  Failed to call system function. See errno'), //
+    ('101', 'Null pointer'), //
+    ('102', 'Invalid parameter'), //
+    ('103', 'ID  Invalid module ID'), //
+    ('104', 'Invalid handle'), //
+    ('105', 'Memory allocation failed'), //
+    ('106', 'File does not exist'), //
+    ('107', 'Device does not exist'), //
+    ('108', 'Qualified logs do not exist'), //
+    ('109', 'busy busy status'), //
+    ('110', 'Register timer failed'), //
+    ('111', 'General error'), //
+    ('112', 'Command does not support'), //
+    ('113', 'The device does not support this function'), //
+    ('114', 'Overtime'), //
+    ('115', 'Message mismatch'), //
+    ('116', 'Module does not exist'), //
+    ('117', 'Message acceptance failure'), //
+    ('118', 'IE Failure to get message IE'), //
+    ('119', 'IE Failed to add message IE'), //
+    ('120', 'SDK SDK uninitialized'), //
+    ('121', 'SDK SDK has been initialized'), //
+    ('122', 'Unsupported equipment manufacturer'), //
+    ('123', 'Name already exists'), //
+    ('124', 'Error acquiring configuration information'), //
+    ('125', 'Error setting configuration information'), //
+    ('126', 'Channel number exceeding specification'), //
+    ('127', 'Call driver universal failure'), //
+    ('128', 'Insufficient allocatable quota space'), //
+    ('129', 'Failure to invoke database universality'), //
+    ('130', 'Insufficient memory allocation'), //
+    ('131', 'T2U Failure of T2U connection'), //
+    ('132', 'Functions are being initialized'), //
+
+    ('200', 'Failed to create connection'), //
+    ('201', 'Failed to send message'), //
+    ('202', 'Failed to decode response message'), //
+    ('203', 'Function not supported'), //
+    ('204', 'Json   Json common error'), //
+    ('205', 'The query result is empty'), //
+    ('206', 'Socket  Socket failed to receive message'), //
+    ('207', 'Failed to create thread'), //
+    ('208', 'Resource code not exist'), //
+    ('209', 'Incorrect message content'), //
+    ('210', 'Picture data is empty'), //
+
+    ('60068', 'Failed to match publickey'), //
+
+    // Media Stream Related Error Codes
+    ('1001', 'Execution failure'), //
+    ('1002', 'Illegal input parameters'), //
+    ('1003', 'Insufficient system memory'), //
+    ('1004', 'SOCKET Failure to create SOCKET'), //
+    ('1005', 'Failure to receive'), //
+    ('1006', 'Receive zero'), //
+    ('1007', 'Function not supported for the time being'), //
+    ('1008', 'Failed to create thread'), //
+    ('1009', 'Failure to load dynamic library'), //
+    ('1010', 'Failure to obtain dynamic methods'), //
+    ('1011', 'Fail in send'), //
+    ('1012', 'Insufficient permission to create files'), //
+    ('1013', 'Reading file not found'), //
+    ('1014', 'Log closes'), //
+    ('1017', 'Media exception'), //
+
+    ('1257', 'Initialization player failed'), //
+    ('1258', 'Failed to allocate playback channel resources'), //
+    ('1259', 'Failed to obtain playback channel resources'), //
     ('1260', 'Cache queue full'), //
     ('1261', 'Cache queue empty'), //
-    ('1262', 'Failed to open the file'), //
-    ('1263', 'The file is read'), //
-    ('1264', 'Disk space full'), //
-    ('1265', 'Failed to read'), //
-    ('1266', 'The microphone does not exist'), //
-    ('1267', 'TS packing not finished'), //
-    ('1268', 'Recording saved'), //
+    ('1262', 'Fail to open file'), //
+    ('1263', 'The file has been read out'), //
+    ('1264', 'Disk space is full'), //
+    ('1265', 'Read failure'), //
+    ('1266', 'Microphone does not exist'), //
+    ('1267', 'TS TS packaging not completed'), //
+    ('1268', 'The video has been saved.'), //
     ('1269', 'Resolution changed'), //
-    ('1270', 'Video Record'), //
-    ('1513', 'Failed to start media streaming'), //
-    ('1514', 'Failed to close media streaming'), //
-    ('1515', 'Failed to receive data dueto network error'), //
-    ('1516', 'Failed to handle media data'), //
-    ('1517', 'Playing not started in playing channel'), //
-    ('1518', 'Failed to enter media stream data'), //
-    ('1519', 'Input data cache full'), //
-    ('1520', 'Failed to set media streamdata callback function'), //
-    ('1521', 'Error occurred when running voice service'), //
-    ('1522', 'Failed to start voice service'), //
-    ('1523', 'Failed to close voice service'), //
+    ('1270', ' Recording is segmented '), //
+
+    ('1513', 'Failed to start media stream playback'), //
+    ('1514', 'Failed to shut down media stream playback'), //
+    ('1515', 'Failure of receiving data due to network failure'), //
+    ('1516', 'Media data processing failure'), //
+    ('1517', 'Play channel did not start playback operation'), //
+    ('1518', 'Input media streaming data failed'), //
+    ('1519', 'Input data cached full'), //
+    ('1520', 'Failed to set media stream data callback function'), //
+    ('1521', 'Errors in Voice Service Operation'), //
+    ('1522', 'Failure to start voice service'), //
+    ('1523', 'Failed to shut down voice service'), //
     ('1524', 'Unknown media stream'), //
     ('1525', 'Packet loss'), //
-    ('1526', 'More packets are needed for the packing'), //
-    ('1527', 'Failed to create the decoder'), //
-    ('1528', 'Failed to decode'), //
-    ('1529', 'Not enough data received'), //
-    ('1530', 'Display resources full'), //
-    ('1531', 'Display resources do not exist'), //
-    ('1532', 'Failed to create the resources'), //
+    ('1526', 'Packing is not completed, more packages are needed'), //
+    ('1527', 'Failed to create decoder'), //
+    ('1528', 'Decoding failure'), //
+    ('1529', 'Insufficient data received'), //
+    ('1530', 'Display full resources'), //
+    ('1531', 'Show that resources do not exist'), //
+    ('1532', 'Resource creation failed'), //
     ('1533', 'Audio resources do not exist'), //
-    ('1534', 'Decoder requires more data'), //
-    ('1535', 'Failed to create encoder'), //
-    ('1536', 'Capture resources do not exist'), //
-    ('1537', 'Recording already opened'), //
-    ('1538', 'Decoding in progress, please wait'), //
-    ('1539', 'Too much data, still needpacking'), //
-    ('2000', 'Live video service alreadyestablished'), //
-    ('2001', 'Media stream not ready'), //
-    ('2002', 'Display resource is busy for live video service'), //
-    ('2003', 'Control module for live video not exist'), //
-    ('2004', 'Live stream resource full'), //
-    ('2100', 'Format of captured image not supported'), //
-    ('2101', 'Insufficient disk space'), //
-    ('2102', 'No decoded image for capture'), //
-    ('2103', 'Single capture failed'), //
-    ('2200', 'Two-way audio already exists'), //
-    ('2201', 'Two-way audio service doesnot exist'), //
-    ('2202', 'Invalid two-way audio resource code'), //
-    ('2203', 'Audio resource is being used by two-way audio'), //
-    ('2204', 'Two-way audio failed'), //
-    ('2205', 'No more audio service allowed'));
+    ('1534', 'Decoder needs more data'), //
+    ('1535', 'Failure to create encoder'), //
+    ('1536', 'Collection resources do not exist'), //
+    ('1537', 'The video has been turned on'), //
+    ('1538', 'Undecoded, need to wait'), //
+    ('1539', 'There is too much data to pack.'), //
+    ('1540', 'AAC_LC AAC_LC decode failure'), //
+    ('1541', 'Render surface lost '), //
+    ('1542', 'Playback end'), //
+    ('1543', 'File is encrypted '), //
+    ('1544', 'Scrambling info failed '), //
+
+    ('2000', 'Live business has been established'), //
+    ('2001', 'Media streaming is not ready'), //
+    ('2002', 'Live business display resources busy'), //
+    ('2003', 'Real-time control block does not exist'), //
+    ('2004', 'Real-time flow resources are full'), //
+
+    ('2100', 'Speech intercom already exists'), //
+    ('2101', 'Voice service does not exist'), //
+    ('2102', 'Invalid encoding of voice intercom resources'), //
+    ('2103', 'Audio resource is being used by two-way audio'), //
+    ('2104', 'Speech intercom failure'), //
+    ('2205', 'No more audio service allowed'), //
+
+    ('2200', 'Snapshot format does not support'), //
+    ('2201', 'Insufficient hard disk space'), //
+    ('2202', 'Undecoded pictures can be captured'), //
+    ('2203', 'Single snap operation failed'), //
+    ('2301', 'Bit stream excess capability set'), //
+    ('2793', 'Download finished '), //
+    ('2794', 'failed to resolve domain name '), //
+    ('2795', 'Connection failed '), //
+    ('2796', 'Connection timed out '), //
+    ('2797', 'Download timed out '), //
+    ('2798', 'Download failed '), //
+    ('2799', 'Poor network '), //
+    ('2800', 'Playing finished '), //
+    ('2801', 'Full disk space '), //
+    ('2802', 'Authentication failed '), //
+    ('2803', 'Current play time(for reporting use only)'), //
+    ('2804', 'disk threshold Full '), //
+    ('2805', 'time node not exist '), //
+    ('2806', 'Buffer path not set '), //
+    ('2807', 'failed to send message '), //
+    ('2808', 'Task has been canceled '), //
+    ('2809', 'Stream continues to play '), //
+
+    ('10000', 'Media streaming is not ready'), //
+    ('10001', 'Control block state unavailable'), //
+    ('10002', 'Live business display resource busy'), //
+    ('10003', 'Live media streams are not ready'), //
+    ('10004', 'Playback media streams are not ready'), //
+
+    ('10007', 'Insufficient network reception bandwidth'), //
+    ('10008', 'Insufficient network transmission bandwidth'), //
+    ('10009', 'Voice broadcasting service has reached the upper limit'), //
+    ('10010', 'Audio channel has been occupied'), //
+
+    ('10012', 'Encode type Not supported'), //
+
+    ('10399', 'Maximum Media Related Error Code'), //
+
+    // SnapShot
+    ('27000', 'SNAPSHOT_PIC_FAILED'), //
+    ('27001', 'SNAPSHOT_QRY_PIC_FAILED'), //
+    ('27999', 'SNAPSHOT_MAX'), //
+
+    // ERROR Codes of PTZ Module
+    ('10400', 'Failure of preset setting'), //
+    ('10401', 'Failure of preset query'), //
+    ('10402', 'Trajectory Query Failure'), //
+    ('10403', 'Failure to start recording trajectory'), //
+    ('10404', 'Failure to end recording trajectory'), //
+    ('10405', 'Cruise line query failed'), //
+    ('10406', 'Failure to set up cruise routes'), //
+    ('10407', 'PTZ operation failed'), //
+    ('10408', 'Pre-positioning is used in cruise routes and cannot be deleted'), //
+    ('10409', 'Setting Cruise Points Discontinuous'), //
+    ('10410', 'Track is in use and cannot be deleted'), //
+    ('10411', 'Serial port mode mismatch'), //
+    ('10412', 'Trajectory does not exist'), //
+    ('10413', 'Number of path trajectory points of patterns is full'), //
+    ('10414', 'PTZ in use'), //
+    ('10415', 'Prepositioning in Watch'), //
+    ('10416', 'Cruise Path Used in Watch'), //
+
+    ('10799', 'Maximum error code of PTZ module'), //
+    ('10800', 'Playback abnormal end'), //
+    ('10801', 'Playback end'), //
+    ('10802', 'Failed to call driver interface'), //
+    ('10803', 'Control block not found'), //
+    ('10804', 'Exceeding playback capability'), //
+    ('10805', 'The number of labels exceeds the limit'), //
+    ('10806', 'No recording'), //
+    ('10807', 'GB device does not support smart playback'), //
+    ('10808', 'url   Cannot get the URL for playback'), //
+
+    ('10999', 'Maximum error code of playback module'), //
+    ('101000', 'Storage exception termination'), //
+    ('11001', 'Array already exists'), //
+    ('11002', 'Non-array mode'), //
+    ('11003', 'The channel is not equipped with a video plan.'), //
+    ('11022', 'No hard disk or hard disk abnormalities'), //
+    ('11023', '1 Slot 1 disk is out of order'), //
+    ('11024', '1 After opening the face, slot 1 is pulled out and inserted. It needs to be restarted.'), //
+    ('11034', 'Abnormal battery status of equipment'), //
+
+    ('11199', 'Maximum error code of storage module'), //
+
+    // Error Codes of the Storage Module
+    ('101200', 'Users are not online'), //
+    ('11201', 'User password error'), //
+    ('11202', 'No user'), //
+    ('11203', 'User has no privilege'), //
+    ('11204', 'User cap - cannot be added'), //
+    ('11205', 'User already exists'), //
+    ('11206', 'The number of users logged in has reached the upper limit.'), //
+    ('11207', 'The user has been locked'), //
+    ('11208', 'This operation is not allowed. The user is the system administrator.'), //
+    ('11209', 'Not within the validity period'), //
+
+    // Error Codes of the User Module
+    ('11210', 'The number of user roles exceeds the upper limit'), //
+    ('11211', 'User security logon lock'), //
+    ('11212', 'Roles already exist'), //
+    ('11213', 'Not in the valid period'), //
+    ('11214', 'Logon failed. Please try remote login again after changing the local network to a strong password.'),
+    //
+    ('11217', 'Users log in with temporary passwords'), //
+    ('11218', 'Temporary password of public network prohibits landing'), //
+    ('11219', 'Force password modification'), //
+    ('11221', 'IP Login IP has no permission'), //
+
+    ('11599', 'Maximum error code of user module'), //
+
+    // Error Codes of Device Management Module
+    ('11600', 'The device is not online'), //
+    ('11601', 'Device password error'), //
+    ('11602', 'Repetitive equipment'), //
+    ('11603', 'No equipment'), //
+    ('11604', 'No channel'), //
+    ('11605', 'VMS equipment upper limit - Can not be added anymore'), //
+    ('11606', 'Upper limit of device logon number'), //
+    ('11607', 'Common errors returned by devices'), //
+    ('11608', 'ID No device history ID exists'), //
+    ('11609', 'Devices are not allowed to be deleted'), //
+    ('11610', 'Channel not online'), //
+    ('11611', 'Mismatch of device type added'), //
+    ('11612', 'Duplicate device name'), //
+    ('11613', 'Device configuration failure'), //
+    ('11614', 'Inquiries without results'), //
+    ('11617', '116151161611617 Decoding equipment offline 11615, 11616 error code integration machine has been used, so the new 11617'),
+
+    ('11661', 'VCA Failed to get VCA alarm picture'), //
+
+    ('11801', 'Failed to read file (directory) status'), //
+    ('11802', 'File does not exist'), //
+    ('11803', 'Failed to create directory'), //
+    ('11804', 'This user is subscription is full and the error code of the device side user is subscription is full cannot be returned.'),
+
+    ('11805', 'admin Non-admin users cannot upgrade'), //
+    ('11806', 'Upgrade not started'), //
+    ('11807', 'Upgrade processing'), //
+    ('11808', 'Insufficient upgrade memory space'), //
+    ('11809', 'Upgrade error opening mirror file'), //
+    ('11810', 'FLASH Error upgrading FLASH'), //
+    ('11811', 'Multiple upgrade processes cannot be loaded at the same time'), //
+    ('11812', 'Upgrade timeout'), //
+    ('11813', 'Invalid configuration file'), //
+    ('11814', 'Unallocated storage resources'), //
+
+    ('11999', 'Maximum error code of equipment module'), //
+
+    // Error Codes of the Organization Management Module
+    ('12000', 'Organizational cap - cannot be added'), //
+    ('12001', 'Upper limit of organizational hierarchy'), //
+    ('12002', 'Organizational resources - cannot be deleted'), //
+    ('12003', 'Organizations already exist under the same branch'), //
+    ('12004', 'Organization does not exist'), //
+    ('12005', 'This operation is not allowed. The organization is the root organization.'), //
+    ('12006', 'Paternal organization does not exist'), //
+    ('12007', 'Organized, not deleted'), //
+
+    ('12399', 'Maximum error code value of organization module'), //
+
+    // Error Codes of the Video Wall Management Module
+    ('12400', 'The number of windows exceeds the limit'), //
+    ('12401', 'The number of TV walls exceeds the limit'), //
+    ('12402', 'LED The number of virtual LEDs exceeds the limit'), //
+    ('12403', 'LED Single virtual LED line number exceeding limit'), //
+    ('12404', 'The number of scenes of single TV Wall exceeds the limit'), //
+    ('12405', 'The number of base diagrams that the device can store exceeds the limit'), //
+    ('12406', 'The number of backgrounds that a single scene can bind exceeds the limit'), //
+    ('12407', 'Destination position super-decoding capability'), //
+    ('12408', 'The area of window opening has exceeded three times the area of window opening.'), //
+    ('12409', 'Window position/roaming position out of range'), //
+    ('12410', 'LED The number of Rolling virtual LEDs exceeds the limit'), //
+
+    ('12430', 'The current window has been locked'), //
+    ('12431', 'LED Virtual LED does not exist'), //
+    ('12432', 'Rotary cutting already exists'), //
+    ('12433', 'Window does not exist'), //
+    ('12434', 'The window already exists'), //
+    ('12435', 'The split screen in the window does not exist'), //
+    ('12436', 'Windows cannot be split'), //
+    ('12437', 'Decoding channel occupied by other TV wall'), //
+    ('12438', 'TV Wall Existence Window'), //
+    ('12439', 'TV wall information does not exist'), //
+    ('12440', 'Error splitting type'), //
+    ('12411', 'Error in channel number'), //
+    ('12442', 'Media streaming is not ready'), //
+    ('12443', 'VO The number of windows exceeds the limit'), //
+
+    // Network Related Error Codes
+    ('12800', 'IP IP Address Conflict'), //
+    ('12801', 'The mapped port is discarded'), //
+    ('12802', 'Port occupied'), //
+    ('12803', 'VMP Failed to set VMP port'), //
+    ('12804', 'Failed to set media stream port'), //
+    ('12805', 'RTSP Failed to set RTSP port'), //
+    ('12806', 'ONVIF Failed to set ONVIF port'), //
+    ('12807', 'HTTPS Failed to set HTTPS port'), //
+    ('12808', 'HTTP Failed to set HTTP port'), //
+    ('12809', 'Failed to send test mail'), //
+    ('12810', 'Initialize default values'), //
+    ('12811', 'Update completed'), //
+    ('12812', ',ip The update is complete, but the IP address remains unchanged'), //
+    ('12813', 'Error username password'), //
+    ('12814', 'offline URL Special options require service fees similar to offline URLs'), //
+    ('12815', 'Host name format is not qualified'), //
+    ('12816', 'The hostname account does not exist'), //
+    ('12817', '20 More than 20 hosts are requested to update immediately'), //
+    ('12818', 'Host name is disabled due to abuse'), //
+    ('12819', 'HTTP The proxy sends the wrong HTTP request format'), //
+    ('12820', '127.0.0.1http Unless the client wants to update 127.0.0.1, this information indicates an error in the HTTP request specification'),
+
+    ('12821', 'DNSSupport DNS error, please contact Support'), //
+    ('12822', 'Service maintenance is being processed'), //
+    ('12823', 'DDNS DDNS request failed to send'), //
+    ('12824', 'Check code error'), //
+    ('12825', 'Domain name format is not qualified'), //
+    ('12826', 'Domain name conflict'), //
+    ('12827', 'ddnsddns Non-ddns server returns, only for closing DDNS record status'), //
+    ('12828', 'Certificate file generation failed'), //
+    ('12829', 'It is illegal to upload certificate files'), //
+    ('12830', 'Error in username or password of authentication server'), //
+    ('12831', 'Mail delivery failed. Check network and mail configuration'), //
+    ('12832', 'Mail Delivery Timeout'), //
+    ('12833', 'The cloud account is logged in'), //
+    ('12834', 'Failed to add cloud device information'), //
+    ('12835', 'Cloud organizational information is empty'), //
+    ('12836', 'Cloud information cannot be obtained. Check network configuration'), //
+    ('12837', 'Cloud account does not exist'), //
+
+    ('13199', 'Maximum Error Code Value of Network Module'), //
+
+    ('13200', 'Illegal configuration file'), //
+    ('13201', 'XML Failed to export XML file'), //
+    ('13202', 'XML Failed to generate XML file'), //
+    ('13203', 'XML XML attribute information does not exist'), //
+    ('13204', 'Configuration area synchronization error to save configuration synchronously when system restart'),
+
+    ('13205', 'Simple Recovery Configuration Error'), //
+    ('13206', 'Complete Recovery Configuration Error'), //
+    ('13207', 'Disable Writing Configuration'), //
+
+    ('13599', 'XML Maximum Error Code Value of XML Module'), //
+
+    ('13600', 'Template is being used'), //
+    ('13601', 'Time template node does not exist'), //
+    ('13602', 'Illegal Holiday Time'), //
+    ('13603', 'No plan'), //
+    ('13604', 'Not planned'), //
+    ('13605', 'Within the plan'), //
+
+    ('13699', 'Plan Maximum Error Code Value of Plan Module'), //
+
+    ('13700', 'Equipment upgrade, version number mismatch'), //
+    ('13701', 'Equipment upgrade, equipment type mismatch'), //
+    ('13702', 'Document Check Error'), //
+    ('13703', 'Export configuration error'), //
+    ('13704', 'Import configuration error'), //
+    ('13705', 'Device upgrade, memory application or other reasons may fail'), //
+    ('13706', 'Maintenance information is being exported'), //
+
+    ('13799', 'MT Maximum error code value of MT module'), //
+
+    ('13800', 'Preventive clothing plan already exists'), //
+    ('13801', 'The designated deployment plan does not exist'), //
+    ('13802', 'The specified linkage rule does not exist'), //
+
+    ('13899', 'Linkage Maximum Error Code Value of Linkage Module'), //
+
+    ('13900', 'Alarm suppression'), //
+
+    ('15000', 'The number of pictures reached the upper limit and could not be added.'), //
+    ('15001', 'The root directory already exists in the electronic map'), //
+
+    ('15099', 'Maximum Error Code Value of Electronic Map Module'), //
+
+    ('17000', 'No entrance guards exist'), //
+    ('17001', 'Access guards already exist'), //
+    ('17002', 'Access card already exists'), //
+    ('17003', 'No access card exists'), //
+    ('17004', 'The number of access cards has reached the upper limit.'), //
+    ('17005', 'Personnel access records do not exist'), //
+    ('17006', 'Access control channel does not exist'), //
+    ('17007', 'Personnel with access control authority do not exist'), //
+    ('17008', 'ID Personnel Departmental ID of Access Control Personnel does not exist'), //
+    ('17009', 'ID Personnel access record ID does not exist'), //
+    ('17010', 'Departmental authority already exists'), //
+    ('17011', 'The permission group has Person and cannot be deleted.'), //
+    ('17012', 'Existing blacklist Persons .'), //
+    ('17013', 'Blacklist visitors cannot be added.'), //
+    ('17999', 'PACS Maximum Error Code of PACS Module'), //
+
+    ('19000', 'No member in face database'), //
+    ('19001', 'Control task does not exist'), //
+    ('19002', 'There is no alarm record for face recognition'), //
+    ('19003', 'Failure in capturing face images'), //
+    ('19004', 'Uid No Uid is available'), //
+
+    ('19005', 'Maximum number of face databases'), //
+    ('19006', 'The number of control tasks in the face database has reached the maximum.'), //
+    ('19007', 'The maximum number of face members has been achieved in this face database.'), //
+    ('19008', 'Document number already exists'), //
+    ('19009', 'Version mismatch of device face recognition algorithm'), //
+    ('19010', 'Vehicle control tasks do not exist'), //
+    ('19011', 'Failure to obtain license plate image'), //
+    ('19012', 'Vehicle records do not exist'), //
+    ('19013', 'Failed to get slave picture'), //
+    ('19014', 'Out-of-line status of view Library of distribution control equipment'), //
+    ('19015', 'In Distribution Control Equipment'), //
+    ('19020', 'This control task is not enabled'), //
+    ('19021', 'In charge control'), //
+    ('19022', 'GUARD_DIFFERENT_IMAGE_PROTOCOL '), //
+    ('19023', ' ROOT_LIB_HAS_MONITORED_MEMBER '), //
+
+    ('19999', 'Maximum Error Code of Intelligent Module'), //
+
+    ('25006', 'View library layout control error, equipment busy '), //
+    ('25007', 'View database layout control error, face database has reached the upper limit '), //
+    ('25008', 'View database layout control error, face members have reached the upper limit '), //
+    ('25009', 'View Library layout control error, Device Smart Bar does not exist '), //
+    ('25010', 'View Library layout error, Device View Library Not Connected '), //
+
+    // Cloud Service Related Error Codes
+    ('20000', 'Not your Device'), //
+    ('20001', 'Channel does not exist'), //
+    ('20002', 'ID Flow ID does not exist'), //
+    ('20003', 'Excessive request rate '), //
+    ('20004', 'ID Live ID does not exist '), //
+    ('20005', 'request Flow Protocol does not support '), //
+    ('20006', 'ID Client ID does not exist '), //
+    ('20007', 'RequestID RequestID does not exist'), //
+    ('20008', 'Too many Current online users '), //
+    ('20009', 'RTMPURL failed to obtain RTMP pull URL '), //
+    ('20010', 'Failure to acquire push - Flow status '), //
+    ('20011', 'Start - up pull -out Failure '), //
+    ('20012', 'failed to get the list of cloud devices '), //
+    ('20013', 'failed to obtain cloud Device information '), //
+    ('20014', 'NAT failed to get NAT type '), //
+    ('20015', ' failed to update cloud Device name '), //
+    ('20016', 'failed to delete cloud devices '), //
+    ('20017', 'Stop pulling and lose '), //
+    ('20018', 'Failure of Pushing Flow to Preserve Life '), //
+    ('20019', 'the Live list is empty '), //
+    ('20020', 'ID failed to get Live ID '), //
+    ('20021', 'Illegal format '), //
+    ('20022', 'the Device is not registered '), //
+    ('20023', 'Registration code does not exist '), //
+    ('20024', 'Can not share with oneself '), //
+    ('20025', 'failed to add cloud devices '), //
+
+    ('20026', 'DDNS Failed to obtain DDNS information'), //
+    ('20027', 'Failed to retrieve cloud organization list'), //
+    ('20028', 'Failed to get shared device list'), //
+    ('20029', 'Failure to start device sharing'), //
+    ('20030', 'Failure to Stop Cloud Device Sharing'), //
+    ('20031', 'Failed to obtain cloud shared record information'), //
+    ('20032', 'Failed to obtain cloud account device statistics'), //
+    ('20033', 'Increasing cloud Organizational Failure'), //
+    ('20034', 'Failure to modify cloud organization'), //
+    ('20035', 'Failed to delete cloud organizations'), //
+    ('20036', 'Failure to add devices to cloud organizations'), //
+    ('20037', 'Failure to access cloud device channel'), //
+    ('20038', 'Failed to get cloud video time information'), //
+    ('20039', 'M3u8 Failed to get cloud video M3u8 information'));
 
 type
-  TNETDEVAlarmInfo = record
+  TNETDEVAlarmInfo = packed record
     tAlarmTime: Int64;
     dwChannelID: Int32;
     wIndex: UINT16;
@@ -183,12 +547,18 @@ type
   end;
 
   TNETDEV_ExceptionCallBack_PF = procedure(plUserID: IntPtr; dwType: Int32; plExpHandle: IntPtr;
-    plUserData: IntPtr)stdcall;
+    plUserData: Pointer)stdcall;
 
   TNetDEVLiveStreamIndex = (NETDEV_LIVE_STREAM_INDEX_MAIN, NETDEV_LIVE_STREAM_INDEX_AUX,
     NETDEV_LIVE_STREAM_INDEX_THIRD, NETDEV_LIVE_STREAM_INDEX_INVALID);
   TNetDEVProtocol = (NETDEV_TRANSPROTOCOL_RTPUDP, NETDEV_TRANSPROTOCOL_RTPTCP);
-  TNetDEVPictureFluency = (NETDEV_PICTURE_REAL, NETDEV_PICTURE_FLUENCY);
+  TNetDEVPictureFluency = (NETDEV_PICTURE_REAL, NETDEV_PICTURE_FLUENCY, BALANCE, NETDEV_PICTURE_RTMP_FLUENCY,
+    NETDEV_PICTURE_FLUENCY_INVALID);
+  TNetDEVStreamMode = (NETDEV_STREAM_MODE_ALL, NETDEV_STREAM_MODE_VIDEO = $8000);
+  TNetDEVPullStreamMode = (NETDEV_STREAM_MODE_SERVER_DISTRIBUTE, NETDEV_STREAM_MODE_FORCE_CDN);
+  TNetDEVDistributeCloudSrv = (NETDEV_DISTRIBUTE_CLOUD_NONE, NETDEV_DISTRIBUTE_CLOUD_KS,
+    NETDEV_DISTRIBUTE_CLOUD_UN, NETDEV_DISTRIBUTE_CLOUD_TEN);
+  TNetDEVTransType = (NETDEV_TRANS_TYPE_FORWORD, NETDEV_TRANS_TYPE_STRAIGHT);
 
   TNetDEVPictureFormat = (NETDEV_PICTURE_BMP, NETDEV_PICTURE_JPG, NETDEV_PICTURE_INVALID);
 
@@ -199,7 +569,7 @@ type
 
   TOnException = procedure(AType: TNETDEVException) of object;
 
-  TNetDEVDeviceInfo = record
+  TNetDEVDeviceInfo = packed record
     dwDevType: Int32;
     wAlarmInPortNum: Int16;
     wAlarmOutPortNum: Int16;
@@ -207,20 +577,25 @@ type
     byRes: array [0 .. 47] of BYTE;
   end;
 
-  TPreviewInfo = record
+  TPreviewInfo = packed record
     dwChannelID: Int32;
     dwStreamType: Int32;
     dwLinkMode: Int32;
     hPlayWnd: IntPtr;
     dwFluency: Int32;
-    byRes: array [0 .. 259] of BYTE;
+    dwStreamMode: Int32;
+    dwLiveMode: Int32;
+    dwDisTributeCloud: Int32;
+    dwallowDistribution: BOOL;
+    // dwTransType: Int32;
+    byRes: array [0 .. NETDEV_LEN_244] of BYTE;
 
     constructor Create(AHandle: HWND; AType: TNetDEVLiveStreamIndex = NETDEV_LIVE_STREAM_INDEX_MAIN;
       AChannel: Int32 = DEFAULT_CHANNEL; AMode: TNetDEVProtocol = NETDEV_TRANSPROTOCOL_RTPTCP;
       AFluncy: TNetDEVPictureFluency = NETDEV_PICTURE_REAL);
   end;
 
-  TNETDEVVideoStreamInfo = record
+  TNETDEVVideoStreamInfo = packed record
     enStreamType: Int32;
     bEnableFlag: Int32;
     dwHeight: Int32;
@@ -233,7 +608,7 @@ type
     byRes: Array [0 .. 31] of BYTE;
   end;
 
-  TNETDEVDeviceBasicInfo = record
+  TNETDEVDeviceBasicInfo = packed record
     szDevModel: Array [0 .. NETDEV_LEN_64] of AnsiChar;
     szSerialNum: Array [0 .. NETDEV_LEN_64] of AnsiChar;
     szFirmwareVersion: Array [0 .. NETDEV_LEN_64] of AnsiChar;
@@ -242,84 +617,87 @@ type
     byRes: Array [0 .. 447] of BYTE;
   end;
 
+  TNETDEVLoginInfo = packed record
+    szIPAddr: Array [0 .. NETDEV_LEN_260] of AnsiChar;
+    dwPort: Int32;
+    szUserName: Array [0 .. NETDEV_LEN_132] of AnsiChar;
+    szPassword: Array [0 .. NETDEV_LEN_128] of AnsiChar;
+    dwLoginProto: Int32;
+    dwDeiveType: Int32;
+    byRest: Array [0 .. NETDEV_LEN_256] of AnsiChar;
+  end;
+
+  TNETDEVSelogInfo = packed record
+    dwSELogCount: Int32;
+    dwSELogTime: Int32;
+    byRes: Array [0 .. NETDEV_LEN_64] of AnsiChar;
+  end;
+
   TSourceDataCallBack = procedure(lpRealHandle: IntPtr; var pucBuffer: BYTE; dwBufSize: Int32;
-    dwMediaDataType: Int32; lpUserParam: IntPtr)stdcall;
-  TExceptionCallBack = procedure(plUserID: IntPtr; dwType: Int32; var stAlarmInfo: TNETDEVAlarmInfo;
-    plExpHandle, plUserData: IntPtr)stdcall;
+    dwMediaDataType: Int32; lpUserParam: Pointer)stdcall;
+  // TExceptionCallBack = procedure(plUserID: IntPtr; dwType: Int32; var stAlarmInfo: TNETDEVAlarmInfo;
+  // plExpHandle, plUserData: Pointer)stdcall;
 
   TNETDEV_Init = function: Boolean stdcall;
   TNETDEV_Login = function(pszDevIP: PAnsiChar; wDevPort: Int16; pszUserName: PAnsiChar;
     pszPassword: PAnsiChar; var pstDevInfo: TNetDEVDeviceInfo): IntPtr stdcall;
+  TFNETDEV_Login_V30 = function(var pstDevLoginInfo: TNETDEVLoginInfo; var pstSELogInfo: TNETDEVSelogInfo)
+    : IntPtr stdcall;
   TNETDEV_Logout = function(lpUserID: IntPtr): Boolean stdcall;
   TNETDEV_GetDevConfig = function(lpUserID: IntPtr; dwChannelID: Int32; dwCommand: Int32;
     var lpOutBuffer: TNETDEVVideoStreamInfo; dwOutBufferSize: Int32; var pdwBytesReturned: Int32)
     : Boolean stdcall;
   TNETDEV_RealPlay = function(lpUserID: IntPtr; var pstPreviewInfo: TPreviewInfo;
-    cbDataCallBack: TSourceDataCallBack; lpUserData: IntPtr): IntPtr stdcall;
+    cbDataCallBack: TSourceDataCallBack; lpUserData: Pointer): IntPtr stdcall;
   TNETDEV_StopRealPlay = function(lpRealHandle: IntPtr): Boolean stdcall;
   TNETDEV_CapturePicture = function(lpRealHandle: IntPtr; szFileName: PAnsiChar; dwCaptureMode: Int32)
     : Boolean stdcall;
   TNETDEV_GetLastError = function(): Int32 stdcall;
   TNETDEV_SetExceptionCallBack = function(cbExceptionCallBack: TNETDEV_ExceptionCallBack_PF;
-    lpUserData: IntPtr): Boolean stdcall;
+    lpUserData: Pointer): Boolean stdcall;
   TNETDEV_Cleanup = function(): Boolean stdcall;
   NETDEV_SetLogPath = function(pszLogPath: PAnsiChar): Boolean stdcall;
 
   TNETDEV_SetPlayDataCallBack = function(lpRealHandle: IntPtr; cbPlayDataCallBack: IntPtr; bContinue: Int32;
-    lpUserData: IntPtr): Boolean stdcall;
+    lpUserData: Pointer): Boolean stdcall;
 
   TCCTVInfo = record
     Enable: Boolean;
-    IP: String;
-    Port: Integer;
-    ID: String;
-    Password: String;
+    IP: AnsiString;
+    Port: Int32;
+    ID: AnsiString;
+    Password: AnsiString;
+
     function Equals(AInfo: TCCTVInfo): Boolean;
+    function ToNetNETDEVDeviceLoginInfo: TNETDEVLoginInfo;
   end;
 
-  TNetDEV = class
-  private
-    FDLLHandle: THandle;
-
-    FInited: Boolean;
-
+  TPlayerInfo = class
+  strict private
+    FID: string;
     FUserID: IntPtr;
     FRealHandle: IntPtr;
-
-    FNETDEV_StopRealPlay: TNETDEV_StopRealPlay;
-    FNETDEV_Init: TNETDEV_Init;
-    FNETDEV_SetExceptionCallBack: TNETDEV_SetExceptionCallBack;
-    FNETDEV_CapturePicture: TNETDEV_CapturePicture;
-    FNETDEV_RealPlay: TNETDEV_RealPlay;
-    FNETDEV_SetPlayDataCallBack: TNETDEV_SetPlayDataCallBack;
-    FNETDEV_Logout: TNETDEV_Logout;
-    FNETDEV_GetDevConfig: TNETDEV_GetDevConfig;
-    FNETDEV_Login: TNETDEV_Login;
-    FNETDEV_Cleanup: TNETDEV_Cleanup;
-    FNETDEV_SetLogPath: NETDEV_SetLogPath;
-    FNETDEV_GetLastError: TNETDEV_GetLastError;
     FCCTVInfo: TCCTVInfo;
+    FRetryCount: Integer;
 
-    FData: TStream;
     FTick: Cardinal;
+    FData: TStream;
 
-    procedure FreeDLL;
-    procedure LoadDLL(APath: string);
-    procedure SetOnException(const Value: TOnException);
+    FHandle: HWND;
+    FHDC: HDC;
+
+    FAliveTask: TThread;
     procedure SetData(const Value: TStream);
   public
-    constructor Create(const ALibPath: string; const ALogPath: string);
+    constructor Create(AID: String);
     destructor Destroy; override;
-
-    function GetLastError: string;
+    procedure Reset;
 
     function Played: Boolean;
+    function Logined: Boolean;
 
-    function Init: Boolean;
-    function Cleanup: Boolean;
-    function Login: Boolean; overload;
-    function Login(const pszDevIP: String; const wDevPort: Int16; const pszUserName: String;
-      const pszPassword: String): Boolean; overload;
+    function Login(AInfo: TCCTVInfo): Boolean;
+    function Login_V30(AInfo: TCCTVInfo): Boolean;
     function Logout: Boolean;
     function GetStreamInfo(const dwChannelID: Int32; var lpOutBuffer: TNETDEVVideoStreamInfo;
       const dwOutBufferSize: Int32; var pdwBytesReturned: Int32): Boolean;
@@ -327,21 +705,120 @@ type
     function StopRealPlay: Boolean;
     function CapturePicture(const szFileName: String;
       const dwCaptureMode: TNetDEVPictureFormat = NETDEV_PICTURE_JPG): Boolean;
-    function SetLogPath(const szPath: string): Boolean;
 
-    property OnException: TOnException write SetOnException;
+    property UserID: IntPtr read FUserID write FUserID;
+    property RealHandle: IntPtr read FRealHandle write FRealHandle;
     property CCTVInfo: TCCTVInfo read FCCTVInfo write FCCTVInfo;
+    property ID: string read FID;
+    property Retry: Integer read FRetryCount write FRetryCount;
 
     property Data: TStream read FData write SetData;
     property Tick: Cardinal read FTick write FTick;
   end;
 
+  TNetDEV = class
+  private
+    FInited: Boolean;
+    FDLLHandle: THandle;
+    FPlayerDic: TDictionary<String, TPlayerInfo>;
+
+    procedure FreeDLL;
+    procedure LoadDLL(APath: string);
+    procedure SetOnException(const Value: TOnException);
+  public
+    constructor Create;
+    destructor Destroy; override;
+
+    class function Obj: TNetDEV;
+    class function Asssigned: Boolean;
+    function Initialize(const ALibPath: string; const ALogPath: string): Boolean;
+
+    function GetLastError: string;
+    function Cleanup: Boolean;
+    function SetLogPath(const szPath: string): Boolean;
+
+    function AddPlayer(AID: String): TPlayerInfo;
+    function GetPlayer(AID: String): TPlayerInfo;
+    procedure DelPlayer(AID: String);
+    function GetKeys: TArray<String>;
+    function GetPlayers: TArray<TPlayerInfo>;
+
+    property OnException: TOnException write SetOnException;
+  end;
+
 implementation
 
 var
+  MyObj: TNetDEV = nil;
   MyOnException: TOnException;
 
-procedure ExceptionCallBack(plUserID: IntPtr; dwType: Int32; plExpHandle, plUserData: IntPtr)stdcall;
+  FNETDEV_Init: TNETDEV_Init;
+  FNETDEV_StopRealPlay: TNETDEV_StopRealPlay;
+  FNETDEV_SetExceptionCallBack: TNETDEV_SetExceptionCallBack;
+  FNETDEV_CapturePicture: TNETDEV_CapturePicture;
+  FNETDEV_RealPlay: TNETDEV_RealPlay;
+  FNETDEV_SetPlayDataCallBack: TNETDEV_SetPlayDataCallBack;
+  FNETDEV_Logout: TNETDEV_Logout;
+  FNETDEV_GetDevConfig: TNETDEV_GetDevConfig;
+  FNETDEV_Login: TNETDEV_Login;
+  FNETDEV_Login_V30: TFNETDEV_Login_V30;
+  FNETDEV_Cleanup: TNETDEV_Cleanup;
+  FNETDEV_SetLogPath: NETDEV_SetLogPath;
+  FNETDEV_GetLastError: TNETDEV_GetLastError;
+
+function StreamCompare(Stream1, Stream2: TStream): Boolean;
+var
+  Data1, Data2: UInt64;
+begin
+  Result := False;
+  if Stream1.Size <> Stream2.Size then
+    Exit;
+
+  Stream1.Position := 0;
+  Stream2.Position := 0;
+  while Stream1.Position + SizeOf(Data1) < Stream1.Size do
+  begin
+    Stream1.ReadData(Data1);
+    Stream2.ReadData(Data2);
+    if Data1 <> Data2 then
+      Exit;
+  end;
+  Result := True;
+end;
+
+procedure OnSourceDataCallBack(lpRealHandle: IntPtr; var pucBuffer: BYTE; dwBufSize, dwMediaDataType: Int32;
+  lpUserParam: Pointer)stdcall;
+var
+  Player: TPlayerInfo;
+  _tick: Cardinal;
+  Stream: TBytesStream;
+begin
+  _tick := GetTickCount;
+  Player := Pointer(lpUserParam);
+  if _tick - Player.Tick > 3000 then
+  begin
+    Player.Tick := _tick;
+
+    if Player.Data.Size <> dwBufSize then
+    begin
+      Player.Data.Size := dwBufSize;
+      Exit;
+    end;
+
+    Stream := TBytesStream.Create;
+    Stream.WriteBuffer(pucBuffer, dwBufSize);
+
+    if not StreamCompare(Stream, Player.Data) then
+      Exit;
+
+    Player.Retry := Player.Retry + 1;
+    TLogging.Obj.ApplicationMessage(msSystem, 'OnSourceDataCallBack',
+      'Port=%d,RealHandle=%d,Size=%d, Count=%d', [Player.CCTVInfo.Port, lpRealHandle, dwBufSize,
+      Player.Retry]);
+  end;
+end;
+
+procedure ExceptionCallBack(plUserID: IntPtr; dwType: Int32; plExpHandle: IntPtr; plUserData: Pointer)stdcall;
 begin
   if Assigned(MyOnException) then
     MyOnException(TNETDEVException(dwType));
@@ -349,15 +826,14 @@ end;
 
 { TNetDEV }
 
-function TNetDEV.CapturePicture(const szFileName: String; const dwCaptureMode: TNetDEVPictureFormat): Boolean;
-var
-  Name: AnsiString;
+function TNetDEV.AddPlayer(AID: String): TPlayerInfo;
 begin
-  if FRealHandle = 0 then
-    raise Exception.Create('StopRealPlay');
+  Result := GetPlayer(AID);
+end;
 
-  Name := AnsiString(szFileName);
-  result := FNETDEV_CapturePicture(FRealHandle, PAnsiChar(Name), Int32(dwCaptureMode));
+class function TNetDEV.Asssigned: Boolean;
+begin
+  Result := (MyObj <> nil) and MyObj.FInited;
 end;
 
 function TNetDEV.Cleanup: Boolean;
@@ -365,43 +841,47 @@ begin
   if not FInited then
     Exit(False);
 
-  result := FNETDEV_Cleanup;
-  FInited := not result;
+  Result := FNETDEV_Cleanup;
+  if Result then
+  begin
+    FInited := False;
+    TLogging.Obj.ApplicationMessage(msDebug, 'NETDEV_Cleanup')
+  end
+  else
+    TLogging.Obj.ApplicationMessage(msWarning, 'NETDEV_Cleanup', TNetDEV.Obj.GetLastError)
 end;
 
-constructor TNetDEV.Create(const ALibPath: string; const ALogPath: string);
+constructor TNetDEV.Create;
 begin
-  if not TDirectory.Exists(ALibPath) then
-    raise Exception.Create('path not exist. [' + ALibPath + ']');
-
   MyOnException := nil;
   FInited := False;
   FDLLHandle := 0;
-  FUserID := 0;
-  FRealHandle := 0;
+  FPlayerDic := TDictionary<String, TPlayerInfo>.Create;
+end;
 
-  FTick := 0;
-  FData := TMemoryStream.Create;
-
-  LoadDLL(ALibPath);
-
-  SetLogPath(ALogPath);
-  Init;
+procedure TNetDEV.DelPlayer(AID: String);
+begin
+  if not FPlayerDic.ContainsKey(AID) then
+    Exit;
+  FPlayerDic.Items[AID].Free;
+  FPlayerDic.Remove(AID);
 end;
 
 destructor TNetDEV.Destroy;
+var
+  MyPlayer: TPlayerInfo;
 begin
   try
-    StopRealPlay;
-    Logout;
+    for MyPlayer in FPlayerDic.Values do
+      MyPlayer.Free;
+    FPlayerDic.Free;
     Cleanup;
   except
     on E: Exception do
   end;
-
   FreeDLL;
-  FData.Free;
 
+  MyObj := nil;
   inherited;
 end;
 
@@ -410,46 +890,66 @@ begin
   if FDLLHandle <> 0 then
   begin
     try
+      TLogging.Obj.ApplicationMessage(msDebug, 'NetDEV_FreeDLL', 'Handle=%d', [FDLLHandle]);
       FDLLHandle := 0;
     except
       on E: Exception do
     end;
   end;
+
 end;
 
-function TNetDEV.GetStreamInfo(const dwChannelID: Int32; var lpOutBuffer: TNETDEVVideoStreamInfo;
-  const dwOutBufferSize: Int32; var pdwBytesReturned: Int32): Boolean;
-const
-  NETDEV_GET_STREAMCFG = 120;
+function TNetDEV.Initialize(const ALibPath: string; const ALogPath: string): Boolean;
 begin
-  if FUserID = 0 then
-    Exit(False);
+  if not TDirectory.Exists(ALibPath) then
+    raise Exception.Create('path not exist. [' + ALibPath + ']');
 
-  result := FNETDEV_GetDevConfig(FUserID, dwChannelID, NETDEV_GET_STREAMCFG, lpOutBuffer, dwOutBufferSize,
-    pdwBytesReturned);
+  LoadDLL(ALibPath);
+  SetLogPath(ALogPath);
+
+  if not FInited then
+    FInited := FNETDEV_Init;
+  Result := FInited;
+  if Result then
+    TLogging.Obj.ApplicationMessage(msDebug, 'NETDEV_Init')
+  else
+    TLogging.Obj.ApplicationMessage(msWarning, 'NETDEV_Init', TNetDEV.Obj.GetLastError)
 end;
 
-function TNetDEV.Init: Boolean;
+function TNetDEV.GetKeys: TArray<String>;
 begin
-  result := FNETDEV_Init;
-  FInited := result;
+  Result := FPlayerDic.Keys.ToArray;
 end;
 
 function TNetDEV.GetLastError: String;
 var
   I: Integer;
-  Code: Integer;
+  code: Integer;
+  Msg: string;
 begin
   if FDLLHandle = 0 then
     Exit('Unload DLL');
 
-  Code := FNETDEV_GetLastError;
+  Msg := 'Unknown Error';
+  code := FNETDEV_GetLastError;
   for I := Low(ERROR_CODE) to High(ERROR_CODE) do
   begin
-    if ERROR_CODE[I, 0].ToInteger = Code then
-      Exit(ERROR_CODE[I, 1]);
+    if ERROR_CODE[I, 0].ToInteger = code then
+      Msg := ERROR_CODE[I, 1];
   end;
-  result := 'Unknown Error';
+  Result := format('%s(%d)', [Msg, code]);
+end;
+
+function TNetDEV.GetPlayer(AID: String): TPlayerInfo;
+begin
+  if not FPlayerDic.ContainsKey(AID) then
+    FPlayerDic.add(AID, TPlayerInfo.Create(AID));
+  Result := FPlayerDic.Items[AID];
+end;
+
+function TNetDEV.GetPlayers: TArray<TPlayerInfo>;
+begin
+  Result := FPlayerDic.Values.ToArray;
 end;
 
 procedure TNetDEV.LoadDLL(APath: string);
@@ -461,6 +961,7 @@ begin
 
   @FNETDEV_Init := GetProcAddress(FDLLHandle, 'NETDEV_Init');
   @FNETDEV_Login := GetProcAddress(FDLLHandle, 'NETDEV_Login');
+  @FNETDEV_Login_V30 := GetProcAddress(FDLLHandle, 'NETDEV_Login_V30');
   @FNETDEV_Logout := GetProcAddress(FDLLHandle, 'NETDEV_Logout');
   @FNETDEV_RealPlay := GetProcAddress(FDLLHandle, 'NETDEV_RealPlay');
   @FNETDEV_GetDevConfig := GetProcAddress(FDLLHandle, 'NETDEV_GetDevConfig');
@@ -473,90 +974,27 @@ begin
   @FNETDEV_Cleanup := GetProcAddress(FDLLHandle, 'NETDEV_Cleanup');
   @FNETDEV_SetLogPath := GetProcAddress(FDLLHandle, 'NETDEV_SetLogPath');
   SetCurrentDir(TPath.GetDocumentsPath);
+  TLogging.Obj.ApplicationMessage(msDebug, 'NetDEV_LoadDLL', 'Path=%s,Handle=%d', [APath, FDLLHandle]);
 end;
 
-function TNetDEV.Login(const pszDevIP: String; const wDevPort: Int16;
-  const pszUserName, pszPassword: String): Boolean;
-var
-  pstDevInfo: TNetDEVDeviceInfo;
-  IP, ID, Pwd: AnsiString;
+class function TNetDEV.Obj: TNetDEV;
 begin
-  if FUserID > 0 then
-    Exit(True);
-
-  IP := AnsiString(pszDevIP);
-  ID := AnsiString(pszUserName);
-  Pwd := AnsiString(pszPassword);
-  FUserID := FNETDEV_Login(PAnsiChar(IP), wDevPort, PAnsiChar(ID), PAnsiChar(Pwd), pstDevInfo);
-  result := FUserID > 0;
-end;
-
-function TNetDEV.Login: Boolean;
-begin
-  result := Login(FCCTVInfo.IP, FCCTVInfo.Port, FCCTVInfo.ID, FCCTVInfo.Password);
-end;
-
-function TNetDEV.Logout: Boolean;
-begin
-  if FUserID = 0 then
-    Exit(False);
-
-  result := FNETDEV_Logout(FUserID);
-  if result then
-    FUserID := 0;
-end;
-
-function TNetDEV.Played: Boolean;
-begin
-  result := FRealHandle > 0;
-end;
-
-function TNetDEV.RealPlay(APreviewInfo: TPreviewInfo): Boolean;
-begin
-  if FUserID = 0 then
-    raise Exception.Create('Logout');
-
-  if FRealHandle > 0 then
-    StopRealPlay;
-
-  FRealHandle := FNETDEV_RealPlay(FUserID, APreviewInfo, nil, 0);
-  result := FRealHandle > 0;
-
-  if result then
-    FNETDEV_SetExceptionCallBack(ExceptionCallBack, 0);
-end;
-
-procedure TNetDEV.SetData(const Value: TStream);
-begin
-  FData.Free;
-  FData := Value;
+  if MyObj = nil then
+    MyObj := TNetDEV.Create;
+  Result := MyObj;
 end;
 
 function TNetDEV.SetLogPath(const szPath: string): Boolean;
 var
-  Path: AnsiString;
+  path: AnsiString;
 begin
-  Path := AnsiString(szPath);
-  result := FNETDEV_SetLogPath(PAnsiChar(Path));
+  path := AnsiString(szPath);
+  Result := FNETDEV_SetLogPath(PAnsiChar(path));
 end;
 
 procedure TNetDEV.SetOnException(const Value: TOnException);
 begin
   MyOnException := Value;
-end;
-
-function TNetDEV.StopRealPlay: Boolean;
-begin
-  if FRealHandle = 0 then
-    Exit(False);
-
-  result := FNETDEV_StopRealPlay(FRealHandle);
-  if result then
-  begin
-    FRealHandle := 0;
-    FNETDEV_SetExceptionCallBack(nil, 0)
-  end;
-
 end;
 
 { TPreviewInfo }
@@ -569,14 +1007,253 @@ begin
   Self.dwLinkMode := Int32(AMode);
   Self.hPlayWnd := AHandle;
   Self.dwFluency := Int32(AFluncy);
+  Self.dwStreamMode := Int32(TNetDEVStreamMode.NETDEV_STREAM_MODE_ALL);
+  Self.dwLiveMode := Int32(TNetDEVPullStreamMode.NETDEV_STREAM_MODE_SERVER_DISTRIBUTE);
+  Self.dwDisTributeCloud := Int32(TNetDEVDistributeCloudSrv.NETDEV_DISTRIBUTE_CLOUD_NONE);
+  Self.dwallowDistribution := False;
+  // Self.dwTransType := Int32(TNetDEVTransType.NETDEV_TRANS_TYPE_STRAIGHT);
+  FillChar(Self.byRes, NETDEV_LEN_244, #0);
 end;
 
 { TCCTVInfo }
 
 function TCCTVInfo.Equals(AInfo: TCCTVInfo): Boolean;
 begin
-  result := (Self.IP = AInfo.IP) and (Self.Port = AInfo.Port) and (Self.ID = AInfo.ID) and
+  Result := (Self.IP = AInfo.IP) and (Self.Port = AInfo.Port) and (Self.ID = AInfo.ID) and
     (Self.Password = AInfo.Password)
 end;
+
+function TCCTVInfo.ToNetNETDEVDeviceLoginInfo: TNETDEVLoginInfo;
+var
+  tmp: AnsiString;
+begin
+  FillChar(Result, SizeOf(TNETDEVLoginInfo), #0);
+  tmp := AnsiString(Self.IP);
+  CopyMemory(@Result.szIPAddr[0], @tmp[1], Length(Self.IP));
+  tmp := AnsiString(Self.ID);
+  CopyMemory(@Result.szUserName[0], @tmp[1], Length(Self.ID));
+  tmp := AnsiString(Self.Password);
+  CopyMemory(@Result.szPassword[0], @tmp[1], Length(Self.Password));
+  Result.dwPort := Self.Port;
+  Result.dwLoginProto := NETDEV_LOGIN_PROTO_ONVIF;
+  Result.dwDeiveType := NETDEV_DTYPE_IPC;
+end;
+
+{ TPlayerInfo }
+
+function TPlayerInfo.CapturePicture(const szFileName: String;
+  const dwCaptureMode: TNetDEVPictureFormat): Boolean;
+var
+  Name: AnsiString;
+begin
+  if FRealHandle = 0 then
+    raise Exception.Create('StopRealPlay');
+
+  Name := AnsiString(szFileName);
+  Result := FNETDEV_CapturePicture(FRealHandle, PAnsiChar(Name), Int32(dwCaptureMode));
+end;
+
+constructor TPlayerInfo.Create(AID: String);
+begin
+  FID := AID;
+  FRetryCount := 0;
+  FTick := 0;
+  FData := TMemoryStream.Create;
+  Reset;
+  FAliveTask := nil;
+end;
+
+destructor TPlayerInfo.Destroy;
+begin
+  if Assigned(FAliveTask) then
+  begin
+    FAliveTask.Terminate;
+    FAliveTask.WaitFor;
+    FreeAndNil(FAliveTask);
+  end;
+
+  Self.StopRealPlay;
+  Self.Logout;
+  FData.Free;
+  inherited;
+end;
+
+function TPlayerInfo.GetStreamInfo(const dwChannelID: Int32; var lpOutBuffer: TNETDEVVideoStreamInfo;
+  const dwOutBufferSize: Int32; var pdwBytesReturned: Int32): Boolean;
+const
+  NETDEV_GET_STREAMCFG = 120;
+begin
+  if FUserID = 0 then
+    Exit(False);
+  Result := FNETDEV_GetDevConfig(FUserID, dwChannelID, NETDEV_GET_STREAMCFG, lpOutBuffer, dwOutBufferSize,
+    pdwBytesReturned);
+end;
+
+function TPlayerInfo.Login(AInfo: TCCTVInfo): Boolean;
+var
+  pstDevInfo: TNetDEVDeviceInfo;
+begin
+  if Self.Logined then
+    Exit(True);
+
+  FUserID := FNETDEV_Login(PAnsiChar(AInfo.IP), Int16(AInfo.Port), PAnsiChar(AInfo.ID),
+    PAnsiChar(AInfo.Password), pstDevInfo);
+  Result := Self.Logined;
+  if Result then
+  begin
+    FNETDEV_SetExceptionCallBack(ExceptionCallBack, nil);
+    TLogging.Obj.ApplicationMessage(msDebug, 'NetDEV_Login', 'Key=%s,ID=%d', [FID, FUserID]);
+  end
+  else
+  begin
+    FRetryCount := FRetryCount + 1;
+    TLogging.Obj.ApplicationMessage(msWarning, 'NetDEV_Login', 'Key=%s,E=%s',
+      [FID, TNetDEV.Obj.GetLastError]);
+  end;
+end;
+
+function TPlayerInfo.Logined: Boolean;
+begin
+  Result := FUserID > 0;
+end;
+
+function TPlayerInfo.Login_V30(AInfo: TCCTVInfo): Boolean;
+var
+  pstDevLoginInfo: TNETDEVLoginInfo;
+  pstDevSelogInfo: TNETDEVSelogInfo;
+begin
+  pstDevLoginInfo := AInfo.ToNetNETDEVDeviceLoginInfo;
+  FUserID := FNETDEV_Login_V30(pstDevLoginInfo, pstDevSelogInfo);
+  Result := Self.Logined;
+  if Result then
+  begin
+    FNETDEV_SetExceptionCallBack(ExceptionCallBack, nil);
+    TLogging.Obj.ApplicationMessage(msDebug, 'NetDEV_Login', 'Key=%s,ID=%d', [FID, FUserID]);
+  end
+  else
+  begin
+    FRetryCount := FRetryCount + 1;
+    TLogging.Obj.ApplicationMessage(msWarning, 'NetDEV_Login', 'Key=%s,E=%s',
+      [FID, TNetDEV.Obj.GetLastError]);
+  end;
+end;
+
+function TPlayerInfo.Logout: Boolean;
+begin
+  Result := False;
+  if FUserID = 0 then
+    Exit;
+
+  if Self.Played then
+    Self.StopRealPlay;
+
+  Result := FNETDEV_Logout(FUserID);
+  if Result then
+  begin
+    TLogging.Obj.ApplicationMessage(msDebug, 'NETDEV_Logout', 'Key=%s,ID=%d', [FID, FUserID]);
+    Reset;
+  end
+  else
+    TLogging.Obj.ApplicationMessage(msWarning, 'NETDEV_Logout', 'Key=%s,E=%s',
+      [FID, TNetDEV.Obj.GetLastError]);
+end;
+
+function TPlayerInfo.Played: Boolean;
+begin
+  Result := FRealHandle > 0;
+end;
+
+function TPlayerInfo.RealPlay(APreviewInfo: TPreviewInfo): Boolean;
+begin
+  if FUserID = 0 then
+    raise Exception.Create('Logout');
+
+  if FRealHandle > 0 then
+    StopRealPlay;
+
+  FHandle := APreviewInfo.hPlayWnd;
+  FHDC := GetDC(APreviewInfo.hPlayWnd);
+  FRealHandle := FNETDEV_RealPlay(FUserID, APreviewInfo, OnSourceDataCallBack, Self);
+  Result := Self.Played;
+  if Result then
+  begin
+    FRetryCount := 0;
+    TLogging.Obj.ApplicationMessage(msDebug, 'NETDEV_RealPlay', 'ID=%d,RealHandle=%d',
+      [FUserID, FRealHandle]);
+
+    FAliveTask := TThread.CreateAnonymousThread(
+      procedure
+      begin
+        while not TThread.CurrentThread.CheckTerminated do
+        begin
+          Sleep(101);
+
+          if SecondOf(Now) <> 0 then
+            Continue;
+
+          if GetTickCount - Self.Tick > 30000 then
+            TLogging.Obj.ApplicationMessage(msWarning, 'NoData', 'MyTick=%d,NewTick=%d',
+              [Self.Tick, GetTickCount]);
+
+          Sleep(1000);
+        end;
+      end);
+    FAliveTask.FreeOnTerminate := False;
+    FAliveTask.Start;
+  end
+  else
+  begin
+    FRetryCount := FRetryCount + 1;
+    TLogging.Obj.ApplicationMessage(msWarning, 'NETDEV_RealPlay', 'ID=%d,TryCount=%d,E=%s',
+      [FUserID, FRetryCount, TNetDEV.Obj.GetLastError]);
+  end;
+end;
+
+procedure TPlayerInfo.Reset;
+begin
+  FUserID := 0;
+  FRealHandle := 0;
+end;
+
+procedure TPlayerInfo.SetData(const Value: TStream);
+begin
+  FData.Free;
+  FData := Value;
+end;
+
+function TPlayerInfo.StopRealPlay: Boolean;
+begin
+  if FRealHandle = 0 then
+    Exit(True);
+
+  Result := FNETDEV_StopRealPlay(FRealHandle);
+  if Result then
+  begin
+    TLogging.Obj.ApplicationMessage(msDebug, 'NETDEV_StopRealPlay', 'ID=%d,RealHandle=%d',
+      [FUserID, FRealHandle]);
+    FRealHandle := 0;
+    ReleaseDC(FHandle, FHDC);
+
+    if Assigned(FAliveTask) then
+    begin
+      FAliveTask.Terminate;
+      FAliveTask.WaitFor;
+      FreeAndNil(FAliveTask);
+    end;
+  end
+  else
+    TLogging.Obj.ApplicationMessage(msWarning, 'NETDEV_StopRealPlay', 'ID=%d,RealHandle=%d,E=%s',
+      [FUserID, FRealHandle, TNetDEV.Obj.GetLastError]);
+end;
+
+initialization
+
+if MyObj = nil then
+  MyObj := TNetDEV.Create;
+
+finalization
+
+if Assigned(MyObj) then
+  FreeAndNil(MyObj);
 
 end.
