@@ -691,8 +691,8 @@ type
     FRetryCount: Integer;
 
     FTick: Cardinal;
+    FPlayControl: TWinControl;
     FAliveTask: TThread;
-  private
     procedure CheckAlive;
   public
     constructor Create(AID: String);
@@ -707,7 +707,8 @@ type
     function Logout: Boolean;
     function GetStreamInfo(const dwChannelID: Int32; var lpOutBuffer: TNETDEVVideoStreamInfo;
       const dwOutBufferSize: Int32; var pdwBytesReturned: Int32): Boolean;
-    function RealPlay(AControl: TWinControl): Boolean;
+    function RealPlay(AControl: TWinControl;
+      AStreamType: TNetDEVLiveStreamIndex = NETDEV_LIVE_STREAM_INDEX_AUX): Boolean;
     function StopRealPlay: Boolean;
     function CapturePicture(const szFileName: String;
       const dwCaptureMode: TNetDEVPictureFormat = NETDEV_PICTURE_JPG): Boolean;
@@ -734,7 +735,6 @@ type
     destructor Destroy; override;
 
     class function Obj: TNetDEV;
-    class function Asssigned: Boolean;
     function Initialize(const ALibPath: string; const ALogPath: string): Boolean;
 
     function GetLastError: string;
@@ -813,11 +813,6 @@ end;
 function TNetDEV.AddPlayer(AID: String): TPlayerInfo;
 begin
   Result := GetPlayer(AID);
-end;
-
-class function TNetDEV.Asssigned: Boolean;
-begin
-  Result := (MyObj <> nil) and MyObj.FInited;
 end;
 
 function TNetDEV.Cleanup: Boolean;
@@ -1051,7 +1046,14 @@ begin
   FRetryCount := 0;
   FTick := 0;
   Reset;
-  FAliveTask := nil;
+
+  FAliveTask := TThread.CreateAnonymousThread(
+    procedure
+    begin
+      CheckAlive();
+    end);
+  FAliveTask.FreeOnTerminate := False;
+  FAliveTask.Start;
 end;
 
 destructor TPlayerInfo.Destroy;
@@ -1069,7 +1071,7 @@ begin
 end;
 
 function TPlayerInfo.GetStreamInfo(const dwChannelID: Int32; var lpOutBuffer: TNETDEVVideoStreamInfo;
-  const dwOutBufferSize: Int32; var pdwBytesReturned: Int32): Boolean;
+const dwOutBufferSize: Int32; var pdwBytesReturned: Int32): Boolean;
 const
   NETDEV_GET_STREAMCFG = 120;
 begin
@@ -1120,6 +1122,7 @@ begin
   Result := Self.Logined;
   if Result then
   begin
+    FRetryCount := 0;
     FNETDEV_SetExceptionCallBack(ExceptionCallBack, nil);
     TLogging.Obj.ApplicationMessage(msDebug, 'NetDEV_Login_V30', 'Key=%s,ID=%d', [FID, FUserID]);
     ret := FNETDEV_QueryVideoChlDetailList(FUserID, ChCount, Info);
@@ -1165,15 +1168,25 @@ begin
     Sleep(101);
     if SecondOf(Now) mod 30 <> 0 then
       Continue;
-    if GetTickCount - FTick > 10000 then
-      TLogging.Obj.ApplicationMessage(msWarning, 'NoData', 'MyTick=%d,NewTick=%d', [FTick, GetTickCount]);
-    Sleep(1000);
+
+    if not Self.Played then
+      Exit;
+
+    if GetTickCount - FTick < 10000 then
+      Exit;
+
+    TLogging.Obj.ApplicationMessage(msWarning, 'NoData', 'MyTick=%d,NewTick=%d,E=%d',
+      [FTick, GetTickCount, GetLastError]);
+    Self.StopRealPlay;
+    if Self.RealPlay(FPlayControl) then
+      Exit;
+    Self.Logout;
+    if Self.Login_V30(Self.CCTVInfo) then
+      Self.RealPlay(FPlayControl);
   end;
 end;
 
-function TPlayerInfo.RealPlay(AControl: TWinControl): Boolean;
-var
-  PreviewInfo: TPreviewInfo;
+function TPlayerInfo.RealPlay(AControl: TWinControl; AStreamType: TNetDEVLiveStreamIndex): Boolean;
 begin
   if FUserID = 0 then
     raise Exception.Create('Logout');
@@ -1181,27 +1194,24 @@ begin
   if FRealHandle > 0 then
     StopRealPlay;
 
-  EnterCriticalSection(CritSect);
-  try
-    PreviewInfo := TPreviewInfo.Create(AControl.Handle, NETDEV_LIVE_STREAM_INDEX_AUX);
-    FRealHandle := FNETDEV_RealPlay(FUserID, PreviewInfo, OnSourceDataCallBack, Self);
-  finally
-    LeaveCriticalSection(CritSect);
-  end;
+  ThreadSafeSync(
+    procedure
+    var
+      PreviewInfo: TPreviewInfo;
+    begin
+      FPlayControl := AControl;
+      FPlayControl.Invalidate;
+      PreviewInfo := TPreviewInfo.Create(AControl.Handle, AStreamType);
+      FRealHandle := FNETDEV_RealPlay(FUserID, PreviewInfo, OnSourceDataCallBack, Self);
+    end);
+
   Result := Self.Played;
   if Result then
   begin
+    FTick := GetTickCount;
     FRetryCount := 0;
     TLogging.Obj.ApplicationMessage(msDebug, 'NETDEV_RealPlay', 'ID=%d,RealHandle=%d',
       [FUserID, FRealHandle]);
-
-    FAliveTask := TThread.CreateAnonymousThread(
-      procedure
-      begin
-        CheckAlive();
-      end);
-    FAliveTask.FreeOnTerminate := False;
-    FAliveTask.Start;
   end
   else
   begin
@@ -1218,32 +1228,31 @@ begin
 end;
 
 function TPlayerInfo.StopRealPlay: Boolean;
+var
+  ret: Boolean;
 begin
+  Result := True;
   if FRealHandle = 0 then
-    Exit(True);
+    Exit;
 
-  EnterCriticalSection(CritSect);
-  try
-    Result := FNETDEV_StopRealPlay(FRealHandle);
-  finally
-    LeaveCriticalSection(CritSect);
-  end;
-
-  if Result then
+  ThreadSafeSync(
+    procedure
+    begin
+      ret := FNETDEV_StopRealPlay(FRealHandle);
+      FPlayControl.Invalidate;
+    end);
+  if ret then
   begin
     TLogging.Obj.ApplicationMessage(msDebug, 'NETDEV_StopRealPlay', 'ID=%d,RealHandle=%d',
       [FUserID, FRealHandle]);
     FRealHandle := 0;
-    if Assigned(FAliveTask) then
-    begin
-      FAliveTask.Terminate;
-      FAliveTask.WaitFor;
-      FreeAndNil(FAliveTask);
-    end;
   end
   else
+  begin
+    Result := False;
     TLogging.Obj.ApplicationMessage(msWarning, 'NETDEV_StopRealPlay', 'ID=%d,RealHandle=%d,E=%s',
       [FUserID, FRealHandle, TNetDEV.Obj.GetLastError]);
+  end;
 end;
 
 initialization
