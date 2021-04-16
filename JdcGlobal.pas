@@ -129,6 +129,9 @@ function StrDefault(const str: string; const Default: string): string;
 procedure ThreadSafe(const AMethod: TThreadMethod); overload;
 procedure ThreadSafe(const AThreadProc: TThreadProcedure); overload;
 
+procedure ThreadSafeSync(const AMethod: TThreadMethod); overload;
+procedure ThreadSafeSync(const AThreadProc: TThreadProcedure); overload;
+
 procedure FreeAndNilEx(var Obj);
 
 // 서비스 관리
@@ -368,6 +371,22 @@ begin
   else
     TThread.Queue(nil, AThreadProc);
 {$ENDIF}
+end;
+
+procedure ThreadSafeSync(const AMethod: TThreadMethod); overload;
+begin
+  if TThread.CurrentThread.ThreadID = MainThreadID then
+    AMethod
+  else
+    TThread.Synchronize(nil, AMethod);
+end;
+
+procedure ThreadSafeSync(const AThreadProc: TThreadProcedure); overload;
+begin
+  if TThread.CurrentThread.ThreadID = MainThreadID then
+    AThreadProc
+  else
+    TThread.Synchronize(nil, AThreadProc);
 end;
 
 function DefaultFormatSettings: TFormatSettings;
