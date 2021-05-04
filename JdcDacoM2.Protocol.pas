@@ -235,7 +235,10 @@ type
     class function TcpCommand(const AParam: TRequestParam): TIdBytes;
     class function SerialCommand(const AParam: TRequestParam): TIdBytes;
 
-    class function GetProtocolType(const ABuff: TIdBytes): TProtocolType;
+    class function GetProtocolType(const ABuff: TIdBytes): TProtocolType; overload;
+    class function GetProtocolType(const AType: TProtocolType; const ABuff: TIdBytes): TProtocolType;
+      overload;
+
     class function CheckCRC(const ABuff: TIdBytes): Boolean;
   end;
 
@@ -302,6 +305,30 @@ begin
     raise Exception.Create('Unknown Device,' + ADevice);
 end;
 
+class function TModbus.GetProtocolType(const AType: TProtocolType; const ABuff: TIdBytes): TProtocolType;
+var
+  Received: Integer;
+begin
+  result := ptUnknown;
+  Received := Length(ABuff);
+  if (AType = ptIDTable) and (Received >= SizeOf(TIDArray40)) then
+    result := ptIDTable
+  else if (AType = ptSubUnit) and (Received >= SizeOf(TSubUnit)) then
+    result := ptSubUnit
+  else if (AType = ptSysInfo) and (Received >= SizeOf(TSystemInfo)) then
+    result := ptSysInfo
+  else if (AType = ptPowerModule) and (Received >= SizeOf(TPowerData)) then
+    result := ptPowerModule
+  else if (AType = ptModulePart1) and (Received >= SizeOf(TDataPart1)) then
+    result := ptModulePart1
+  else if (AType = ptModulePart2) and (Received >= SizeOf(TDataPart2)) then
+    result := ptModulePart2
+  else if (AType = ptTemperature) and (Received >= SizeOf(TTemp)) then
+    result := ptTemperature
+  else if (AType = ptIOControl) and (Received >= SizeOf(TIOControl)) then
+    result := ptIOControl
+end;
+
 class function TModbus.GetProtocolType(const ABuff: TIdBytes): TProtocolType;
 var
   ByteCount: Integer;
@@ -319,7 +346,7 @@ begin
   else if (ByteCount = SizeOf(TSubUnit)) and (Received = SizeOf(TSubModule)) then
     result := ptSubUnit
   else if (ByteCount = SizeOf(TSystemInfo)) and (Received = SizeOf(TSystemModule)) then
-    result := ptSystemModule
+    result := ptSysInfo
   else if (ByteCount = SizeOf(TPowerData)) and (Received = SizeOf(TPowerModule)) then
     result := ptPowerModule
   else if (ByteCount = SizeOf(TDataPart1)) and (Received = SizeOf(TModulePart1)) then
@@ -328,8 +355,6 @@ begin
     result := ptModulePart2
   else if (ByteCount = SizeOf(TIDArray40)) and (Received = SizeOf(TIDTable)) then
     result := ptCheck // ReadConfig에서 사용
-  else if (ByteCount = SizeOf(TSystemInfo)) and (Received = SizeOf(TSystemModule)) then
-    result := ptSystemModule
   else if (ByteCount = SizeOf(TTemp)) and (Received = SizeOf(TTempModule)) then
     result := ptTemperature
   else if (ByteCount = SizeOf(TIOControl)) and (Received = SizeOf(TIOModule)) then

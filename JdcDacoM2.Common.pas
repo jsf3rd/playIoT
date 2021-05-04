@@ -27,8 +27,8 @@ type
 
   TIDArray40 = array [0 .. MODULE_COUNT] of TID;
 
-  TProtocolType = (ptIDTable, ptSubUnit, ptSystemModule, ptPowerModule, ptModulePart1, ptModulePart2, ptError,
-    ptCheck, ptSysInfo, ptTemperature, ptIOControl, ptUnknown);
+  TProtocolType = (ptIDTable, ptSubUnit, ptPowerModule, ptModulePart1, ptModulePart2, ptError, ptCheck,
+    ptSysInfo, ptTemperature, ptIOControl, ptUnknown);
 
   TDacoM = class
   const
@@ -114,7 +114,10 @@ type
     FC: Byte;
     Addr: UInt16;
     Data: UInt16;
-    constructor Create(ID: Byte; Addr, Data: UInt16; FC: Byte = $03);
+    Protocol: TProtocolType;
+    Retry: Integer;
+    constructor Create(ID: Byte; Addr, Data: UInt16; AProtocol: TProtocolType; FC: Byte = $03;
+      ACount: Integer = 1);
     function GetCommand: TIdBytes;
   end;
 
@@ -360,12 +363,15 @@ end;
 
 { TRequestParam }
 
-constructor TRequestParam.Create(ID: Byte; Addr, Data: UInt16; FC: Byte);
+constructor TRequestParam.Create(ID: Byte; Addr, Data: UInt16; AProtocol: TProtocolType; FC: Byte = $03;
+  ACount: Integer = 1);
 begin
   Self.ID := ID;
   Self.FC := FC;
   Self.Addr := Addr;
   Self.Data := Data;
+  Self.Protocol := AProtocol;
+  Self.Retry := ACount;
 end;
 
 function TRequestParam.GetCommand: TIdBytes;
