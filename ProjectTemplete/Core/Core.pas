@@ -23,7 +23,7 @@ type
 
 implementation
 
-uses MyGlobal, MyOption, JdcView, MyCommon;
+uses MyGlobal, MyOption, MyCommon, JdcView;
 
 var
   MyObj: TCore = nil;
