@@ -14,9 +14,10 @@ unit JdcGlobal;
 interface
 
 uses
-  Classes, SysUtils, Winapi.Windows, ZLib, IdGlobal, IOUtils, JclFileUtils, Vcl.ExtCtrls, System.StrUtils,
-  IdUDPClient, JclSysInfo, Winapi.psAPI, IdContext, IdExceptionCore, Vcl.StdCtrls, JclSvcCtrl, Vcl.ActnList,
-  Vcl.Dialogs, Winapi.Shellapi, UITypes, System.Generics.Collections, System.Json, REST.Json, JvJclUtils;
+  Classes, SysUtils, Winapi.Windows, ZLib, IdGlobal, IOUtils, JclFileUtils, Vcl.ExtCtrls,
+  System.StrUtils, IdUDPClient, JclSysInfo, Winapi.psAPI, IdContext, IdExceptionCore, Vcl.StdCtrls,
+  JclSvcCtrl, Vcl.ActnList, Vcl.Dialogs, Winapi.Shellapi, UITypes, System.Generics.Collections,
+  System.Json, REST.Json, JvJclUtils;
 
 type
   IExecuteFunc<T> = Interface
@@ -65,8 +66,8 @@ type
 
     procedure ApplicationMessage(const AType: TMessageType; const ATitle: String;
       const AMessage: String = ''); overload; virtual;
-    procedure ApplicationMessage(const AType: TMessageType; const ATitle: String; const AFormat: String;
-      const Args: array of const); overload;
+    procedure ApplicationMessage(const AType: TMessageType; const ATitle: String;
+      const AFormat: String; const Args: array of const); overload;
 
     property ExeName: String read FExeName;
     property ProjectCode: string read FProjectCode write FProjectCode;
@@ -137,8 +138,8 @@ procedure FreeAndNilEx(var Obj);
 // 서비스 관리
 procedure StartService(const ServiceName: String; var OldStatus: TJclServiceState;
   const StartAction: TAction);
-procedure StopService(const ServiceName: String; var OldStatus: TJclServiceState; const StopAction: TAction;
-  hnd: HWND);
+procedure StopService(const ServiceName: String; var OldStatus: TJclServiceState;
+  const StopAction: TAction; hnd: HWND);
 procedure UpdateServiceStatus(const ServiceName: String; var OldStatus: TJclServiceState;
   const StartAction, StopAction: TAction; const StatusEdit: TLabeledEdit);
 
@@ -277,12 +278,13 @@ end;
 procedure FreeAndNilEx(var Obj);
 begin
   try
-    if Assigned(TObject(Obj)) then
-      FreeAndNil(Obj);
+    if Assigned(Pointer(Obj)) then
+      FreeAndNil(Pointer(Obj));
   except
     on E: Exception do
     begin
-      TLogging.Obj.ApplicationMessage(msError, 'FreeAndNilEx - ' + TObject(Obj).ClassName, E.Message);
+      TLogging.Obj.ApplicationMessage(msError, 'FreeAndNilEx - ' + TObject(Obj).ClassName,
+        E.Message);
     end;
   end;
 end;
@@ -300,17 +302,18 @@ begin
   StartAction.Enabled := True;
 end;
 
-procedure StopService(const ServiceName: String; var OldStatus: TJclServiceState; const StopAction: TAction;
-  hnd: HWND);
+procedure StopService(const ServiceName: String; var OldStatus: TJclServiceState;
+  const StopAction: TAction; hnd: HWND);
 begin
   OldStatus := ssUnknown;
   StopAction.Enabled := False;
   if StopServiceByName(LOCAL_SERVER, ServiceName) then
     Exit;
 
-  if MessageDlg('알림 : 서비스를 중지하지 못했습니다.' + #13#10 + '강제로 중지하시겠습니까?', TMsgDlgType.mtConfirmation, [mbYes, mbNo],
-    0) = mrYes then
-    ShellExecute(hnd, 'open', 'taskkill', PWideChar(' -f -im ' + ServiceName + '.exe'), nil, SW_HIDE);
+  if MessageDlg('알림 : 서비스를 중지하지 못했습니다.' + #13#10 + '강제로 중지하시겠습니까?', TMsgDlgType.mtConfirmation,
+    [mbYes, mbNo], 0) = mrYes then
+    ShellExecute(hnd, 'open', 'taskkill', PWideChar(' -f -im ' + ServiceName + '.exe'),
+      nil, SW_HIDE);
 end;
 
 procedure UpdateServiceStatus(const ServiceName: String; var OldStatus: TJclServiceState;
@@ -518,14 +521,16 @@ begin
     GetFreePhysicalMemory / GBFactor, GetIPAddress(GetLocalComputerName), AServer.StringValue]);
 
   DiskInfo := Format('C_Free=%.2fGB,C_Size=%.2fGB,D_Free=%.2fGB,D_Size=%.2fGB',
-    [DiskFree(3) / GBFactor, DiskSize(3) / GBFactor, DiskFree(4) / GBFactor, DiskSize(4) / GBFactor]);
+    [DiskFree(3) / GBFactor, DiskSize(3) / GBFactor, DiskFree(4) / GBFactor,
+    DiskSize(4) / GBFactor]);
 
   _Title := ATitle.Replace(' ', '_', [rfReplaceAll]);
 
   Msg := AMessage.Replace('"', '''');
   Msg := Format
     ('CloudLog,ProjectCode=%s,AppCode=%s,TypeCode=%s,ComputerName=%s,Title=%s Version="%s",LogMessage="%s",SysInfo="%s",DiskInfo="%s"',
-    [ProjectCode, AppCode, TypeCode, GetLocalComputerName, _Title, AVersion, Msg, SysInfo, DiskInfo]);
+    [ProjectCode, AppCode, TypeCode, GetLocalComputerName, _Title, AVersion, Msg, SysInfo,
+    DiskInfo]);
 
   Msg := Msg.Replace('\', '\\');
   Msg := Msg.Replace(#13, ', ');
@@ -770,8 +775,8 @@ end;
 
 { TGlobalAbstract }
 
-procedure TGlobalAbstract.ApplicationMessage(const AType: TMessageType; const ATitle, AFormat: String;
-  const Args: array of const);
+procedure TGlobalAbstract.ApplicationMessage(const AType: TMessageType;
+  const ATitle, AFormat: String; const Args: array of const);
 var
   str: string;
 begin
@@ -779,7 +784,8 @@ begin
   ApplicationMessage(AType, ATitle, str);
 end;
 
-procedure TGlobalAbstract.ApplicationMessage(const AType: TMessageType; const ATitle, AMessage: String);
+procedure TGlobalAbstract.ApplicationMessage(const AType: TMessageType;
+  const ATitle, AMessage: String);
 begin
   TLogging.Obj.ApplicationMessage(AType, ATitle, AMessage);
 end;
@@ -815,7 +821,8 @@ begin
   TLogging.Obj.PrintUseCloudLog;
 end;
 
-procedure TGlobalAbstract.OnAfterLoggingEvent(const AType: TMessageType; const ATitle, AMessage: String);
+procedure TGlobalAbstract.OnAfterLoggingEvent(const AType: TMessageType;
+  const ATitle, AMessage: String);
 begin
   // null method;
 end;
@@ -836,7 +843,8 @@ end;
 
 function TConnInfo.Equals(const ConnInfo: TConnInfo): Boolean;
 begin
-  Result := Self.StringValue.Equals(ConnInfo.StringValue) and (Self.IntegerValue = ConnInfo.IntegerValue);
+  Result := Self.StringValue.Equals(ConnInfo.StringValue) and
+    (Self.IntegerValue = ConnInfo.IntegerValue);
 end;
 
 function TConnInfo.ToString: string;
