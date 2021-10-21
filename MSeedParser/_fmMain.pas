@@ -86,8 +86,8 @@ begin
 
   for MyElem in MSeedFile.GetChannelList do
   begin
-    FileName := ExtractFilePath(edtFileName.Text) + MyElem + '_' +
-      FormatDateTime('YYYYMMDD', now) + '.mseed';
+    FileName := ExtractFilePath(edtFileName.Text) + MyElem + '_' + FormatDateTime('YYYYMMDD', now)
+      + '.mseed';
     MSeedFile.ExtractToMSeed(FileName, MyElem, AType, BeginTime, EndTime);
     mmLog.Lines.Add('Created - ' + FileName);
   end;
@@ -125,50 +125,50 @@ begin
 
     for I := 0 to SmapleCount do
     begin
-      Sample.WriteLine(FormatDateTime('YYYY-MM-DD HH:NN:SS.zzz', DateTime) + ','
-        + Random(8).ToString);
+      Sample.WriteLine(FormatDateTime('YYYY-MM-DD HH:NN:SS.zzz', DateTime) + ',' + Random(8)
+        .ToString);
       DateTime := IncMilliSecond(DateTime, 10);
     end;
 
     for I := 0 to SmapleCount do
     begin
-      Sample.WriteLine(FormatDateTime('YYYY-MM-DD HH:NN:SS.zzz', DateTime) + ','
-        + Random(32).ToString);
+      Sample.WriteLine(FormatDateTime('YYYY-MM-DD HH:NN:SS.zzz', DateTime) + ',' + Random(32)
+        .ToString);
       DateTime := IncMilliSecond(DateTime, 10);
     end;
 
     for I := 0 to SmapleCount do
     begin
-      Sample.WriteLine(FormatDateTime('YYYY-MM-DD HH:NN:SS.zzz', DateTime) + ','
-        + Random(128).ToString);
+      Sample.WriteLine(FormatDateTime('YYYY-MM-DD HH:NN:SS.zzz', DateTime) + ',' + Random(128)
+        .ToString);
       DateTime := IncMilliSecond(DateTime, 10);
     end;
 
     for I := 0 to SmapleCount do
     begin
-      Sample.WriteLine(FormatDateTime('YYYY-MM-DD HH:NN:SS.zzz', DateTime) + ','
-        + Random(256).ToString);
+      Sample.WriteLine(FormatDateTime('YYYY-MM-DD HH:NN:SS.zzz', DateTime) + ',' + Random(256)
+        .ToString);
       DateTime := IncMilliSecond(DateTime, 10);
     end;
 
     for I := 0 to SmapleCount * 2 do
     begin
-      Sample.WriteLine(FormatDateTime('YYYY-MM-DD HH:NN:SS.zzz', DateTime) + ','
-        + Random(500000000).ToString);
+      Sample.WriteLine(FormatDateTime('YYYY-MM-DD HH:NN:SS.zzz', DateTime) + ',' + Random(500000000)
+        .ToString);
       DateTime := IncMilliSecond(DateTime, 10);
     end;
 
     for I := 0 to SmapleCount do
     begin
-      Sample.WriteLine(FormatDateTime('YYYY-MM-DD HH:NN:SS.zzz', DateTime) + ','
-        + Random(65535).ToString);
+      Sample.WriteLine(FormatDateTime('YYYY-MM-DD HH:NN:SS.zzz', DateTime) + ',' + Random(65535)
+        .ToString);
       DateTime := IncMilliSecond(DateTime, 10);
     end;
 
     for I := 0 to SmapleCount do
     begin
-      Sample.WriteLine(FormatDateTime('YYYY-MM-DD HH:NN:SS.zzz', DateTime) + ','
-        + Random(16).ToString);
+      Sample.WriteLine(FormatDateTime('YYYY-MM-DD HH:NN:SS.zzz', DateTime) + ',' + Random(16)
+        .ToString);
       DateTime := IncMilliSecond(DateTime, 10);
     end;
   finally
@@ -220,8 +220,8 @@ begin
   edtFileName.Text := File2;
   btnMSeed2MSeed_ST2.Click;
 
-  edtFileName.Text := ExtractFilePath(edtFileName.Text) + Header.ChannelCode +
-    '_' + FormatDateTime('YYYYMMDD', now) + '.mseed';
+  edtFileName.Text := ExtractFilePath(edtFileName.Text) + Header.ChannelCode + '_' +
+    FormatDateTime('YYYYMMDD', now) + '.mseed';
 
   btnMSeed2MSeed_ST1.Click;
   btnMSeed2MSeed_ST2.Click;
@@ -275,8 +275,7 @@ begin
   begin
     try
       FileName := ExtractFilePath(edtFileName.Text) + MyElem + '_' +
-        FormatDateTime('YYYYMMDD_HHNNSS', MSeedFile.GetStartTime(MyElem)
-        ) + '.txt';
+        FormatDateTime('YYYYMMDD_HHNNSS', MSeedFile.GetStartTime(MyElem)) + '.txt';
     except
       on E: Exception do
         FileName := ExtractFilePath(edtFileName.Text) + MyElem + '_' +
@@ -323,8 +322,8 @@ begin
   MSeedFile := TMSeedFile.Create;
   MSeedFile.AsciiToMSeed(edtFileName.Text, AHeader, AType);
   MSeedFile.Free;
-  mmLog.Lines.Add('Created - ' + ExtractFilePath(edtFileName.Text) +
-    AHeader.ChannelCode + '.mseed');
+  mmLog.Lines.Add('Created - ' + ExtractFilePath(edtFileName.Text) + AHeader.ChannelCode +
+    '.mseed');
   mmLog.Lines.Add('----------------------------------------------------');
 end;
 
