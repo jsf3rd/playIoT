@@ -14,10 +14,16 @@ unit JdcGlobal;
 interface
 
 uses
-  Classes, SysUtils, Winapi.Windows, ZLib, IdGlobal, IOUtils, JclFileUtils, Vcl.ExtCtrls,
-  System.StrUtils, IdUDPClient, JclSysInfo, Winapi.psAPI, IdContext, IdExceptionCore, Vcl.StdCtrls,
-  JclSvcCtrl, Vcl.ActnList, Vcl.Dialogs, Winapi.Shellapi, UITypes, System.Generics.Collections,
-  System.Json, REST.Json, JvJclUtils;
+  Classes, SysUtils, ZLib, IdGlobal, IOUtils,
+  System.StrUtils, IdUDPClient, IdContext, IdExceptionCore,
+  UITypes, System.Generics.Collections,
+  System.Json, REST.Json
+
+{$IFDEF MSWINDOWS}
+    , Winapi.Windows, JclFileUtils, Vcl.ExtCtrls, JclSysInfo, Winapi.psAPI, Vcl.StdCtrls,
+  JclSvcCtrl, Vcl.ActnList, Vcl.Dialogs, Winapi.Shellapi, JvJclUtils
+{$ENDIF}
+    ;
 
 type
   IExecuteFunc<T> = Interface
@@ -78,8 +84,6 @@ type
   // Value : 값, Digit : 자리수
 function TruncInt(Value: Integer; Digit: Integer): Integer;
 
-function CurrentProcessMemory: Cardinal;
-function FileVersion(const FileName: String): String;
 procedure CloudMessage(const ProjectCode, AppCode, TypeCode, ATitle, AMessage, AVersion: String;
   const AServer: TConnInfo);
 
@@ -96,6 +100,7 @@ function IsGoodResponse(const Text, Command: string; const Response: array of co
 // 매 Word 마다 Reverse
 procedure RevEveryWord(const APointer: Pointer; const ASize: Integer; const AIndex: Integer = 0);
 
+{$IFDEF MSWINDOWS}
 // Reverse 2Btyes..
 function Rev2Bytes(const w: WORD): WORD;
 
@@ -109,8 +114,9 @@ function Rev4BytesF(const Value: Single): Single;
 function WordToBytes(const AValue: WORD): TIdBytes;
 
 // Big endian
-function DWordToBytes(const AValue: DWORD): TIdBytes;
+function DWordToBytes(const AValue: UInt32): TIdBytes;
 
+{$ENDIF}
 // little endian
 function HexStrToWord(const ASource: string; const AIndex: Integer = 1): WORD;
 
@@ -121,8 +127,6 @@ function IdBytesToHex(const AValue: TIdBytes; const ASpliter: String = ' '): Str
 function BytesToHex(const AValue: TBytes; const ASpliter: String = ' '): String;
 
 function IdBytesPos(const SubIdBytes, IdBytes: TIdBytes; const AIndex: Integer = 0): Integer;
-
-function DefaultFormatSettings: TFormatSettings;
 
 function StrDefault(const str: string; const Default: string): string;
 
@@ -135,6 +139,14 @@ procedure ThreadSafeSync(const AThreadProc: TThreadProcedure); overload;
 
 procedure FreeAndNilEx(var Obj);
 
+function DefaultFormatSettings: TFormatSettings;
+
+function CurrentProcessMemory: Cardinal;
+function FileVersion(const FileName: String): String;
+
+{$IFDEF MSWINDOWS}
+function IsFileInUse(const fName: string): Boolean;
+
 // 서비스 관리
 procedure StartService(const ServiceName: String; var OldStatus: TJclServiceState;
   const StartAction: TAction);
@@ -142,7 +154,7 @@ procedure StopService(const ServiceName: String; var OldStatus: TJclServiceState
   const StopAction: TAction; hnd: HWND);
 procedure UpdateServiceStatus(const ServiceName: String; var OldStatus: TJclServiceState;
   const StartAction, StopAction: TAction; const StatusEdit: TLabeledEdit);
-
+{$ENDIF}
 // Integer To Bit String
 function IntToBin(Value: Cardinal; Digits: Integer): String;
 
@@ -156,7 +168,6 @@ procedure ExtractValues(var AList: TStrings; const AValue: TJSONValue);
   function GetProcByLevel(const Level: Integer = 0; const OnlyProcedureName: Boolean = False): string;
   function GetCurrentProc: string;
 }
-function IsFileInUse(const fName: string): Boolean;
 function CopyStream(const AStream: TStream): TMemoryStream;
 
 const
@@ -182,41 +193,6 @@ begin
   Result.LoadFromStream(AStream);
 end;
 
-// 파일 사용 유무
-// https:// stackoverflow.com/questions/141302/checking-file-is-open-in-delphi
-function IsFileInUse(const fName: string): Boolean;
-var
-  HFileRes: HFILE;
-begin
-  HFileRes := CreateFile(PChar(fName), GENERIC_READ or GENERIC_WRITE, 0, nil, OPEN_EXISTING,
-    FILE_ATTRIBUTE_NORMAL, 0);
-  Result := (HFileRes = INVALID_HANDLE_VALUE);
-  if not Result then
-    CloseHandle(HFileRes);
-end;
-
-{
-  function GetModuleByLevel(const Level: Integer): string;
-  begin
-  Result := ModuleByLevel(Level + 1) + '';
-  end;
-
-  function GetLineByLevel(const Level: Integer): Integer;
-  begin
-  Result := LineByLevel(Level + 1) + 0;
-  end;
-
-  function GetCurrentProc: string;
-  begin
-  Result := ProcByLevel(1, True) + '';
-  end;
-
-  function GetProcByLevel(const Level: Integer; const OnlyProcedureName: Boolean): string;
-  begin
-  // 바로 리턴 하는 경우 Release에서 Level + 1 무시하는 오류 발생
-  Result := ProcByLevel(Level + 1, OnlyProcedureName) + '';
-  end;
-}
 procedure ExtractValues(var AList: TStrings; const AValue: TJSONValue);
 var
   MyPair: TJSONPair;
@@ -245,8 +221,8 @@ var
   Index: Integer;
 begin
   SetLength(src, ASize);
-  CopyMemory(@src[0], APointer, ASize);
-
+  // CopyMemory(@src[0], APointer, ASize);
+  Move(src[0], APointer^, ASize);
   Index := AIndex;
   while Index + 1 < ASize do
   begin
@@ -255,7 +231,8 @@ begin
     src[Index + 1] := tmp;
     Index := Index + 2;
   end;
-  CopyMemory(APointer, @src[0], ASize);
+  // CopyMemory(APointer, @src[0], ASize);
+  Move(APointer^, src[0], ASize);
 end;
 
 function IntToBin(Value: Cardinal; Digits: Integer): String;
@@ -287,6 +264,21 @@ begin
         E.Message);
     end;
   end;
+end;
+
+{$IFDEF MSWINDOWS}
+
+// 파일 사용 유무
+// https:// stackoverflow.com/questions/141302/checking-file-is-open-in-delphi
+function IsFileInUse(const fName: string): Boolean;
+var
+  HFileRes: HFILE;
+begin
+  HFileRes := CreateFile(PChar(fName), GENERIC_READ or GENERIC_WRITE, 0, nil, OPEN_EXISTING,
+    FILE_ATTRIBUTE_NORMAL, 0);
+  Result := (HFileRes = INVALID_HANDLE_VALUE);
+  if not Result then
+    CloseHandle(HFileRes);
 end;
 
 procedure StartService(const ServiceName: String; var OldStatus: TJclServiceState;
@@ -353,7 +345,87 @@ begin
     ssPaused:
       StatusEdit.Text := '일시정지됨.';
   end;
+end;
 
+{$ENDIF}
+
+function CurrentProcessMemory: Cardinal;
+{$IFDEF MSWINDOWS}
+var
+  MemCounters: TProcessMemoryCounters;
+{$ENDIF}
+begin
+  Result := 0;
+{$IFDEF MSWINDOWS}
+  MemCounters.cb := SizeOf(MemCounters);
+  if GetProcessMemoryInfo(GetCurrentProcess, @MemCounters, SizeOf(MemCounters)) then
+    Result := MemCounters.WorkingSetSize
+{$ENDIF}
+end;
+
+function FileVersion(const FileName: String): String;
+{$IFDEF MSWINDOWS}
+var
+  VerInfoSize: Cardinal;
+  VerValueSize: Cardinal;
+  Dummy: Cardinal;
+  PVerInfo: Pointer;
+  PVerValue: PVSFixedFileInfo;
+  iLastError: DWORD;
+{$ENDIF}
+begin
+  Result := 'v0.1';
+
+{$IFDEF MSWINDOWS}
+  if not TFile.Exists(FileName) then
+    Exit;
+
+  VerInfoSize := GetFileVersionInfoSize(PChar(FileName), Dummy);
+  if VerInfoSize = 0 then
+  begin
+    iLastError := GetLastError;
+    TLogging.Obj.ApplicationMessage(msError, 'FileVersion', SysErrorMessage(iLastError));
+    Exit;
+  end;
+
+  GetMem(PVerInfo, VerInfoSize);
+  try
+    if GetFileVersionInfo(PChar(FileName), 0, VerInfoSize, PVerInfo) then
+    begin
+      if VerQueryValue(PVerInfo, '\', Pointer(PVerValue), VerValueSize) then
+        with PVerValue^ do
+          Result := Format('v%d.%d.%d', [HiWord(dwFileVersionMS),
+            // Major
+            LoWord(dwFileVersionMS), // Minor
+            HiWord(dwFileVersionLS) // Release
+            ]);
+    end
+    else
+    begin
+      iLastError := GetLastError;
+      TLogging.Obj.ApplicationMessage(msError, 'FileVersion', SysErrorMessage(iLastError));
+    end;
+  finally
+    FreeMem(PVerInfo, VerInfoSize);
+  end;
+{$ENDIF}
+end;
+
+function DefaultFormatSettings: TFormatSettings;
+begin
+{$WARN SYMBOL_PLATFORM OFF}
+{$IFDEF MSWINDOWS}
+  Result := TFormatSettings.Create(GetThreadLocale);
+{$ELSE}
+  Result := TFormatSettings.Create(SysLocale.DefaultLCID);
+{$ENDIF}
+{$WARN SYMBOL_PLATFORM ON}
+  Result.ShortDateFormat := 'YYYY-MM-DD';
+  Result.LongDateFormat := 'YYYY-MM-DD';
+  Result.ShortTimeFormat := 'hh:mm:ss';
+  Result.LongTimeFormat := 'hh:mm:ss';
+  Result.DateSeparator := '-';
+  Result.TimeSeparator := ':';
 end;
 
 procedure ThreadSafe(const AMethod: TThreadMethod); overload;
@@ -390,19 +462,6 @@ begin
     AThreadProc
   else
     TThread.Synchronize(nil, AThreadProc);
-end;
-
-function DefaultFormatSettings: TFormatSettings;
-begin
-{$WARN SYMBOL_PLATFORM OFF}
-  Result := TFormatSettings.Create(GetThreadLocale);
-{$WARN SYMBOL_PLATFORM ON}
-  Result.ShortDateFormat := 'YYYY-MM-DD';
-  Result.LongDateFormat := 'YYYY-MM-DD';
-  Result.ShortTimeFormat := 'hh:mm:ss';
-  Result.LongTimeFormat := 'hh:mm:ss';
-  Result.DateSeparator := '-';
-  Result.TimeSeparator := ':';
 end;
 
 function IdBytesPos(const SubIdBytes, IdBytes: TIdBytes; const AIndex: Integer = 0): Integer;
@@ -450,87 +509,38 @@ begin
   Result := Trunc(Result * Digit);
 end;
 
-function CurrentProcessMemory: Cardinal;
-var
-  MemCounters: TProcessMemoryCounters;
-begin
-  MemCounters.cb := SizeOf(MemCounters);
-  if GetProcessMemoryInfo(GetCurrentProcess, @MemCounters, SizeOf(MemCounters)) then
-    Result := MemCounters.WorkingSetSize
-  else
-    Result := 0;
-end;
-
-function FileVersion(const FileName: String): String;
-var
-  VerInfoSize: Cardinal;
-  VerValueSize: Cardinal;
-  Dummy: Cardinal;
-  PVerInfo: Pointer;
-  PVerValue: PVSFixedFileInfo;
-  iLastError: DWORD;
-begin
-  Result := 'v0.1';
-
-  if not TFile.Exists(FileName) then
-    Exit;
-
-  VerInfoSize := GetFileVersionInfoSize(PChar(FileName), Dummy);
-  if VerInfoSize = 0 then
-  begin
-    iLastError := GetLastError;
-    TLogging.Obj.ApplicationMessage(msError, 'FileVersion', SysErrorMessage(iLastError));
-    Exit;
-  end;
-
-  GetMem(PVerInfo, VerInfoSize);
-  try
-    if GetFileVersionInfo(PChar(FileName), 0, VerInfoSize, PVerInfo) then
-    begin
-      if VerQueryValue(PVerInfo, '\', Pointer(PVerValue), VerValueSize) then
-        with PVerValue^ do
-          Result := Format('v%d.%d.%d', [HiWord(dwFileVersionMS),
-            // Major
-            LoWord(dwFileVersionMS), // Minor
-            HiWord(dwFileVersionLS) // Release
-            ]);
-    end
-    else
-    begin
-      iLastError := GetLastError;
-      TLogging.Obj.ApplicationMessage(msError, 'FileVersion', SysErrorMessage(iLastError));
-    end;
-  finally
-    FreeMem(PVerInfo, VerInfoSize);
-  end;
-end;
-
 procedure CloudMessage(const ProjectCode, AppCode, TypeCode, ATitle, AMessage, AVersion: String;
   const AServer: TConnInfo);
 var
   UDPClient: TIdUDPClient;
   SysInfo, Msg, DiskInfo: String;
-  MBFactor, GBFactor: double;
   _Title: string;
+  ComName: string;
+{$IFDEF MSWINDOWS}
+  MBFactor, GBFactor: double;
+{$ENDIF}
 begin
+{$IFDEF MSWINDOWS}
   MBFactor := 1024 * 1024;
   GBFactor := MBFactor * 1024;
-
   SysInfo := Format('OS=%s,MemUsage=%.2fMB,TotalMem=%.2fGB,FreeMem=%.2fGB,IPAddress=%s,Server=%s',
     [GetOSVersionString, CurrentProcessMemory / MBFactor, GetTotalPhysicalMemory / GBFactor,
     GetFreePhysicalMemory / GBFactor, GetIPAddress(GetLocalComputerName), AServer.StringValue]);
-
   DiskInfo := Format('C_Free=%.2fGB,C_Size=%.2fGB,D_Free=%.2fGB,D_Size=%.2fGB',
     [DiskFree(3) / GBFactor, DiskSize(3) / GBFactor, DiskFree(4) / GBFactor,
     DiskSize(4) / GBFactor]);
-
+  ComName := GetLocalComputerName;
+{$ELSE}
+  SysInfo := Format('Server=%S ', [AServer.StringValue]);
+  DiskInfo := '';
+  ComName := 'MyCom';
+{$ENDIF}
   _Title := ATitle.Replace(' ', '_', [rfReplaceAll]);
 
   Msg := AMessage.Replace('"', '''');
   Msg := Format
     ('CloudLog,ProjectCode=%s,AppCode=%s,TypeCode=%s,ComputerName=%s,Title=%s Version="%s",LogMessage="%s",SysInfo="%s",DiskInfo="%s"',
-    [ProjectCode, AppCode, TypeCode, GetLocalComputerName, _Title, AVersion, Msg, SysInfo,
-    DiskInfo]);
+    [ProjectCode, AppCode, TypeCode, ComName, _Title, AVersion, Msg, SysInfo, DiskInfo]);
 
   Msg := Msg.Replace('\', '\\');
   Msg := Msg.Replace(#13, ', ');
@@ -643,6 +653,8 @@ begin
   end;
 end;
 
+{$IFDEF MSWINDOWS}
+
 function Rev2Bytes(const w: WORD): WORD;
 asm
   XCHG   AL, AH
@@ -664,6 +676,18 @@ begin
   tmp2 := @tmp1^;
   Result := tmp2^;
 end;
+
+function WordToBytes(const AValue: WORD): TIdBytes;
+begin
+  Result := ToBytes(Rev2Bytes(AValue));
+end;
+
+function DWordToBytes(const AValue: UInt32): TIdBytes;
+begin
+  Result := ToBytes(Rev4Bytes(AValue));
+end;
+
+{$ENDIF}
 
 function CheckHexStr(ASource: String): String;
 begin
@@ -688,17 +712,8 @@ begin
 
   str := Copy(str, AIndex, 2);
   tmp := HexStrToBytes(str);
-  CopyMemory(@Result, tmp, 1);
-end;
-
-function WordToBytes(const AValue: WORD): TIdBytes;
-begin
-  Result := ToBytes(Rev2Bytes(AValue));
-end;
-
-function DWordToBytes(const AValue: DWORD): TIdBytes;
-begin
-  Result := ToBytes(Rev4Bytes(AValue));
+  // CopyMemory(@Result, tmp, 1);
+  Move(Result, tmp, 1);
 end;
 
 function HexStrToWord(const ASource: string; const AIndex: Integer): WORD;

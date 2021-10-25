@@ -14,9 +14,9 @@ unit JdcGlobal.ClassHelper;
 interface
 
 uses
-  Classes, SysUtils, REST.JSON, Winapi.Windows,
-  XSuperObject, System.IOUtils, System.Generics.Collections, System.DateUtils, Data.SqlTimSt,
-  IdContext, JdcGlobal, IdGlobal, IdExceptionCore, IdIOHandler, JdcLogging, Vcl.StdCtrls, Vcl.WinXCtrls
+  Classes, SysUtils, REST.JSON, XSuperObject, System.IOUtils, System.Generics.Collections,
+  System.DateUtils, Data.SqlTimSt, IdContext, JdcGlobal, IdGlobal, IdExceptionCore, IdIOHandler,
+  JdcLogging
 
 {$IF CompilerVersion  > 26} // upper XE5
     , System.JSON
@@ -24,7 +24,7 @@ uses
     , Data.DBXJSON, Data.DBXPlatform
 {$ENDIF}
 {$IFDEF MSWINDOWS}
-    , Vcl.ExtCtrls
+    , Vcl.ExtCtrls, Winapi.Windows, Vcl.StdCtrls, Vcl.WinXCtrls
 {$ENDIF}
     ;
 
@@ -49,8 +49,10 @@ type
   public
     function IOHandler: TIdIOHandler;
     function ReadByte: Byte;
-    procedure ReadBytes(var VBuffer: TIdBytes; const AByteCount: Integer; const AAppend: Boolean = True);
-    procedure Write(const ABuffer: TIdBytes; const ALength: Integer = -1; const AOffset: Integer = 0);
+    procedure ReadBytes(var VBuffer: TIdBytes; const AByteCount: Integer;
+      const AAppend: Boolean = True);
+    procedure Write(const ABuffer: TIdBytes; const ALength: Integer = -1;
+      const AOffset: Integer = 0);
 
     function PeerIP: string;
     function PeerPort: word;
@@ -59,6 +61,45 @@ type
     procedure FlushBuffer;
 
     property ReadTimeout: Integer read GetReadTimeout write SetReadTimeout;
+  end;
+
+  TTimeHelper = record helper for TTime
+  public
+    function ToString: String;
+  end;
+
+  TDateTimeHelper = record helper for TDateTime
+  public
+    function ToString: String;
+
+    function ToISO8601: String;
+    function FormatWithMSec: String;
+    function FormatWithoutMSec: String;
+    function RecodeTenMinute: TDateTime;
+    function SQLTimeStamp: TSQLTimeStamp;
+    function Date: string;
+    function Time: string;
+  end;
+
+{$IFDEF MSWINDOWS}
+
+  TCustomComboboxHelper = class helper for TCustomCombobox
+  public
+    procedure RightAlignment;
+  end;
+
+  TActivityIndicatorHelper = class helper for TActivityIndicator
+  public
+    procedure Start;
+    procedure Stop;
+  end;
+{$ENDIF}
+
+  TArrayHelper = class helper for TArray
+  public
+    class function Print(Value: TArray<String>): string; overload;
+    class function Print(Value: TArray<Integer>): string; overload;
+    class function Print(Value: TArray<Double>): string; overload;
   end;
 
   TJSONObjectHelper = class helper for TJSONObject
@@ -98,7 +139,8 @@ type
 
     class function RecordToJsonObject<T: record >(const ARecord: T): TJSONObject;
     class function RecordToJsonString<T: record >(const ARecord: T): String;
-    class procedure RecordToJsonFile<T: record >(const ARecord: T; AName: string; const Encoding: TEncoding);
+    class procedure RecordToJsonFile<T: record >(const ARecord: T; AName: string;
+      const Encoding: TEncoding);
     class function JsonToRecord<T: record >(const AJsonObject: TJSONObject): T; overload;
     class function JsonToRecord<T: record >(const AJson: String): T; overload;
     class function FileToRecord<T: record >(const FileName: String; const Encoding: TEncoding): T;
@@ -108,47 +150,9 @@ type
     class function JsonArrayToRecordArray<T: record >(const JsonArray: TJSONArray): TArray<T>;
   end;
 
-  TTimeHelper = record helper for TTime
-  public
-    function ToString: String;
-  end;
-
-  TDateTimeHelper = record helper for TDateTime
-  public
-    function ToString: String;
-
-    function ToISO8601: String;
-    function FormatWithMSec: String;
-    function FormatWithoutMSec: String;
-    function RecodeTenMinute: TDateTime;
-    function SQLTimeStamp: TSQLTimeStamp;
-    function Date: string;
-    function Time: string;
-  end;
-
-  TCustomComboboxHelper = class helper for TCustomCombobox
-  public
-    procedure RightAlignment;
-  end;
-
-  TActivityIndicatorHelper = class helper for TActivityIndicator
-  public
-    procedure Start;
-    procedure Stop;
-  end;
-
-  TArrayHelper = class helper for TArray
-  public
-    class function Print(Value: TArray<String>): string; overload;
-    class function Print(Value: TArray<Integer>): string; overload;
-    class function Print(Value: TArray<Double>): string; overload;
-  end;
-
 function ReplaceStringNumber(const AInput: string): string;
 
 implementation
-
-{$IFDEF MSWINDOWS}
 
 uses JdcGlobal.DSCommon;
 
@@ -158,6 +162,7 @@ begin
   result := result.Replace('INF', '0', [rfReplaceAll]);
 end;
 
+{$IFDEF MSWINDOWS}
 { TTimerHelper }
 
 procedure TTimerHelper.Reset;
@@ -166,6 +171,222 @@ begin
   Self.Enabled := True;
 end;
 {$ENDIF}
+{ TDateTimeHelper }
+
+function TDateTimeHelper.Date: string;
+begin
+  result := FormatDateTime('YYYY-MM-DD', Self);
+end;
+
+function TDateTimeHelper.FormatWithMSec: String;
+begin
+  result := FormatDateTime('YYYY-MM-DD HH:NN:SS.zzz', Self);
+end;
+
+function TDateTimeHelper.FormatWithoutMSec: String;
+begin
+  result := FormatDateTime('YYYY-MM-DD HH:NN:SS', Self);
+end;
+
+function TDateTimeHelper.RecodeTenMinute: TDateTime;
+var
+  Min: Integer;
+begin
+  Min := MinuteOf(Self);
+  Min := (Min div 10) * 10;
+
+  result := RecodeMilliSecond(Self, 0);
+  result := RecodeSecond(result, 0);
+  result := RecodeMinute(result, Min);
+end;
+
+function TDateTimeHelper.SQLTimeStamp: TSQLTimeStamp;
+begin
+  result := DateTimeToSQLTimeStamp(Self);
+end;
+
+function TDateTimeHelper.Time: string;
+begin
+  result := FormatDateTime('HH:NN:SS', Self);
+end;
+
+function TDateTimeHelper.ToISO8601: String;
+begin
+  result := FormatDateTime('YYYY-MM-DD"T"HH:NN:SS.zzz', Self);
+end;
+
+function TDateTimeHelper.ToString: String;
+begin
+  result := Self.FormatWithMSec;
+end;
+
+{ TIdContextHelper }
+
+procedure TIdContextHelper.FlushBuffer;
+begin
+  Self.IOHandler.FlushBuffer;
+end;
+
+function TIdContextHelper.GetReadTimeout: Integer;
+begin
+  result := IOHandler.ReadTimeout;
+end;
+
+function TIdContextHelper.IOHandler: TIdIOHandler;
+begin
+  result := Self.Connection.IOHandler;
+end;
+
+function TIdContextHelper.PeerInfo: string;
+begin
+  result := Format('IP=%s,Port=%d', [Self.PeerIP, Self.PeerPort]);
+end;
+
+function TIdContextHelper.PeerIP: string;
+begin
+  result := Self.Connection.Socket.Binding.PeerIP;
+end;
+
+function TIdContextHelper.PeerPort: word;
+begin
+  result := Self.Connection.Socket.Binding.PeerPort;
+end;
+
+function TIdContextHelper.ReadByte: Byte;
+begin
+  result := IOHandler.ReadByte;
+end;
+
+procedure TIdContextHelper.ReadBytes(var VBuffer: TIdBytes; const AByteCount: Integer;
+  const AAppend: Boolean);
+begin
+  IOHandler.ReadBytes(VBuffer, AByteCount, AAppend);
+end;
+
+procedure TIdContextHelper.SetReadTimeout(const Value: Integer);
+begin
+  IOHandler.ReadTimeout := Value;
+end;
+
+procedure TIdContextHelper.Write(const ABuffer: TIdBytes; const ALength, AOffset: Integer);
+begin
+  IOHandler.Write(ABuffer, ALength, AOffset);
+end;
+
+{ TTimeHelper }
+
+function TTimeHelper.ToString: String;
+begin
+  result := FormatDateTime('HH:NN:SS', Self);
+end;
+
+{$IFDEF MSWINDOWS}
+{ TCustomComboboxHelper }
+
+procedure TCustomComboboxHelper.RightAlignment;
+var
+  Info: tagCOMBOBOXINFO;
+  old_style, new_style: NativeInt;
+begin
+  ZeroMemory(@Info, SizeOf(Info));
+  Info.cbSize := SizeOf(Info);
+
+  if not GetComboBoxInfo(Self.Handle, Info) then
+    raise Exception.Create('GetComboBoxInfo Error Code - ' + GetLastERror.ToString);
+
+  old_style := GetWindowLong(Info.hwndItem, GWL_STYLE);
+  new_style := old_style or ES_RIGHT;
+  SetWindowLong(Info.hwndItem, GWL_STYLE, new_style);
+
+  old_style := GetWindowLong(Info.hwndList, GWL_EXSTYLE);
+  new_style := old_style or WS_EX_RIGHT;
+  SetWindowLong(Info.hwndList, GWL_EXSTYLE, new_style);
+
+  Refresh;
+end;
+
+{ TActivityIndicatorHelper }
+
+procedure TActivityIndicatorHelper.Start;
+begin
+  Self.Animate := True;
+  Self.Visible := True;
+end;
+
+procedure TActivityIndicatorHelper.Stop;
+begin
+  Self.Visible := False;
+  Self.Animate := False;
+end;
+{$ENDIF}
+{ TIdIOHandlerHelper }
+
+procedure TIdIOHandlerHelper.FlushBuffer;
+var
+  buff: TIdBytes;
+  OldTimeout: Integer;
+begin
+  OldTimeout := Self.ReadTimeout;
+
+  SetLength(buff, 0);
+  Self.ReadTimeout := 10;
+  try
+    try
+      while True do
+      begin
+        AppendByte(buff, Self.ReadByte);
+        if Length(buff) > 1000 then
+          break;
+      end;
+    except
+      // Ignore timeout.
+      on E: EIdReadTimeout do;
+
+      on E: Exception do
+        raise;
+    end;
+
+    if Length(buff) = 0 then
+      Exit;
+
+    TLogging.Obj.ApplicationMessage(msDebug, 'FlushBuffer', Format('Host=%s:%d,Len=%d,Msg=%s',
+      [Self.Host, Self.Port, Length(buff), IdBytesToHex(buff)]));
+  finally
+    Self.ReadTimeout := OldTimeout;
+  end;
+end;
+
+{ TArrayHelper }
+
+class function TArrayHelper.Print(Value: TArray<String>): string;
+var
+  MyElem: String;
+begin
+  result := '[';
+  for MyElem in Value do
+    result := result + MyElem + ',';
+  result := result + ']';
+end;
+
+class function TArrayHelper.Print(Value: TArray<Integer>): string;
+var
+  MyElem: Integer;
+begin
+  result := '[';
+  for MyElem in Value do
+    result := result + MyElem.ToString + ',';
+  result := result + ']';
+end;
+
+class function TArrayHelper.Print(Value: TArray<Double>): string;
+var
+  MyElem: Double;
+begin
+  result := '[';
+  for MyElem in Value do
+    result := result + MyElem.ToString + ',';
+  result := result + ']';
+end;
 
 { TJSONObjectHelper }
 function TJSONObjectHelper.AddPair(const Str: string; const Val: Integer): TJSONObject;
@@ -185,7 +406,8 @@ begin
     result := JSONValue as TJSONArray;
   except
     on E: Exception do
-      raise Exception.Create(SysUtils.Format('JSON name [%s] can not cast to TJSONArray. \n %s',
+      raise Exception.Create
+        (System.SysUtils.Format('JSON name [%s] can not cast to TJSONArray. \n %s',
         [Name, JSONValue.ToString]));
   end;
 end;
@@ -200,7 +422,8 @@ begin
     result := JSONValue as TJSONObject;
   except
     on E: Exception do
-      raise Exception.Create(SysUtils.Format('JSON name [%s] can not cast to TJSONObject. \n %s',
+      raise Exception.Create
+        (System.SysUtils.Format('JSON name [%s] can not cast to TJSONObject. \n %s',
         [Name, JSONValue.ToString]));
   end;
 end;
@@ -226,7 +449,8 @@ begin
     result := (JSONValue as TJSONNumber).AsDouble;
   except
     on E: Exception do
-      raise Exception.Create(SysUtils.Format('JSON name [%s] can not cast to TJSONNumber. \n %s',
+      raise Exception.Create
+        (System.SysUtils.Format('JSON name [%s] can not cast to TJSONNumber. \n %s',
         [Name, JSONValue.ToString]));
   end;
 end;
@@ -253,7 +477,8 @@ begin
     result := (JSONValue as TJSONNumber).AsInt;
   except
     on E: Exception do
-      raise Exception.Create(SysUtils.Format('JSON name [%s] can not cast to TJSONNumber. \n %s',
+      raise Exception.Create
+        (System.SysUtils.Format('JSON name [%s] can not cast to TJSONNumber. \n %s',
         [Name, JSONValue.ToString]));
   end;
 end;
@@ -295,7 +520,8 @@ begin
   for MyElem in Self do
     Names := Names + MyElem.JsonString.Value + ', ';
 
-  raise Exception.Create(SysUtils.Format('JSON name [%s] is not exist. Other name list [%s]', [Name, Names]));
+  raise Exception.Create(System.SysUtils.Format('JSON name [%s] is not exist. Other name list [%s]',
+    [Name, Names]));
 end;
 
 class function TJSONObjectHelper.ParseFile(const FileName: String): TJSONValue;
@@ -410,7 +636,8 @@ begin
   end;
 end;
 
-class procedure TJSONHelper.RecordToJsonFile<T>(const ARecord: T; AName: string; const Encoding: TEncoding);
+class procedure TJSONHelper.RecordToJsonFile<T>(const ARecord: T; AName: string;
+  const Encoding: TEncoding);
 begin
   TFile.WriteAllText(AName, REST.JSON.TJSON.RecordToJsonString<T>(ARecord), Encoding);
 end;
@@ -431,222 +658,6 @@ end;
 class function TJSONHelper.RecordToJsonString<T>(const ARecord: T): String;
 begin
   result := TSuperRecord<T>.AsJSON(ARecord);
-end;
-
-{ TDateTimeHelper }
-
-function TDateTimeHelper.Date: string;
-begin
-  result := FormatDateTime('YYYY-MM-DD', Self);
-end;
-
-function TDateTimeHelper.FormatWithMSec: String;
-begin
-  result := FormatDateTime('YYYY-MM-DD HH:NN:SS.zzz', Self);
-end;
-
-function TDateTimeHelper.FormatWithoutMSec: String;
-begin
-  result := FormatDateTime('YYYY-MM-DD HH:NN:SS', Self);
-end;
-
-function TDateTimeHelper.RecodeTenMinute: TDateTime;
-var
-  Min: Integer;
-begin
-  Min := MinuteOf(Self);
-  Min := (Min div 10) * 10;
-
-  result := RecodeMilliSecond(Self, 0);
-  result := RecodeSecond(result, 0);
-  result := RecodeMinute(result, Min);
-end;
-
-function TDateTimeHelper.SQLTimeStamp: TSQLTimeStamp;
-begin
-  result := DateTimeToSQLTimeStamp(Self);
-end;
-
-function TDateTimeHelper.Time: string;
-begin
-  result := FormatDateTime('HH:NN:SS', Self);
-end;
-
-function TDateTimeHelper.ToISO8601: String;
-begin
-  result := FormatDateTime('YYYY-MM-DD"T"HH:NN:SS.zzz', Self);
-end;
-
-function TDateTimeHelper.ToString: String;
-begin
-  result := Self.FormatWithMSec;
-end;
-
-{ TIdContextHelper }
-
-procedure TIdContextHelper.FlushBuffer;
-begin
-  Self.IOHandler.FlushBuffer;
-end;
-
-function TIdContextHelper.GetReadTimeout: Integer;
-begin
-  result := IOHandler.ReadTimeout;
-end;
-
-function TIdContextHelper.IOHandler: TIdIOHandler;
-begin
-  result := Self.Connection.IOHandler;
-end;
-
-function TIdContextHelper.PeerInfo: string;
-begin
-  result := Format('IP=%s,Port=%d', [Self.PeerIP, Self.PeerPort]);
-end;
-
-function TIdContextHelper.PeerIP: string;
-begin
-  result := Self.Connection.Socket.Binding.PeerIP;
-end;
-
-function TIdContextHelper.PeerPort: word;
-begin
-  result := Self.Connection.Socket.Binding.PeerPort;
-end;
-
-function TIdContextHelper.ReadByte: Byte;
-begin
-  result := IOHandler.ReadByte;
-end;
-
-procedure TIdContextHelper.ReadBytes(var VBuffer: TIdBytes; const AByteCount: Integer;
-  const AAppend: Boolean);
-begin
-  IOHandler.ReadBytes(VBuffer, AByteCount, AAppend);
-end;
-
-procedure TIdContextHelper.SetReadTimeout(const Value: Integer);
-begin
-  IOHandler.ReadTimeout := Value;
-end;
-
-procedure TIdContextHelper.Write(const ABuffer: TIdBytes; const ALength, AOffset: Integer);
-begin
-  IOHandler.Write(ABuffer, ALength, AOffset);
-end;
-
-{ TTimeHelper }
-
-function TTimeHelper.ToString: String;
-begin
-  result := FormatDateTime('HH:NN:SS', Self);
-end;
-
-{ TCustomComboboxHelper }
-
-procedure TCustomComboboxHelper.RightAlignment;
-var
-  Info: tagCOMBOBOXINFO;
-  old_style, new_style: NativeInt;
-begin
-  ZeroMemory(@Info, SizeOf(Info));
-  Info.cbSize := SizeOf(Info);
-
-  if not GetComboBoxInfo(Self.Handle, Info) then
-    raise Exception.Create('GetComboBoxInfo Error Code - ' + GetLastERror.ToString);
-
-  old_style := GetWindowLong(Info.hwndItem, GWL_STYLE);
-  new_style := old_style or ES_RIGHT;
-  SetWindowLong(Info.hwndItem, GWL_STYLE, new_style);
-
-  old_style := GetWindowLong(Info.hwndList, GWL_EXSTYLE);
-  new_style := old_style or WS_EX_RIGHT;
-  SetWindowLong(Info.hwndList, GWL_EXSTYLE, new_style);
-
-  Refresh;
-end;
-
-{ TIdIOHandlerHelper }
-
-procedure TIdIOHandlerHelper.FlushBuffer;
-var
-  buff: TIdBytes;
-  OldTimeout: Integer;
-begin
-  OldTimeout := Self.ReadTimeout;
-
-  SetLength(buff, 0);
-  Self.ReadTimeout := 10;
-  try
-    try
-      while True do
-      begin
-        AppendByte(buff, Self.ReadByte);
-        if Length(buff) > 1000 then
-          break;
-      end;
-    except
-      // Ignore timeout.
-      on E: EIdReadTimeout do;
-
-      on E: Exception do
-        raise;
-    end;
-
-    if Length(buff) = 0 then
-      Exit;
-
-    TLogging.Obj.ApplicationMessage(msDebug, 'FlushBuffer', Format('Host=%s:%d,Len=%d,Msg=%s',
-      [Self.Host, Self.Port, Length(buff), IdBytesToHex(buff)]));
-  finally
-    Self.ReadTimeout := OldTimeout;
-  end;
-end;
-
-{ TActivityIndicatorHelper }
-
-procedure TActivityIndicatorHelper.Start;
-begin
-  Self.Animate := True;
-  Self.Visible := True;
-end;
-
-procedure TActivityIndicatorHelper.Stop;
-begin
-  Self.Visible := False;
-  Self.Animate := False;
-end;
-
-{ TArrayHelper }
-
-class function TArrayHelper.Print(Value: TArray<String>): string;
-var
-  MyElem: String;
-begin
-  result := '[';
-  for MyElem in Value do
-    result := result + MyElem + ',';
-  result := result + ']';
-end;
-
-class function TArrayHelper.Print(Value: TArray<Integer>): string;
-var
-  MyElem: Integer;
-begin
-  result := '[';
-  for MyElem in Value do
-    result := result + MyElem.ToString + ',';
-  result := result + ']';
-end;
-
-class function TArrayHelper.Print(Value: TArray<Double>): string;
-var
-  MyElem: Double;
-begin
-  result := '[';
-  for MyElem in Value do
-    result := result + MyElem.ToString + ',';
-  result := result + ']';
 end;
 
 end.

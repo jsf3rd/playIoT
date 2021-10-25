@@ -14,8 +14,12 @@ unit JdcLogging;
 
 interface
 
-uses System.Classes, System.SysUtils, System.IOUtils, System.Generics.Collections, JdcGlobal, JclFileUtils,
-  Vcl.StdCtrls, Winapi.Windows, JdcOption, System.DateUtils;
+uses System.Classes, System.SysUtils, System.IOUtils, System.Generics.Collections, JdcGlobal,
+  JdcOption, System.DateUtils
+{$IFDEF MSWINDOWS}
+    , Vcl.StdCtrls, Winapi.Windows
+{$ENDIF}
+    ;
 
 type
   TLogProc = procedure(const AType: TMessageType; const ATitle: String; const AMessage: String = '')
@@ -33,6 +37,7 @@ type
   end;
 
   TLogging = class sealed
+
   const
     MESSAGE_TYPE_INFO = 'INFO';
     MESSAGE_TYPE_ERROR = 'ERROR';
@@ -79,8 +84,8 @@ type
 
     procedure ApplicationMessage(const AType: TMessageType; const ATitle: String;
       const AMessage: String = ''); overload;
-    procedure ApplicationMessage(const AType: TMessageType; const ATitle: String; const AFormat: String;
-      const Args: array of const); overload;
+    procedure ApplicationMessage(const AType: TMessageType; const ATitle: String;
+      const AFormat: String; const Args: array of const); overload;
 
     procedure AppendLog(const AName: string; const AMsg: string);
     procedure PrintUseDebug;
@@ -100,9 +105,12 @@ type
 
   // ·Î±× Âï±â..
 procedure PrintLog(const AFile: string; const ATime: TDateTime; const AMessage: String); overload;
-procedure PrintLog(const AMemo: TMemo; const AMsg: String); overload;
 procedure PrintDebug(const Format: string; const Args: array of const); overload;
 procedure PrintDebug(const str: string); overload;
+
+{$IFDEF MSWINDOWS}
+procedure PrintLog(const AMemo: TMemo; const AMsg: String); overload;
+{$ENDIF}
 
 implementation
 
@@ -113,13 +121,13 @@ procedure BackupLogFile(AName: string; AMaxSize: Integer = 1024 * 1024 * 5);
 begin
   if FileExists(AName) then
   begin
-    if JclFileUtils.FileGetSize(AName) > AMaxSize then
+    if TFile.GetSize(AName) > AMaxSize then
     begin
       try
 {$IFDEF LOGGING_DAY_TAG}
-        FileMove(AName, ChangeFileExt(AName, FormatDateTime('_HHNNSS', Now) + '.bak'), True);
+        TFile.Move(AName, ChangeFileExt(AName, FormatDateTime('_HHNNSS', Now) + '.bak'));
 {$ELSE}
-        FileMove(AName, ChangeFileExt(AName, FormatDateTime('_YYYYMMDD_HHNNSS', Now) + '.bak'), True);
+        TFile.Move(AName, ChangeFileExt(AName, FormatDateTime('_YYYYMMDD_HHNNSS', Now) + '.bak'));
 {$ENDIF}
       except
         on E: Exception do
@@ -128,6 +136,8 @@ begin
     end;
   end;
 end;
+
+{$IFDEF MSWINDOWS}
 
 procedure PrintLog(const AMemo: TMemo; const AMsg: String);
 begin
@@ -141,6 +151,7 @@ begin
     AMemo.Lines.Add(FormatDateTime('YYYY-MM-DD HH:NN:SS.zzz, ', Now) + AMsg);
   end;
 end;
+{$ENDIF}
 
 procedure PrintLog(const AFile: string; const ATime: TDateTime; const AMessage: String);
 var
@@ -179,7 +190,9 @@ end;
 
 procedure PrintDebug(const str: string); overload;
 begin
+{$IFDEF MSWINDOWS}
   OutputDebugString(PChar('[JDC] ' + str));
+{$ENDIF}
 end;
 
 { TLogging }
@@ -338,7 +351,9 @@ begin
 
   ExeName := AGlobal.ExeName;
   FExeVersion := FileVersion(ExeName);
-  FLogName := ExtractFilePath(ExeName) + 'logs\' + ChangeFileExt(ExtractFileName(ExeName), '.log');
+
+  FLogName := TPath.Combine(ExtractFilePath(ExeName) + 'logs',
+    ChangeFileExt(ExtractFileName(ExeName), '.log'));
 {$IFDEF LOCALAPPDATA}
   FLogName := GetEnvironmentVariable('LOCALAPPDATA') + '\Judico\' + FAppCode + '\logs\' +
     ExtractFileName(FLogName);
@@ -408,8 +423,8 @@ begin
   FLogTask.Start;
   ApplicationMessage(msDebug, 'Logging',
     'Project=%s,AppCode=%s,UseDebug=%s,UseCloudLog=%s,LogServer=%s,File=%s',
-    [FProjectCode, FAppCode, BoolToStr(FUseDebug, True), BoolToStr(FUseCloudLog, True), FLogServer.ToString,
-    FLogName]);
+    [FProjectCode, FAppCode, BoolToStr(FUseDebug, True), BoolToStr(FUseCloudLog, True),
+    FLogServer.ToString, FLogName]);
 end;
 
 procedure TLogging.StopLogging;
@@ -424,7 +439,8 @@ begin
   PrintDebug('[%s] StopLogging', [FAppCode]);
 end;
 
-procedure TLogging._ApplicationMessage(const AType, ATitle, AMessage: String; const AOutputs: TMsgOutputs);
+procedure TLogging._ApplicationMessage(const AType, ATitle, AMessage: String;
+const AOutputs: TMsgOutputs);
 var
   splitter: string;
   MyType: string;
