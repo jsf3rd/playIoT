@@ -19,6 +19,9 @@ uses System.Classes, System.SysUtils, System.IOUtils, System.Generics.Collection
 {$IFDEF MSWINDOWS}
     , Vcl.StdCtrls, Winapi.Windows
 {$ENDIF}
+{$IF CompilerVersion  < 35} // Delphi 11
+    , JclFileUtils
+{$ENDIF}
     ;
 
 type
@@ -121,7 +124,11 @@ procedure BackupLogFile(AName: string; AMaxSize: Integer = 1024 * 1024 * 5);
 begin
   if FileExists(AName) then
   begin
+{$IF CompilerVersion  < 35} // Delphi 11
+    if JclFileUtils.FileGetSize(AName) > AMaxSize then
+{$ELSE}
     if TFile.GetSize(AName) > AMaxSize then
+{$ENDIF}
     begin
       try
 {$IFDEF LOGGING_DAY_TAG}
