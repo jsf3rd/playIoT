@@ -68,7 +68,7 @@ type
     function ToString: String;
   end;
 
-  TDateTimeHelper = record helper for TDateTime
+  TDateTimeHelper = record helper for System.TDateTime
   public
     function ToString: String;
 
