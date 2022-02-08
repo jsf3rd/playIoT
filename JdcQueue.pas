@@ -2,14 +2,14 @@ unit JdcQueue;
 
 interface
 
-uses System.SysUtils, System.Classes, System.Generics.Collections, Winapi.Windows;
+uses System.SysUtils, System.Classes, System.Generics.Collections;
 
 type
   TCircularQueue<T: class> = class
   private
     FList: TList<T>;
     FPos: Integer;
-    CritSect: TRTLCriticalSection;
+    // CritSect: TRTLCriticalSection;
   public
     procedure Enqueue(const AItem: T);
     function Dequeue: T;
@@ -30,7 +30,7 @@ end;
 
 constructor TCircularQueue<T>.Create;
 begin
-  InitializeCriticalSection(CritSect);
+  // InitializeCriticalSection(CritSect);
   FList := TList<T>.Create;
   FPos := 0;
 end;
@@ -40,14 +40,16 @@ begin
   if FList.Count = 0 then
     raise Exception.Create('TCircularQueue,NoItem');
 
-  EnterCriticalSection(CritSect);
+  // EnterCriticalSection(CritSect);
+  TMonitor.Enter(Self);
   try
     Result := FList.Items[FPos];
     Inc(FPos);
     if FPos >= FList.Count then
       FPos := 0;
   finally
-    LeaveCriticalSection(CritSect);
+    // LeaveCriticalSection(CritSect);
+    TMonitor.Exit(Self);
   end;
 end;
 
@@ -64,7 +66,7 @@ begin
 
   FList.Free;
 
-  DeleteCriticalSection(CritSect);
+  // DeleteCriticalSection(CritSect);
   inherited;
 end;
 
