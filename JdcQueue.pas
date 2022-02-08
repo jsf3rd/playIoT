@@ -2,14 +2,22 @@ unit JdcQueue;
 
 interface
 
-uses System.SysUtils, System.Classes, System.Generics.Collections;
+uses System.SysUtils, System.Classes, System.Generics.Collections
+
+{$IFDEF MSWINDOWS}
+    , Windows.Winapi
+{$ENDIF}
+    ;
 
 type
   TCircularQueue<T: class> = class
   private
     FList: TList<T>;
     FPos: Integer;
-    // CritSect: TRTLCriticalSection;
+
+{$IFDEF MSWINDOWS}
+    CritSect: TRTLCriticalSection;
+{$ENDIF}
   public
     procedure Enqueue(const AItem: T);
     function Dequeue: T;
@@ -30,7 +38,9 @@ end;
 
 constructor TCircularQueue<T>.Create;
 begin
-  // InitializeCriticalSection(CritSect);
+{$IFDEF MSWINDOWS}
+  InitializeCriticalSection(CritSect);
+{$ENDIF}
   FList := TList<T>.Create;
   FPos := 0;
 end;
@@ -40,16 +50,22 @@ begin
   if FList.Count = 0 then
     raise Exception.Create('TCircularQueue,NoItem');
 
-  // EnterCriticalSection(CritSect);
+{$IFDEF MSWINDOWS}
+  EnterCriticalSection(CritSect);
+{$ELIF}
   TMonitor.Enter(Self);
+{$ENDIF}
   try
     Result := FList.Items[FPos];
     Inc(FPos);
     if FPos >= FList.Count then
       FPos := 0;
   finally
-    // LeaveCriticalSection(CritSect);
+{$IFDEF MSWINDOWS}
+    LeaveCriticalSection(CritSect);
+{$ELIF}
     TMonitor.Exit(Self);
+{$ENDIF}
   end;
 end;
 
@@ -65,8 +81,9 @@ begin
   end;
 
   FList.Free;
-
-  // DeleteCriticalSection(CritSect);
+{$IFDEF MSWINDOWS}
+  DeleteCriticalSection(CritSect);
+{$ENDIF}
   inherited;
 end;
 
