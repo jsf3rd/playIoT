@@ -3,14 +3,11 @@ unit Option;
 interface
 
 uses
-  Classes, SysUtils, JdcOption, Global, System.IniFiles;
+  Classes, SysUtils, JdcOption, Global;
 
 type
-  TOption = class
+  TOption = class(TOptionAbstract)
   private
-    FIniFile: TCustomIniFile;
-    constructor Create;
-
     function GetYear: Integer;
     procedure SetYear(const Value: Integer);
     function GetDay: Integer;
@@ -31,9 +28,13 @@ type
     procedure SetSearchPattern(const Value: string);
     function GetSubDir: boolean;
     procedure SetSubDir(const Value: boolean);
+    function GetFTPServer: TFTPServer;
+    procedure SetFTPServer(const Value: TFTPServer);
+    function GetDeleteExtension: string;
+    procedure SetDeleteExtension(const Value: string);
   public
     class function Obj: TOption;
-    destructor Destroy; override;
+
     property Year: Integer read GetYear write SetYear;
     property Month: Integer read GetMonth write SetMonth;
     property Day: Integer read GetDay write SetDay;
@@ -44,6 +45,8 @@ type
     property SubDir: boolean read GetSubDir write SetSubDir;
     property Debug: boolean read GetDebug write SetDebug;
     property SearchPattern: string read GetSearchPattern write SetSearchPattern;
+    property FTPServer: TFTPServer read GetFTPServer write SetFTPServer;
+    property DeleteExtension: string read GetDeleteExtension write SetDeleteExtension;
   end;
 
 implementation
@@ -52,31 +55,6 @@ var
   MyObj: TOption = nil;
 
   { TOption }
-
-constructor TOption.Create;
-var
-  FileName: string;
-begin
-  // IniFile...
-  FileName := ChangeFileExt(TGlobal.Obj.ExeName, '.ini');
-  FIniFile := TIniFile.Create(FileName);
-
-  // FIniFile := TMemIniFile.Create(FileName);
-
-  // Registry...
-  // FileName := 'SOFTWARE\PlayIoT\' + PROJECT_CODE;
-  // FIniFile := TRegistryIniFile.Create(FileName);
-  // TRegistryIniFile(FIniFile).RegIniFile.RootKey := HKEY_LOCAL_MACHINE;
-  // TRegistryIniFile(FIniFile).RegIniFile.OpenKey(FIniFile.FileName, True);
-end;
-
-destructor TOption.Destroy;
-begin
-  if Assigned(FIniFile) then
-    FIniFile.Free;
-
-  inherited;
-end;
 
 function TOption.GetBackup: string;
 begin
@@ -93,6 +71,19 @@ begin
   Result := FIniFile.ReadBool('Option', 'Debug', False);
 end;
 
+function TOption.GetDeleteExtension: string;
+begin
+  Result := FIniFile.ReadString('Option', 'DeleteExtension', ' ');
+end;
+
+function TOption.GetFTPServer: TFTPServer;
+begin
+  Result.User := FIniFile.ReadString('FTPServer', 'User', '');
+  Result.Password := FIniFile.ReadString('FTPServer', 'Password', '');
+  Result.Address := FIniFile.ReadString('FTPServer', 'Address', '');
+  Result.Port := FIniFile.ReadString('FTPServer', 'Port', '');
+end;
+
 function TOption.GetHour: Integer;
 begin
   Result := FIniFile.ReadInteger('Option', 'Hour', 0);
@@ -105,7 +96,7 @@ end;
 
 function TOption.GetSearchPattern: string;
 begin
-  Result := FIniFile.ReadString('Option', 'SearchOption', '*.dat');
+  Result := FIniFile.ReadString('Option', 'SearchOption', '');
 end;
 
 function TOption.GetSecond: Integer;
@@ -131,9 +122,7 @@ end;
 class function TOption.Obj: TOption;
 begin
   if MyObj = nil then
-  begin
     MyObj := TOption.Create;
-  end;
   Result := MyObj;
 end;
 
@@ -150,6 +139,19 @@ end;
 procedure TOption.SetDebug(const Value: boolean);
 begin
   FIniFile.WriteBool('Option', 'Debug', Value);
+end;
+
+procedure TOption.SetDeleteExtension(const Value: string);
+begin
+  FIniFile.WriteString('Option', 'DeleteExtension', Value);
+end;
+
+procedure TOption.SetFTPServer(const Value: TFTPServer);
+begin
+  FIniFile.WriteString('FTPServer', 'User', Value.User);
+  FIniFile.WriteString('FTPServer', 'Password', Value.Password);
+  FIniFile.WriteString('FTPServer', 'Address', Value.Address);
+  FIniFile.WriteString('FTPServer', 'Port', Value.Port);
 end;
 
 procedure TOption.SetHour(const Value: Integer);

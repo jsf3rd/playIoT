@@ -6,8 +6,9 @@ uses
   Classes, SysUtils, JdcView2, JdcGlobal, DBXJSON;
 
 const
-  COPY_RIGHT_FILE_CLEANER = 'File Cleaner v1.0 - ⓒ 2013 playIoT';
-  HOME_PAGE_URL = 'http://www.playIoT.biz';
+  COPY_RIGHT_FILE_CLEANER = 'File Cleaner v1.0 - ⓒ 2013 ENB GROUP';
+  HOME_PAGE_URL = 'http://www.enbgourp.co.kr';
+  MAX_ERROR_COUNT = 5;
 
 type
   TGlobal = class(TComponent)
@@ -28,6 +29,13 @@ type
   published
     property Initialized: boolean read FInitialized;
     property ExeName: String read FExeName write FExeName;
+  end;
+
+  TFTPServer = record
+    User: string;
+    Password: string;
+    Address: string;
+    Port: string;
   end;
 
 implementation

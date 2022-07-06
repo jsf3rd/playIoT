@@ -1,8 +1,9 @@
 program DataCleaner;
 
 uses
-  Vcl.Forms, Winapi.Windows,
-  _fmMain in '_fmMain.pas' {fmMain} ,
+  Vcl.Forms,
+  Winapi.Windows,
+  _fmMain in '_fmMain.pas' {fmMain},
   Global in 'Global.pas',
   Option in 'Option.pas';
 
