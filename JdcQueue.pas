@@ -3,9 +3,8 @@ unit JdcQueue;
 interface
 
 uses System.SysUtils, System.Classes, System.Generics.Collections
-
 {$IFDEF MSWINDOWS}
-    , Windows.Winapi
+    , Winapi.Windows
 {$ENDIF}
     ;
 
@@ -52,7 +51,7 @@ begin
 
 {$IFDEF MSWINDOWS}
   EnterCriticalSection(CritSect);
-{$ELIF}
+{$ELSE}
   TMonitor.Enter(Self);
 {$ENDIF}
   try
@@ -63,7 +62,7 @@ begin
   finally
 {$IFDEF MSWINDOWS}
     LeaveCriticalSection(CritSect);
-{$ELIF}
+{$ELSE}
     TMonitor.Exit(Self);
 {$ENDIF}
   end;
