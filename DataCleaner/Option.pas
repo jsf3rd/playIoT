@@ -81,7 +81,7 @@ begin
   Result.User := FIniFile.ReadString('FTPServer', 'User', '');
   Result.Password := FIniFile.ReadString('FTPServer', 'Password', '');
   Result.Address := FIniFile.ReadString('FTPServer', 'Address', '');
-  Result.Port := FIniFile.ReadString('FTPServer', 'Port', '');
+  Result.Port := FIniFile.ReadString('FTPServer', 'Port', '21');
 end;
 
 function TOption.GetHour: Integer;

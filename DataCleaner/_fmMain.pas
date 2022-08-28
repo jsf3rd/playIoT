@@ -91,8 +91,10 @@ var
 begin
   FTPServer := TOption.Obj.FTPServer;
 
-  Result := '-u ' + FTPServer.User + ' -p ' + FTPServer.Password + ' -m -DD -d ncftpupt.log -P ' +
-    FTPServer.Port + ' ' + FTPServer.Address + ' ';
+  Result := '-u ' + FTPServer.User + ' -p ' + FTPServer.Password + ' -m -DD ';
+  if FDebug then
+    Result := Result + '-d ncftpupt.log ';
+  Result := Result + '-P ' + FTPServer.Port + ' ' + FTPServer.Address + ' ';
 end;
 
 procedure TfmMain.PrintLog(AValue: string);
@@ -125,7 +127,7 @@ begin
       on E: Exception do
         PrintLog('Error on CheckFile, ' + MyFile);
     end;
-    Sleep(100);
+    Sleep(1);
   end;
 
   // File Delete - .tdms_index
@@ -172,9 +174,9 @@ var
   Way: string;
   Lane: string;
   TargetFolder: string;
-  ShellName, ShellParm, ShellDir: string;
   Destination: string;
   Source: string;
+  SEInfo: TShellExecuteInfo;
 begin
   WriteTime := TFile.GetLastWriteTime(MyFile);
 
@@ -196,15 +198,20 @@ begin
         FormatDateTime('DD', WriteTime) + '\' + TargetFolder;
       Source := MyFile;
 
-      ShellName := 'ncftpput.exe';
-      ShellParm := GetCommandFTP + ' ' + Destination + ' ' + Source;
-      ShellDir := ExtractFilePath(TGlobal.Obj.ExeName);
+      FillChar(SEInfo, SizeOf(SEInfo), 0);
+      SEInfo.cbSize := SizeOf(TShellExecuteInfo);
+      SEInfo.fMask := SEE_MASK_NOCLOSEPROCESS;
+      SEInfo.lpVerb := 'OPEN';
+      SEInfo.lpFile := PChar('ncftpput.exe');
+      SEInfo.lpParameters := PChar(GetCommandFTP + ' ' + Destination + ' ' + Source);
+      SEInfo.lpDirectory := PChar(ExtractFilePath(TGlobal.Obj.ExeName));
 
-      ShellExecuteW(0, 'OPEN', PChar(ShellName), PChar(ShellParm), PChar(ShellDir), SW_HIDE);
+      if ShellExecuteExW(@SEInfo) then
+        WaitForSingleObject(SEInfo.hProcess, 1000 * 60);
 
       if FDebug then
       begin
-        PrintLog('FileInfo :  source:' + Source + 'Destination:' + Destination);
+        PrintLog('FileInfo :  source:' + Source + ', Destination:' + Destination);
       end;
 
     except
