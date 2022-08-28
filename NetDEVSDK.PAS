@@ -2,7 +2,8 @@ unit NetDEVSDK;
 
 interface
 
-uses System.Classes, System.SysUtils, Winapi.Windows, System.IOUtils, System.Generics.Collections, JdcLogging,
+uses System.Classes, System.SysUtils, Winapi.Windows, System.IOUtils, System.Generics.Collections,
+  JdcLogging,
   JdcGlobal, System.DateUtils, Vcl.ExtCtrls, Vcl.Forms, Vcl.Controls;
 
 const
@@ -248,7 +249,8 @@ const
     ('11003', 'The channel is not equipped with a video plan.'), //
     ('11022', 'No hard disk or hard disk abnormalities'), //
     ('11023', '1 Slot 1 disk is out of order'), //
-    ('11024', '1 After opening the face, slot 1 is pulled out and inserted. It needs to be restarted.'), //
+    ('11024', '1 After opening the face, slot 1 is pulled out and inserted. It needs to be restarted.'),
+    //
     ('11034', 'Abnormal battery status of equipment'), //
 
     ('11199', 'Maximum error code of storage module'), //
@@ -555,8 +557,8 @@ type
   TNetDEVLiveStreamIndex = (NETDEV_LIVE_STREAM_INDEX_MAIN, NETDEV_LIVE_STREAM_INDEX_AUX,
     NETDEV_LIVE_STREAM_INDEX_THIRD, NETDEV_LIVE_STREAM_INDEX_INVALID);
   TNetDEVProtocol = (NETDEV_TRANSPROTOCOL_RTPUDP, NETDEV_TRANSPROTOCOL_RTPTCP);
-  TNetDEVPictureFluency = (NETDEV_PICTURE_REAL, NETDEV_PICTURE_FLUENCY, BALANCE, NETDEV_PICTURE_RTMP_FLUENCY,
-    NETDEV_PICTURE_FLUENCY_INVALID);
+  TNetDEVPictureFluency = (NETDEV_PICTURE_REAL, NETDEV_PICTURE_FLUENCY, BALANCE,
+    NETDEV_PICTURE_RTMP_FLUENCY, NETDEV_PICTURE_FLUENCY_INVALID);
   TNetDEVStreamMode = (NETDEV_STREAM_MODE_ALL, NETDEV_STREAM_MODE_VIDEO = $8000);
   TNetDEVPullStreamMode = (NETDEV_STREAM_MODE_SERVER_DISTRIBUTE, NETDEV_STREAM_MODE_FORCE_CDN);
   TNetDEVDistributeCloudSrv = (NETDEV_DISTRIBUTE_CLOUD_NONE, NETDEV_DISTRIBUTE_CLOUD_KS,
@@ -565,10 +567,11 @@ type
 
   TNetDEVPictureFormat = (NETDEV_PICTURE_BMP, NETDEV_PICTURE_JPG, NETDEV_PICTURE_INVALID);
 
-  TNETDEVException = (NETDEV_EXCEPTION_REPORT_VOD_END = 300, NETDEV_EXCEPTION_REPORT_VOD_ABEND = 301,
-    NETDEV_EXCEPTION_REPORT_BACKUP_END = 302, NETDEV_EXCEPTION_REPORT_BACKUP_DISC_OUT = 303,
-    NETDEV_EXCEPTION_REPORT_BACKUP_DISC_FULL = 304, NETDEV_EXCEPTION_REPORT_BACKUP_ABEND = 305,
-    NETDEV_EXCEPTION_EXCHANGE = $8000, NETDEV_EXCEPTION_REPORT_INVALID = $FFFF);
+  TNETDEVException = (NETDEV_EXCEPTION_REPORT_VOD_END = 300,
+    NETDEV_EXCEPTION_REPORT_VOD_ABEND = 301, NETDEV_EXCEPTION_REPORT_BACKUP_END = 302,
+    NETDEV_EXCEPTION_REPORT_BACKUP_DISC_OUT = 303, NETDEV_EXCEPTION_REPORT_BACKUP_DISC_FULL = 304,
+    NETDEV_EXCEPTION_REPORT_BACKUP_ABEND = 305, NETDEV_EXCEPTION_EXCHANGE = $8000,
+    NETDEV_EXCEPTION_REPORT_INVALID = $FFFF);
 
   TOnException = procedure(AType: TNETDEVException) of object;
 
@@ -648,8 +651,8 @@ type
   TNETDEV_Init = function: Boolean stdcall;
   TNETDEV_Login = function(pszDevIP: PAnsiChar; wDevPort: Int16; pszUserName: PAnsiChar;
     pszPassword: PAnsiChar; var pstDevInfo: TNetDEVDeviceInfo): IntPtr stdcall;
-  TNETDEV_Login_V30 = function(var pstDevLoginInfo: TNETDEVLoginInfo; var pstSELogInfo: TNETDEVSelogInfo)
-    : IntPtr stdcall;
+  TNETDEV_Login_V30 = function(var pstDevLoginInfo: TNETDEVLoginInfo;
+    var pstSELogInfo: TNETDEVSelogInfo): IntPtr stdcall;
   TNETDEV_QueryVideoChlDetailList = function(lpUserID: IntPtr; var pdwChlCount: IntPtr;
     var pstVideoChlList: TNETDEVVideoCHLDetailInfo): IntPtr stdcall;
 
@@ -660,16 +663,16 @@ type
   TNETDEV_RealPlay = function(lpUserID: IntPtr; var pstPreviewInfo: TPreviewInfo;
     cbDataCallBack: TSourceDataCallBack; lpUserData: Pointer): IntPtr stdcall;
   TNETDEV_StopRealPlay = function(lpRealHandle: IntPtr): Boolean stdcall;
-  TNETDEV_CapturePicture = function(lpRealHandle: IntPtr; szFileName: PAnsiChar; dwCaptureMode: Int32)
-    : Boolean stdcall;
+  TNETDEV_CapturePicture = function(lpRealHandle: IntPtr; szFileName: PAnsiChar;
+    dwCaptureMode: Int32): Boolean stdcall;
   TNETDEV_GetLastError = function(): Int32 stdcall;
   TNETDEV_SetExceptionCallBack = function(cbExceptionCallBack: TNETDEV_ExceptionCallBack_PF;
     lpUserData: Pointer): Boolean stdcall;
   TNETDEV_Cleanup = function(): Boolean stdcall;
   NETDEV_SetLogPath = function(pszLogPath: PAnsiChar): Boolean stdcall;
 
-  TNETDEV_SetPlayDataCallBack = function(lpRealHandle: IntPtr; cbPlayDataCallBack: IntPtr; bContinue: Int32;
-    lpUserData: Pointer): Boolean stdcall;
+  TNETDEV_SetPlayDataCallBack = function(lpRealHandle: IntPtr; cbPlayDataCallBack: IntPtr;
+    bContinue: Int32; lpUserData: Pointer): Boolean stdcall;
 
   TCCTVInfo = record
     Enable: Boolean;
@@ -793,8 +796,8 @@ begin
   Result := True;
 end;
 
-procedure OnSourceDataCallBack(lpRealHandle: IntPtr; var pucBuffer: BYTE; dwBufSize, dwMediaDataType: Int32;
-  lpUserParam: Pointer)stdcall;
+procedure OnSourceDataCallBack(lpRealHandle: IntPtr; var pucBuffer: BYTE;
+  dwBufSize, dwMediaDataType: Int32; lpUserParam: Pointer)stdcall;
 var
   Player: TPlayerInfo;
 begin
@@ -802,7 +805,8 @@ begin
   Player.Tick := GetTickCount;
 end;
 
-procedure ExceptionCallBack(plUserID: IntPtr; dwType: Int32; plExpHandle: IntPtr; plUserData: Pointer)stdcall;
+procedure ExceptionCallBack(plUserID: IntPtr; dwType: Int32; plExpHandle: IntPtr;
+  plUserData: Pointer)stdcall;
 begin
   if Assigned(MyOnException) then
     MyOnException(TNETDEVException(dwType));
@@ -962,7 +966,8 @@ begin
   @FNETDEV_Cleanup := GetProcAddress(FDLLHandle, 'NETDEV_Cleanup');
   @FNETDEV_SetLogPath := GetProcAddress(FDLLHandle, 'NETDEV_SetLogPath');
   SetCurrentDir(TPath.GetDocumentsPath);
-  TLogging.Obj.ApplicationMessage(msDebug, 'NetDEV_LoadDLL', 'Path=%s,Handle=%d', [APath, FDLLHandle]);
+  TLogging.Obj.ApplicationMessage(msDebug, 'NetDEV_LoadDLL', 'Path=%s,Handle=%d',
+    [APath, FDLLHandle]);
 end;
 
 class function TNetDEV.Obj: TNetDEV;
@@ -1070,15 +1075,16 @@ begin
   inherited;
 end;
 
-function TPlayerInfo.GetStreamInfo(const dwChannelID: Int32; var lpOutBuffer: TNETDEVVideoStreamInfo;
-const dwOutBufferSize: Int32; var pdwBytesReturned: Int32): Boolean;
+function TPlayerInfo.GetStreamInfo(const dwChannelID: Int32;
+var lpOutBuffer: TNETDEVVideoStreamInfo; const dwOutBufferSize: Int32;
+var pdwBytesReturned: Int32): Boolean;
 const
   NETDEV_GET_STREAMCFG = 120;
 begin
   if FUserID = 0 then
     Exit(False);
-  Result := FNETDEV_GetDevConfig(FUserID, dwChannelID, NETDEV_GET_STREAMCFG, lpOutBuffer, dwOutBufferSize,
-    pdwBytesReturned);
+  Result := FNETDEV_GetDevConfig(FUserID, dwChannelID, NETDEV_GET_STREAMCFG, lpOutBuffer,
+    dwOutBufferSize, pdwBytesReturned);
 end;
 
 function TPlayerInfo.Login(AInfo: TCCTVInfo): Boolean;
@@ -1115,7 +1121,6 @@ var
   pstDevSelogInfo: TNETDEVSelogInfo;
   ret, ChCount: IntPtr;
   Info: TNETDEVVideoCHLDetailInfo;
-
 begin
   pstDevLoginInfo := AInfo.ToNetNETDEVDeviceLoginInfo;
   FUserID := FNETDEV_Login_V30(pstDevLoginInfo, pstDevSelogInfo);
