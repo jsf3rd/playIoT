@@ -6,7 +6,11 @@ uses
   Windows, System.SysUtils, System.Classes, System.Generics.Collections;
 
 const
+{$IFDEF WIN32}
   CANPRO_PLUS_DLL = 'CANProPlus.dll';
+{$ELSE}
+  CANPRO_PLUS_DLL = 'CANProPlus_64.dll';
+{$ENDIF}
 
 type
   TCanDeviceInfo = packed record
@@ -35,12 +39,27 @@ type
   TData = Array [0 .. 7] of Byte;
   TData4 = Array [0 .. 3] of Byte;
 
-  TCanMessage = packed record
+  TeCanMessage = packed record
+    // TYPE Value
+    // 0x04 STD DATA
+    // 0x05 STD REMOTE
+    // 0x06 EXT DATA
+    // 0x07 EXT REMOTE
+    // 0xFF Error Info
+    _type: Byte;
+
+    Id: UInt32;
+    dlc: Byte;
+    data: TData;
+  end;
+
+  TCANProMessage = packed record
     Info: TInfo;
     // time: UInt64;
     Id: UInt32;
     dlc: Byte;
     data: TData;
+    function ToECanMessage: TeCanMessage;
   end;
 
   TCreateInstance = function(): THandle; stdcall;
@@ -59,9 +78,9 @@ type
   TStartTrace = function(AInstance: THandle): Integer; cdecl;
   TStopTrace = function(AInstance: THandle): Integer; cdecl;
   TGetTraceMsgCount = function(AInstance: THandle): Integer; cdecl;
-  TPopTraceMsg = function(AInstance: THandle; out msg: TCanMessage): Integer; stdcall;
+  TPopTraceMsg = function(AInstance: THandle; out msg: TCANProMessage): Integer; stdcall;
 
-  TPushTxMsg = function(AInstance: THandle; var msg: TCanMessage): Integer; stdcall;
+  TPushTxMsg = function(AInstance: THandle; var msg: TCANProMessage): Integer; stdcall;
   TStartTxMsg = function(AInstance: THandle): Integer; cdecl;
 
   TCanProPlus = class
@@ -114,9 +133,9 @@ type
     function StopTrace(): Boolean;
 
     function GetTraceMsgCount: Integer;
-    function PopTraceMsg: TCanMessage;
+    function PopTraceMsg: TCANProMessage;
 
-    function PushTxMsg(var msg: TCanMessage): Integer;
+    function PushTxMsg(var msg: TCANProMessage): Integer;
     function StartTxMsg: Integer;
   end;
 
@@ -220,14 +239,14 @@ begin
   @FStartTxMsg := GetProcAddress(FDLLHandle, 'W_StartTxMsg');
 end;
 
-function TCanProPlus.PopTraceMsg: TCanMessage;
+function TCanProPlus.PopTraceMsg: TCANProMessage;
 var
   rlt: Integer;
 begin
   rlt := FPopTraceMsg(FInstance, result);
 end;
 
-function TCanProPlus.PushTxMsg(var msg: TCanMessage): Integer;
+function TCanProPlus.PushTxMsg(var msg: TCANProMessage): Integer;
 begin
   result := FPushTxMsg(FInstance, msg);
 end;
@@ -264,6 +283,16 @@ var
   rlt: Integer;
 begin
   rlt := FGetVersion(FInstance, result);
+end;
+
+{ TCANProMessage }
+
+function TCANProMessage.ToECanMessage: TeCanMessage;
+begin
+  result._type := Self.Info.Info;
+  result.Id := Self.Id;
+  result.dlc := Self.dlc;
+  result.data := Self.data;
 end;
 
 end.
