@@ -73,7 +73,7 @@ type
     // Init TFDQuery Parameter DataType
     class procedure InitDataType(const ASender: TComponent; const AConn: TFDConnection);
 
-    class function CalcExecTime(const ABegin: TDateTime): Double;
+    class function CalcExecTime(const ABegin: TDateTime; const ALimitSec: Integer = 5): Double;
   end;
 
   TFDDataSetHelper = class helper for TFDDataSet
@@ -106,10 +106,6 @@ type
     function OpenTo<T>(const AConn: TFDConnection; const AParams: TJSONObject;
       const AType: TMessageType; const AProc: TOpenToFunc<T>): T;
 
-    function OpenQuery(const AConn: TFDConnection; const AParams: TJSONObject;
-      const AType: TMessageType): TStream;
-    function OpenToMemTab(const AConn: TFDConnection; const AParams: TJSONObject;
-      const AType: TMessageType): TFDMemTable;
     function ExecQuery(const AConn: TFDConnection; const AParams: TJSONObject;
       const AType: TMessageType): Boolean; overload;
     function ExecQuery(const AConn: TFDConnection; const AParams: TJSONArray;
@@ -131,6 +127,11 @@ type
     procedure FieldByJSONObject(const AJSON: String); overload;
 
     // OpenQuery
+    function OpenQuery(const AConn: TFDConnection; const AParams: TJSONObject;
+      const AType: TMessageType): TStream;
+    function OpenToMemTab(const AConn: TFDConnection; const AParams: TJSONObject;
+      const AType: TMessageType): TFDMemTable;
+
     function OpenInstantQuery(const AConn: TFDConnection; const AParams: TJSONObject;
       const AType: TMessageType = msInfo): TStream; overload;
     function OpenInstantToMemTab(const AConn: TFDConnection; const AParams: TJSONObject;
@@ -241,10 +242,11 @@ begin
   end;
 end;
 
-class function TDSCommon.CalcExecTime(const ABegin: TDateTime): Double;
+class function TDSCommon.CalcExecTime(const ABegin: TDateTime;
+  const ALimitSec: Integer = 5): Double;
 begin
   Result := MilliSecondsBetween(Now, ABegin) / 1000;
-  if Result > 3 then
+  if Result > ALimitSec then
     TLogging.Obj.ApplicationMessage(msWarning, 'Delay', 'ExecSec=%0.2f', [Result]);
 end;
 
@@ -381,6 +383,7 @@ var
   Buffer: TBytes;
   ReadCount: Integer;
 begin
+  AStream.Position := 0;
   Result := TMemoryStream.Create;
   try
     SetLength(Buffer, BufferSize);
@@ -690,7 +693,8 @@ var
   ExecTime: TDateTime;
 begin
   try
-    Self.Connection := AConn;
+    if Assigned(AConn) then
+      Self.Connection := AConn;
     try
       if Assigned(AParams) then
         ParamByJSONObject(AParams);
@@ -705,7 +709,8 @@ begin
         raise Exception.Create(Format('Query=%s,E=%s', [Self.Name, E.Message]));
     end;
   finally
-    AConn.Free;
+    if Assigned(AConn) then
+      FreeAndNil(AConn);
   end;
 end;
 
@@ -1110,6 +1115,8 @@ begin
       Result := TJSONNumber.Create(AField.AsLongword);
     ftSingle:
       Result := TJSONNumber.Create(AField.AsSingle);
+    ftWideMemo:
+      Result := TJSONString.Create(AField.AsWideString);
   else
     raise Exception.Create(Format('DataSet=%s,FieldName=%s,UnsurportDataType=%s',
       [Self.Name, AField.FieldName, GetFieldTypeName(AField.DataType)]));
