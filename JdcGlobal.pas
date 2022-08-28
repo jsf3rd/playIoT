@@ -130,6 +130,15 @@ function IdBytesPos(const SubIdBytes, IdBytes: TIdBytes; const AIndex: Integer =
 
 function StrDefault(const str: string; const Default: string): string;
 
+function ByteToA94(const AByte: Byte): String;
+function A94ToByte(const AValue: String; const AIndex: Integer = 1): Byte;
+
+function IdBytesToA94(const AValue: TIdBytes): string;
+function A94ToIdBytes(const str: string): TIdBytes;
+
+function StreamToA94(const AStream: TStream): string;
+function A94ToStream(const str: string): TStream;
+
 // Thread Safe
 procedure ThreadSafe(const AMethod: TThreadMethod); overload;
 procedure ThreadSafe(const AThreadProc: TThreadProcedure); overload;
@@ -743,7 +752,7 @@ end;
 function HexStrToBytes(const ASource: string; const AIndex: Integer): TIdBytes;
 var
   I, j, n: Integer;
-  c: char;
+  c: Char;
   b: Byte;
   str: string;
 begin
@@ -873,6 +882,95 @@ begin
     Result := Default
   else
     Result := str;
+end;
+
+function ByteToA94(const AByte: Byte): String;
+begin
+  if AByte < 93 then
+    Result := Chr(32 + AByte)
+  else if AByte < 175 then
+    Result := Chr(125) + Char(32 + AByte - 92)
+  else
+    Result := Chr(126) + Char(32 + AByte - 174)
+end;
+
+function A94ToByte(const AValue: String; const AIndex: Integer = 1): Byte;
+var
+  c: Char;
+  b: Byte;
+  calc: Integer;
+begin
+  c := AValue[AIndex];
+  b := ord(c);
+
+  calc := 256;
+  if b < 125 then
+    calc := b - 32
+  else if b = 125 then
+  begin
+    if Length(AValue) >= AIndex + 1 then
+      calc := 92 + A94ToByte(AValue, AIndex + 1);
+  end
+  else if b = 126 then
+  begin
+    if Length(AValue) >= AIndex + 1 then
+      calc := 174 + A94ToByte(AValue, AIndex + 1);
+  end;
+
+  if calc > 255 then
+    raise Exception.Create('This is not A94 Format.(' + AValue + ')');
+
+  Result := calc;
+end;
+
+function IdBytesToA94(const AValue: TIdBytes): string;
+var
+  I: Integer;
+begin
+  Result := '';
+  for I := 0 to Length(AValue) - 1 do
+  begin
+    Result := Result + ByteToA94(AValue[I]);
+  end;
+end;
+
+function A94ToIdBytes(const str: string): TIdBytes;
+var
+  Index: Integer;
+  b: Byte;
+begin
+  SetLength(Result, 0);
+
+  Index := 1;
+  while Index <= Length(str) do
+  begin
+    b := A94ToByte(str, Index);
+    AppendByte(Result, b);
+
+    if b > 92 then
+      Index := Index + 2
+    else
+      Index := Index + 1
+  end;
+end;
+
+function StreamToA94(const AStream: TStream): string;
+var
+  buff: TIdBytes;
+begin
+  SetLength(buff, AStream.Size);
+  AStream.Position := 0;
+  AStream.Read(buff[0], AStream.Size);
+  Result := IdBytesToA94(buff);
+end;
+
+function A94ToStream(const str: string): TStream;
+var
+  buff: TIdBytes;
+begin
+  buff := A94ToIdBytes(str);
+  Result := TMemoryStream.Create;
+  Result.Write(buff[0], Length(buff));
 end;
 
 end.
