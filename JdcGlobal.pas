@@ -958,6 +958,9 @@ function StreamToA94(const AStream: TStream): string;
 var
   buff: TIdBytes;
 begin
+  if AStream = nil then
+    Exit('');
+
   SetLength(buff, AStream.Size);
   AStream.Position := 0;
   AStream.Read(buff[0], AStream.Size);
@@ -968,6 +971,9 @@ function A94ToStream(const str: string): TStream;
 var
   buff: TIdBytes;
 begin
+  if str = '' then
+    Exit(nil);
+
   buff := A94ToIdBytes(str);
   Result := TMemoryStream.Create;
   Result.Write(buff[0], Length(buff));
