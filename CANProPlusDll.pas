@@ -7,7 +7,7 @@ uses
 
 const
 {$IFDEF WIN32}
-  CANPRO_PLUS_DLL = 'CANProPlus.dll';
+  CANPRO_PLUS_DLL = 'CANProPlus_NET.dll';
 {$ELSE}
   CANPRO_PLUS_DLL = 'CANProPlus_64.dll';
 {$ENDIF}
@@ -39,20 +39,6 @@ type
   TData = Array [0 .. 7] of Byte;
   TData4 = Array [0 .. 3] of Byte;
 
-  TeCanMessage = packed record
-    // TYPE Value
-    // 0x04 STD DATA
-    // 0x05 STD REMOTE
-    // 0x06 EXT DATA
-    // 0x07 EXT REMOTE
-    // 0xFF Error Info
-    _type: Byte;
-
-    Id: UInt32;
-    dlc: Byte;
-    data: TData;
-  end;
-
   TCANProMessage = packed record
     Info: TInfo;
     // time: UInt64;
@@ -67,6 +53,8 @@ type
 
   TGetLibraryVersion = function(AInstance: THandle; out version: USHORT): Integer; stdcall;
   TGetVersion = function(AInstance: THandle; out version: USHORT): Integer; stdcall;
+
+  TGetDeviceCount2 = function(): Integer; stdcall;
 
   TGetDeviceCount = function(AInstance: THandle): Integer; cdecl;
   TGetDeviceList = function(AInstance: THandle; out device_count: Integer): PCanDeviceInfo; stdcall;
@@ -90,6 +78,7 @@ type
     FCreateInstance: TCreateInstance;
     FDisposeInstance: TDisposeInstance;
 
+    FGetDeviceCount2: TGetDeviceCount2;
     FGetDeviceCount: TGetDeviceCount;
     FGetLibraryVersion: TGetLibraryVersion;
     FGetVersion: TGetVersion;
@@ -216,6 +205,8 @@ begin
   FDLLHandle := LoadLibrary(CANPRO_PLUS_DLL);
   if FDLLHandle < 32 then
     raise Exception.Create('Load DLL Exception');
+
+  // @FGetDeviceCount2 := GetProcAddress(FDLLHandle, 'GetDeviceCount');
 
   @FCreateInstance := GetProcAddress(FDLLHandle, 'W_CreateCANProPlusCore');
   @FDisposeInstance := GetProcAddress(FDLLHandle, 'W_DisposeCANProPlusCore');
