@@ -71,7 +71,7 @@ type
       const AOutputs: TMsgOutputs = [moDebugView, moLogFile, moCloudMessage]);
 
     function GetLogName: String;
-    procedure _PrintLog(var ALog: TJdcLog);
+    procedure _PrintLog(ALog: TJdcLog);
   public
     destructor Destroy; override;
 
@@ -266,40 +266,42 @@ begin
     FreeAndNil(FMsgQueue);
 end;
 
-procedure TLogging._PrintLog(var ALog: TJdcLog);
+procedure TLogging._PrintLog(ALog: TJdcLog);
 var
   Stream: TStreamWriter;
-  LogName: string;
+  PrevLog, NewLog: TJdcLog;
 begin
-  LogName := ALog.LogName;
-
-  if LogName.IsEmpty then
+  NewLog := ALog;
+  if NewLog.LogName.IsEmpty then
     Exit;
 
-  BackupLogFile(LogName);
-  Stream := TFile.AppendText(LogName);
+  BackupLogFile(NewLog.LogName);
+  Stream := TFile.AppendText(NewLog.LogName);
   try
-    if ALog.Msg.IsEmpty then
+    if NewLog.Msg.IsEmpty then
       Stream.WriteLine
     else
-      Stream.WriteLine(ALog.ToString);
+      Stream.WriteLine(NewLog.ToString);
 
     while FMsgQueue.Count > 0 do
     begin
       Sleep(1);
-      ALog := FMsgQueue.Dequeue;
+      PrevLog := NewLog;
+      NewLog := FMsgQueue.Dequeue;
 
-      if LogName <> ALog.LogName then
-        break;
+      if PrevLog.LogName <> NewLog.LogName then
+      begin
+        Stream.Free;
+        Stream := TFile.AppendText(NewLog.LogName);
+      end;
 
-      if ALog.Msg.IsEmpty then
+      if NewLog.Msg.IsEmpty then
         Stream.WriteLine
       else
-        Stream.WriteLine(ALog.ToString);
+        Stream.WriteLine(NewLog.ToString);
     end;
   finally
-    if Assigned(Stream) then
-      FreeAndNil(Stream);
+    Stream.Free;
   end;
 end;
 
