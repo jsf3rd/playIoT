@@ -3,8 +3,7 @@ unit NetDEVSDK;
 interface
 
 uses System.Classes, System.SysUtils, Winapi.Windows, System.IOUtils, System.Generics.Collections,
-  JdcLogging,
-  JdcGlobal, System.DateUtils, Vcl.ExtCtrls, Vcl.Forms, Vcl.Controls;
+  JdcLogging, JdcGlobal, System.DateUtils, Vcl.ExtCtrls, Vcl.Forms, Vcl.Controls, System.Threading;
 
 const
   NETDEVSDK_DLL = 'NetDEVSDK.DLL';
@@ -674,6 +673,15 @@ type
   TNETDEV_SetPlayDataCallBack = function(lpRealHandle: IntPtr; cbPlayDataCallBack: IntPtr;
     bContinue: Int32; lpUserData: Pointer): Boolean stdcall;
 
+  TSnapConfig = record
+    IP: string;
+    Port: Integer;
+    ID: string;
+    PW: string;
+    CutNum: string;
+    StreamType: Integer;
+  end;
+
   TCCTVInfo = record
     Enable: Boolean;
     IP: AnsiString;
@@ -681,6 +689,7 @@ type
     ID: AnsiString;
     Password: AnsiString;
 
+    constructor Create(AConfig: TSnapConfig);
     function Equals(AInfo: TCCTVInfo): Boolean;
     function ToNetNETDEVDeviceLoginInfo: TNETDEVLoginInfo;
   end;
@@ -688,15 +697,21 @@ type
   TPlayerInfo = class
   strict private
     FID: string;
+    FLoggingIn: Boolean;
     FUserID: IntPtr;
     FRealHandle: IntPtr;
     FCCTVInfo: TCCTVInfo;
     FRetryCount: Integer;
 
     FTick: Cardinal;
+
+    FData: TStream;
+    FLastCapture: Cardinal;
+
     FPlayControl: TWinControl;
     FAliveTask: TThread;
     procedure CheckAlive;
+    procedure SetData(const Value: TStream);
   public
     constructor Create(AID: String);
     destructor Destroy; override;
@@ -706,7 +721,7 @@ type
     function Logined: Boolean;
 
     function Login(AInfo: TCCTVInfo): Boolean;
-    function Login_V30(AInfo: TCCTVInfo): Boolean;
+    function Login_V30: Boolean; overload;
     function Logout: Boolean;
     function GetStreamInfo(const dwChannelID: Int32; var lpOutBuffer: TNETDEVVideoStreamInfo;
       const dwOutBufferSize: Int32; var pdwBytesReturned: Int32): Boolean;
@@ -716,12 +731,16 @@ type
     function CapturePicture(const szFileName: String;
       const dwCaptureMode: TNetDEVPictureFormat = NETDEV_PICTURE_JPG): Boolean;
 
+    function ToString: string; override;
+
     property UserID: IntPtr read FUserID write FUserID;
-    property RealHandle: IntPtr read FRealHandle write FRealHandle;
     property CCTVInfo: TCCTVInfo read FCCTVInfo write FCCTVInfo;
     property ID: string read FID;
     property Retry: Integer read FRetryCount write FRetryCount;
     property Tick: Cardinal read FTick write FTick;
+    property LastCapture: Cardinal read FLastCapture write FLastCapture;
+    property Data: TStream read FData write SetData;
+    property LoggingIn: Boolean read FLoggingIn write FLoggingIn;
   end;
 
   TNetDEV = class
@@ -773,8 +792,6 @@ var
   FNETDEV_Cleanup: TNETDEV_Cleanup;
   FNETDEV_SetLogPath: NETDEV_SetLogPath;
   FNETDEV_GetLastError: TNETDEV_GetLastError;
-
-  CritSect: TRTLCriticalSection;
 
 function StreamCompare(Stream1, Stream2: TStream): Boolean;
 var
@@ -836,10 +853,10 @@ begin
   if Result then
   begin
     FInited := False;
-    TLogging.Obj.ApplicationMessage(msDebug, 'NETDEV_Cleanup')
+    TLogging.Obj.ApplicationMessage(msDebug, 'ND_Cleanup')
   end
   else
-    TLogging.Obj.ApplicationMessage(msWarning, 'NETDEV_Cleanup', TNetDEV.Obj.GetLastError)
+    TLogging.Obj.ApplicationMessage(msWarning, 'ND_Cleanup', TNetDEV.Obj.GetLastError)
 end;
 
 constructor TNetDEV.Create;
@@ -863,10 +880,10 @@ var
   MyPlayer: TPlayerInfo;
 begin
   try
+    Cleanup;
     for MyPlayer in FPlayerDic.Values do
       MyPlayer.Free;
     FPlayerDic.Free;
-    Cleanup;
   except
     on E: Exception do
   end;
@@ -881,7 +898,7 @@ begin
   if FDLLHandle > 0 then
   begin
     try
-      TLogging.Obj.ApplicationMessage(msDebug, 'NetDEV_FreeDLL', 'Handle=%d', [FDLLHandle]);
+      TLogging.Obj.ApplicationMessage(msDebug, 'ND_FreeDLL', 'Handle=%d', [FDLLHandle]);
       FDLLHandle := 0;
     except
       on E: Exception do
@@ -902,9 +919,9 @@ begin
     FInited := FNETDEV_Init;
   Result := FInited;
   if Result then
-    TLogging.Obj.ApplicationMessage(msDebug, 'NETDEV_Init')
+    TLogging.Obj.ApplicationMessage(msDebug, 'ND_Init')
   else
-    TLogging.Obj.ApplicationMessage(msWarning, 'NETDEV_Init', TNetDEV.Obj.GetLastError)
+    TLogging.Obj.ApplicationMessage(msWarning, 'ND_Init', TNetDEV.Obj.GetLastError)
 end;
 
 function TNetDEV.GetKeys: TArray<String>;
@@ -1009,6 +1026,15 @@ end;
 
 { TCCTVInfo }
 
+constructor TCCTVInfo.Create(AConfig: TSnapConfig);
+begin
+  Self.Enable := True;
+  Self.IP := AnsiString(AConfig.IP);
+  Self.Port := AConfig.Port;
+  Self.ID := AnsiString(AConfig.ID);
+  Self.Password := AnsiString(AConfig.PW);
+end;
+
 function TCCTVInfo.Equals(AInfo: TCCTVInfo): Boolean;
 begin
   Result := (Self.IP = AInfo.IP) and (Self.Port = AInfo.Port) and (Self.ID = AInfo.ID) and
@@ -1047,15 +1073,24 @@ end;
 
 constructor TPlayerInfo.Create(AID: String);
 begin
+  FLoggingIn := False;
   FID := AID;
   FRetryCount := 0;
   FTick := 0;
+  FData := TMemoryStream.Create;
+  FLastCapture := 0;
   Reset;
 
   FAliveTask := TThread.CreateAnonymousThread(
     procedure
     begin
-      CheckAlive();
+      try
+        CheckAlive();
+      except
+        on E: Exception do
+          TLogging.Obj.ApplicationMessage(msError, 'CheckAlive', E.Message);
+      end;
+
     end);
   FAliveTask.FreeOnTerminate := False;
   FAliveTask.Start;
@@ -1072,6 +1107,10 @@ begin
 
   Self.StopRealPlay;
   Self.Logout;
+
+  if Assigned(FData) then
+    FreeAndNil(FData);
+
   inherited;
 end;
 
@@ -1100,12 +1139,12 @@ begin
   if Result then
   begin
     FNETDEV_SetExceptionCallBack(ExceptionCallBack, nil);
-    TLogging.Obj.ApplicationMessage(msDebug, 'NetDEV_Login', 'Key=%s,ID=%d', [FID, FUserID]);
+    TLogging.Obj.ApplicationMessage(msDebug, 'ND_Login', 'CutNum=%s,ID=%d', [FID, FUserID]);
   end
   else
   begin
     FRetryCount := FRetryCount + 1;
-    TLogging.Obj.ApplicationMessage(msWarning, 'NetDEV_Login', 'Key=%s,E=%s',
+    TLogging.Obj.ApplicationMessage(msWarning, 'ND_Login', 'CutNum=%s,E=%s',
       [FID, TNetDEV.Obj.GetLastError]);
   end;
 end;
@@ -1115,28 +1154,37 @@ begin
   Result := FUserID > 0;
 end;
 
-function TPlayerInfo.Login_V30(AInfo: TCCTVInfo): Boolean;
+function TPlayerInfo.Login_V30: Boolean;
 var
   pstDevLoginInfo: TNETDEVLoginInfo;
   pstDevSelogInfo: TNETDEVSelogInfo;
   ret, ChCount: IntPtr;
   Info: TNETDEVVideoCHLDetailInfo;
 begin
-  pstDevLoginInfo := AInfo.ToNetNETDEVDeviceLoginInfo;
-  FUserID := FNETDEV_Login_V30(pstDevLoginInfo, pstDevSelogInfo);
+  FLoggingIn := True;
+  try
+    TLogging.Obj.ApplicationMessage(msDebug, 'ND_TryLogin', 'CutNum=%s,RetryCount=%d',
+      [FID, FRetryCount]);
+    pstDevLoginInfo := FCCTVInfo.ToNetNETDEVDeviceLoginInfo;
+    FUserID := FNETDEV_Login_V30(pstDevLoginInfo, pstDevSelogInfo);
+  finally
+    FLoggingIn := False;
+  end;
+
   Result := Self.Logined;
   if Result then
   begin
+    FLoggingIn := False;
     FRetryCount := 0;
     FNETDEV_SetExceptionCallBack(ExceptionCallBack, nil);
-    TLogging.Obj.ApplicationMessage(msDebug, 'NetDEV_Login_V30', 'Key=%s,ID=%d', [FID, FUserID]);
+    TLogging.Obj.ApplicationMessage(msInfo, 'ND_LoginSuccess', 'CutNum=%s,ID=%d', [FID, FUserID]);
     ret := FNETDEV_QueryVideoChlDetailList(FUserID, ChCount, Info);
-    TLogging.Obj.ApplicationMessage(msDebug, 'ChannelList', 'Key=%s,Count=%d', [FID, ChCount]);
+    TLogging.Obj.ApplicationMessage(msInfo, 'ND_ChannelList', 'CutNum=%s,Count=%d', [FID, ChCount]);
   end
   else
   begin
     FRetryCount := FRetryCount + 1;
-    TLogging.Obj.ApplicationMessage(msWarning, 'NetDEV_Login_V30', 'Key=%s,E=%s',
+    TLogging.Obj.ApplicationMessage(msWarning, 'ND_LoginFailed', 'CutNum=%s,E=%s',
       [FID, TNetDEV.Obj.GetLastError]);
   end;
 end;
@@ -1153,11 +1201,11 @@ begin
   Result := FNETDEV_Logout(FUserID);
   if Result then
   begin
-    TLogging.Obj.ApplicationMessage(msDebug, 'NETDEV_Logout', 'Key=%s,ID=%d', [FID, FUserID]);
+    TLogging.Obj.ApplicationMessage(msInfo, 'ND_Logout', 'CutNum=%s,ID=%d', [FID, FUserID]);
     Reset;
   end
   else
-    TLogging.Obj.ApplicationMessage(msWarning, 'NETDEV_Logout', 'Key=%s,E=%s',
+    TLogging.Obj.ApplicationMessage(msWarning, 'ND_Logout', 'CutNum=%s,E=%s',
       [FID, TNetDEV.Obj.GetLastError]);
 end;
 
@@ -1170,24 +1218,19 @@ procedure TPlayerInfo.CheckAlive();
 begin
   while not TThread.CurrentThread.CheckTerminated do
   begin
-    Sleep(101);
-    if SecondOf(Now) mod 30 <> 0 then
+    Sleep(501);
+    if not Self.Played then
       Continue;
 
-    if not Self.Played then
-      Exit;
-
-    if GetTickCount - FTick < 10000 then
-      Exit;
+    if Abs(GetTickCount - FTick) < 5000 then
+      Continue;
 
     TLogging.Obj.ApplicationMessage(msWarning, 'NoData', 'MyTick=%d,NewTick=%d,E=%d',
       [FTick, GetTickCount, GetLastError]);
-    Self.StopRealPlay;
-    if Self.RealPlay(FPlayControl) then
-      Exit;
-    Self.Logout;
-    if Self.Login_V30(Self.CCTVInfo) then
-      Self.RealPlay(FPlayControl);
+
+    // No Data Àç½ÃÀÛ!
+    if Assigned(MyOnException) then
+      MyOnException(TNETDEVException.NETDEV_EXCEPTION_REPORT_VOD_END);
   end;
 end;
 
@@ -1215,14 +1258,14 @@ begin
   begin
     FTick := GetTickCount;
     FRetryCount := 0;
-    TLogging.Obj.ApplicationMessage(msDebug, 'NETDEV_RealPlay', 'ID=%d,RealHandle=%d',
-      [FUserID, FRealHandle]);
+    TLogging.Obj.ApplicationMessage(msInfo, 'NETDEV_RealPlay', 'CutNum=%s,ID=%d,RealHandle=%d',
+      [FID, FUserID, FRealHandle]);
   end
   else
   begin
     FRetryCount := FRetryCount + 1;
-    TLogging.Obj.ApplicationMessage(msWarning, 'NETDEV_RealPlay', 'ID=%d,TryCount=%d,E=%s',
-      [FUserID, FRetryCount, TNetDEV.Obj.GetLastError]);
+    TLogging.Obj.ApplicationMessage(msWarning, 'NETDEV_RealPlay',
+      'CutNum=%s,ID=%d,TryCount=%d,E=%s', [FID, FUserID, FRetryCount, TNetDEV.Obj.GetLastError]);
   end;
 end;
 
@@ -1230,6 +1273,13 @@ procedure TPlayerInfo.Reset;
 begin
   FUserID := 0;
   FRealHandle := 0;
+end;
+
+procedure TPlayerInfo.SetData(const Value: TStream);
+begin
+  if Assigned(FData) then
+    FreeAndNil(FData);
+  FData := Value;
 end;
 
 function TPlayerInfo.StopRealPlay: Boolean;
@@ -1248,21 +1298,25 @@ begin
     end);
   if ret then
   begin
-    TLogging.Obj.ApplicationMessage(msDebug, 'NETDEV_StopRealPlay', 'ID=%d,RealHandle=%d',
+    TLogging.Obj.ApplicationMessage(msInfo, 'ND_StopRealPlay', 'ID=%d,RealHandle=%d',
       [FUserID, FRealHandle]);
     FRealHandle := 0;
   end
   else
   begin
     Result := False;
-    TLogging.Obj.ApplicationMessage(msWarning, 'NETDEV_StopRealPlay', 'ID=%d,RealHandle=%d,E=%s',
+    TLogging.Obj.ApplicationMessage(msWarning, 'ND_StopRealPlay', 'ID=%d,RealHandle=%d,E=%s',
       [FUserID, FRealHandle, TNetDEV.Obj.GetLastError]);
   end;
 end;
 
+function TPlayerInfo.ToString: string;
+begin
+  Result := format('CutNum=%s', [FID]);
+end;
+
 initialization
 
-InitializeCriticalSection(CritSect);
 if MyObj = nil then
   MyObj := TNetDEV.Create;
 
@@ -1270,6 +1324,5 @@ finalization
 
 if Assigned(MyObj) then
   FreeAndNil(MyObj);
-DeleteCriticalSection(CritSect);
 
 end.
