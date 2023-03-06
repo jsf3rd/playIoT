@@ -67,7 +67,7 @@ type
     function HasDirection: Boolean;
 
     function MarkCaption: String;
-    function FileName(AIndex: integer; AGPS: TGPS): string;
+    function FileName(AIndex: integer; AGPS: TGPS; ATime: TDateTime): string;
 
     property State: TState read FState;
     property StateNoRoadMark: TState read FStateNoRoadMark;
@@ -300,9 +300,9 @@ begin
   FState := AState;
 end;
 
-function TRoadMarkJudge.FileName(AIndex: integer; AGPS: TGPS): string;
+function TRoadMarkJudge.FileName(AIndex: integer; AGPS: TGPS; ATime: TDateTime): string;
 begin
-  result := FormatDateTime('YYYYMMDD_HHNNSS.ZZZ_', AGPS.DateTime) +
+  result := FormatDateTime('YYYYMMDD_HHNNSS.ZZZ_', ATime) +
     Format('%0.6d_%0.7f_%0.7f_%d_%s_%s_%s_%0.3d.jpg', [AIndex, AGPS.latitude, AGPS.longitude,
     AGPS.quality, FDriveMark.road_code, FDriveMark.GetRoadDirection, FDriveMark.GetMarkName,
     Trunc(AGPS.Speed)]);
