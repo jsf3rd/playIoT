@@ -535,6 +535,8 @@ const
     ('20039', 'M3u8 Failed to get cloud video M3u8 information'));
 
 type
+  TPlayerInfo = class;
+
   TNETDEVAlarmInfo = packed record
     tAlarmTime: Int64;
     dwChannelID: Int32;
@@ -572,7 +574,7 @@ type
     NETDEV_EXCEPTION_REPORT_BACKUP_ABEND = 305, NETDEV_EXCEPTION_EXCHANGE = $8000,
     NETDEV_EXCEPTION_REPORT_INVALID = $FFFF);
 
-  TOnException = procedure(AType: TNETDEVException) of object;
+  TOnException = procedure(AInfo: TPlayerInfo; AType: TNETDEVException) of object;
 
   TNetDEVDeviceInfo = packed record
     dwDevType: Int32;
@@ -709,6 +711,8 @@ type
     FLastCapture: Cardinal;
 
     FPlayControl: TWinControl;
+    FStreamType: TNetDEVLiveStreamIndex;
+
     FAliveTask: TThread;
     procedure CheckAlive;
     procedure SetData(const Value: TStream);
@@ -725,8 +729,9 @@ type
     function Logout: Boolean;
     function GetStreamInfo(const dwChannelID: Int32; var lpOutBuffer: TNETDEVVideoStreamInfo;
       const dwOutBufferSize: Int32; var pdwBytesReturned: Int32): Boolean;
+    function RealPlay: Boolean; overload;
     function RealPlay(AControl: TWinControl;
-      AStreamType: TNetDEVLiveStreamIndex = NETDEV_LIVE_STREAM_INDEX_AUX): Boolean;
+      AStreamType: TNetDEVLiveStreamIndex = NETDEV_LIVE_STREAM_INDEX_AUX): Boolean; overload;
     function StopRealPlay: Boolean;
     function CapturePicture(const szFileName: String;
       const dwCaptureMode: TNetDEVPictureFormat = NETDEV_PICTURE_JPG): Boolean;
@@ -826,7 +831,7 @@ procedure ExceptionCallBack(plUserID: IntPtr; dwType: Int32; plExpHandle: IntPtr
   plUserData: Pointer)stdcall;
 begin
   if Assigned(MyOnException) then
-    MyOnException(TNETDEVException(dwType));
+    MyOnException(TPlayerInfo(plUserData), TNETDEVException(dwType));
 end;
 
 { TNetDEV }
@@ -913,7 +918,7 @@ begin
     raise Exception.Create('path not exist. [' + ALibPath + ']');
 
   LoadDLL(ALibPath);
-  SetLogPath(ALogPath);
+  SetLogPath(ALogPath + '\NetDEV');
 
   if not FInited then
     FInited := FNETDEV_Init;
@@ -1225,12 +1230,11 @@ begin
     if Abs(GetTickCount - FTick) < 5000 then
       Continue;
 
-    TLogging.Obj.ApplicationMessage(msWarning, 'NoData', 'MyTick=%d,NewTick=%d,E=%d',
-      [FTick, GetTickCount, GetLastError]);
+    FTick := GetTickCount;
 
     // No Data Àç½ÃÀÛ!
     if Assigned(MyOnException) then
-      MyOnException(TNETDEVException.NETDEV_EXCEPTION_REPORT_VOD_END);
+      MyOnException(Self, TNETDEVException.NETDEV_EXCEPTION_REPORT_VOD_END);
   end;
 end;
 
@@ -1249,6 +1253,7 @@ begin
     begin
       FPlayControl := AControl;
       FPlayControl.Invalidate;
+      FStreamType := AStreamType;
       PreviewInfo := TPreviewInfo.Create(AControl.Handle, AStreamType);
       FRealHandle := FNETDEV_RealPlay(FUserID, PreviewInfo, OnSourceDataCallBack, Self);
     end);
@@ -1267,6 +1272,11 @@ begin
     TLogging.Obj.ApplicationMessage(msWarning, 'NETDEV_RealPlay',
       'CutNum=%s,ID=%d,TryCount=%d,E=%s', [FID, FUserID, FRetryCount, TNetDEV.Obj.GetLastError]);
   end;
+end;
+
+function TPlayerInfo.RealPlay: Boolean;
+begin
+  Result := RealPlay(FPlayControl, FStreamType);
 end;
 
 procedure TPlayerInfo.Reset;
@@ -1298,7 +1308,7 @@ begin
     end);
   if ret then
   begin
-    TLogging.Obj.ApplicationMessage(msInfo, 'ND_StopRealPlay', 'ID=%d,RealHandle=%d',
+    TLogging.Obj.ApplicationMessage(msInfo, 'StopRealPlay', 'ID=%d,RealHandle=%d',
       [FUserID, FRealHandle]);
     FRealHandle := 0;
   end
