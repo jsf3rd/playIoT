@@ -9,12 +9,14 @@ uses System.SysUtils, System.Classes, JdcGlobal, Data.DB, System.JSON, REST.JSON
 type
   TGPS = record
     Header: string;
-    DateTime: TDateTime;
+    DateTime: TDateTime; // GPS Time
     latitude: double;
     longitude: double;
     Speed: double;
     quality: integer;
-    constructor Create(AValue: string; ATime: TDateTime);
+    PCTime: TDateTime;
+    constructor Create(AValue: string; _PCTime: TDateTime);
+    function ToString(): string;
   end;
 
 const
@@ -25,11 +27,13 @@ implementation
 
 { TGPS }
 
-constructor TGPS.Create(AValue: string; ATime: TDateTime);
+constructor TGPS.Create(AValue: string; _PCTime: TDateTime);
 var
   Msg: TStringList;
   Index: integer;
 begin
+  Self.PCTime := _PCTime;
+
   Msg := TStringList.Create;
   Msg.CommaText := AValue;
 
@@ -49,17 +53,12 @@ begin
       else
         Self.quality := 1;
 
-      if ATime = 0 then
-        // 날짜 변경시 오류 발생
-        Self.DateTime := StrToDateTime(FormatDateTime('YYYY-MM-DD ', Now) + Format('%s:%s:%s%s',
-          [copy(Msg.Strings[Index], 1, 2), copy(Msg.Strings[Index], 3, 2), copy(Msg.Strings[Index],
-          5, 2), copy(Msg.Strings[Index], 7, 3)]), DefaultFormatSettings)
-      else
-        Self.DateTime := Now;
-
+      Self.DateTime := StrToDateTimeDef(FormatDateTime('YYYY-MM-DD ', Now) + Format('%s:%s:%s%s',
+        [copy(Msg.Strings[Index], 1, 2), copy(Msg.Strings[Index], 3, 2), copy(Msg.Strings[Index], 5,
+        2), copy(Msg.Strings[Index], 7, 3)]), _PCTime, DefaultFormatSettings);
       Self.latitude := ConvertDegree(Msg.Strings[Index + 2]);
       Self.longitude := ConvertDegree(Msg.Strings[Index + 4]);
-      Self.Speed := StrToFloatDef(Msg.Strings[Index + 6], 0) * 1.852;
+      Self.Speed := StrToFloatDef(Msg.Strings[Index + 6], 0) * 1.852; // knots to km/h
       Index := Index + 11;
     end;
 
@@ -71,14 +70,11 @@ begin
       // $GPGGA,hhmmss.ss,Latitude,N,Longitude,E,FS,NoSV,HDOP,msl,m,Altref,m,DiffAge,DiffStation*cs<CR><LF>
       // $GPGGA,092725.00,4717.11399,N,00833.91590,E,1,8,1.01,499.6,M,48.0,M,,0*5B
 
-      if ATime = 0 then
-        // 날짜 변경시 오류 발생
-        Self.DateTime := StrToDateTime(FormatDateTime('YYYY-MM-DD ', Now) + Format('%s:%s:%s%s',
-          [copy(Msg.Strings[Index], 1, 2), copy(Msg.Strings[Index], 3, 2), copy(Msg.Strings[Index],
-          5, 2), copy(Msg.Strings[Index], 7, 3)]), DefaultFormatSettings)
-      else
-        Self.DateTime := Now;
+      // $GNGGA,090331.12,3651.27214,N,12637.43041,E,4,12,0.57,62.5,M,18.1,M,,4095*7C
 
+      Self.DateTime := StrToDateTimeDef(FormatDateTime('YYYY-MM-DD ', Now) + Format('%s:%s:%s%s',
+        [copy(Msg.Strings[Index], 1, 2), copy(Msg.Strings[Index], 3, 2), copy(Msg.Strings[Index], 5,
+        2), copy(Msg.Strings[Index], 7, 3)]), _PCTime, DefaultFormatSettings);
       Self.latitude := ConvertDegree(Msg.Strings[Index + 1]);
       Self.longitude := ConvertDegree(Msg.Strings[Index + 3]);
       Self.Speed := 0;
@@ -95,6 +91,12 @@ begin
     end;
     Inc(Index);
   end;
+end;
+
+function TGPS.ToString: string;
+begin
+  result := Format('%s,%s,%0.6f, %0.6f,%d', [Self.Header, Self.DateTime.ToString, Self.latitude,
+    Self.longitude, Self.quality]);
 end;
 
 end.
