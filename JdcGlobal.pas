@@ -36,7 +36,7 @@ type
     procedure Execute(AValue: T);
   End;
 
-  TData = Array [0 .. 7] of Byte;
+  TCanData = Array [0 .. 7] of Byte;
 
   TeCanMessage = packed record
     // TYPE Value
@@ -49,7 +49,7 @@ type
 
     Id: UInt32;
     dlc: Byte;
-    data: TData;
+    data: TCanData;
   end;
 
   TMessageType = (msDebug, msInfo, msError, msWarning, msSystem);
@@ -142,7 +142,9 @@ function HexStrToBytes(const ASource: string; const AIndex: Integer = 1): TIdByt
 function IdBytesToHex(const AValue: TIdBytes; const ASpliter: String = ' '): String;
 function BytesToHex(const AValue: TBytes; const ASpliter: String = ' '): String;
 
-function IdBytesPos(const SubIdBytes, IdBytes: TIdBytes; const AIndex: Integer = 0): Integer;
+function IdBytesPos(const _SubIdBytes, IdBytes: TIdBytes; const AIndex: Integer = 0): Integer;
+function SubIdBytes(const Buffer: TIdBytes; const AIndex: Integer = 0; const ALength: Integer = 0)
+  : TIdBytes;
 
 function StrDefault(const str: string; const Default: string): string;
 
@@ -505,21 +507,40 @@ begin
     TThread.Synchronize(nil, AThreadProc);
 end;
 
-function IdBytesPos(const SubIdBytes, IdBytes: TIdBytes; const AIndex: Integer = 0): Integer;
+function IdBytesPos(const _SubIdBytes, IdBytes: TIdBytes; const AIndex: Integer = 0): Integer;
 var
   Index: Integer;
   I: Integer;
 begin
-  Index := ByteIndex(SubIdBytes[0], IdBytes, AIndex);
-  if Index = -1 then
-    Exit(-1);
+  result := -1;
+  if Length(_SubIdBytes) = 0 then
+    Exit;
 
-  for I := 0 to Length(SubIdBytes) - 1 do
+  Index := ByteIndex(_SubIdBytes[0], IdBytes, AIndex);
+  if Index = -1 then
+    Exit;
+
+  for I := 0 to Length(_SubIdBytes) - 1 do
   begin
-    if IdBytes[Index + I] <> SubIdBytes[I] then
-      Exit(IdBytesPos(SubIdBytes, IdBytes, Index + I));
+    if IdBytes[Index + I] <> _SubIdBytes[I] then
+      Exit(IdBytesPos(_SubIdBytes, IdBytes, Index + I));
   end;
+
   result := Index;
+end;
+
+function SubIdBytes(const Buffer: TIdBytes; const AIndex: Integer = 0; const ALength: Integer = 0)
+  : TIdBytes;
+var
+  _Length: Integer;
+begin
+  _Length := Length(Buffer);
+  if ALength = 0 then
+    SetLength(result, _Length - AIndex)
+  else
+    SetLength(result, ALength);
+
+  CopyTIdBytes(Buffer, AIndex, result, 0, Length(result));
 end;
 
 function IdBytesToHex(const AValue: TIdBytes; const ASpliter: String): String;
