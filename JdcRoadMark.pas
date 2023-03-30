@@ -329,8 +329,9 @@ end;
 
 function TStateNearby.MarkCaption: string;
 begin
-  result := Format('%s %skm 근방', [FRoadMarkJudge.DriveMark.road_name,
-    FRoadMarkJudge.DriveMark.mark_name])
+  result := Format('%s %skm 근방(%s)', [FRoadMarkJudge.DriveMark.road_name,
+    FRoadMarkJudge.DriveMark.mark_name,
+    FRoadMarkJudge.AskBranchName(FRoadMarkJudge.DriveMark.branch_code)])
 end;
 
 { TRoadMark }
