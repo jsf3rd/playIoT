@@ -3,7 +3,7 @@ unit CANProPlusDll;
 interface
 
 uses
-  Windows, System.SysUtils, System.Classes, System.Generics.Collections;
+  Windows, System.SysUtils, System.Classes, System.Generics.Collections, JdcGlobal;
 
 const
 {$IFDEF WIN32}
@@ -35,9 +35,6 @@ type
     Info: Byte;
     Bits: TBits;
   end;
-
-  TData = Array [0 .. 7] of Byte;
-  TData4 = Array [0 .. 3] of Byte;
 
   TCANProMessage = packed record
     Info: TInfo;
