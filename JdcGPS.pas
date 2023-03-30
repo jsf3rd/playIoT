@@ -12,6 +12,7 @@ type
     DateTime: TDateTime; // GPS Time
     latitude: double;
     longitude: double;
+    altitude: double;
     Speed: double;
     quality: integer;
     PCTime: TDateTime;
@@ -32,6 +33,7 @@ var
   Msg: TStringList;
   Index: integer;
 begin
+  Self.Header := '';
   Self.PCTime := _PCTime;
 
   Msg := TStringList.Create;
@@ -43,6 +45,10 @@ begin
     if Pos(GPS_RMC, Msg.Strings[Index]) > 0 then
     begin
       Inc(Index);
+
+      if Msg.Count < Index + 10 then
+        Continue;
+
       Self.Header := GPS_RMC;
 
       // $GPRMC,hhmmss,status,latitude,N,longitude,E,spd,cog,ddmmyy,mv,mvE,mode*cs<CR><LF>
@@ -58,6 +64,7 @@ begin
         2), copy(Msg.Strings[Index], 7, 3)]), _PCTime, DefaultFormatSettings);
       Self.latitude := ConvertDegree(Msg.Strings[Index + 2]);
       Self.longitude := ConvertDegree(Msg.Strings[Index + 4]);
+      Self.altitude := 0;
       Self.Speed := StrToFloatDef(Msg.Strings[Index + 6], 0) * 1.852; // knots to km/h
       Index := Index + 11;
     end;
@@ -65,6 +72,10 @@ begin
     if Pos(GPS_GGA, Msg.Strings[Index]) > 0 then
     begin
       Inc(Index);
+
+      if Msg.Count < Index + 14 then
+        Continue;
+
       Self.Header := GPS_GGA;
 
       // $GPGGA,hhmmss.ss,Latitude,N,Longitude,E,FS,NoSV,HDOP,msl,m,Altref,m,DiffAge,DiffStation*cs<CR><LF>
@@ -77,6 +88,7 @@ begin
         2), copy(Msg.Strings[Index], 7, 3)]), _PCTime, DefaultFormatSettings);
       Self.latitude := ConvertDegree(Msg.Strings[Index + 1]);
       Self.longitude := ConvertDegree(Msg.Strings[Index + 3]);
+      Self.altitude := StrToFloatDef(Msg.Strings[Index + 8], 0);
       Self.Speed := 0;
 
       // 0: Fix not valid
