@@ -96,8 +96,8 @@ end;
 
 function TRTSP.LoadVLCLibrary(APath: string): Integer;
 begin
-  Result := LoadLibrary(PChar(APath + 'libvlccore.dll'));
-  Result := LoadLibrary(PChar(APath + 'libvlc.dll'));
+  Result := LoadLibrary(PChar(APath + 'libvlc.dll')) and
+    LoadLibrary(PChar(APath + 'libvlccore.dll'));
 end;
 
 function TRTSP.Play(AIndex: Integer; AHandle: HWND; Caching: string): Boolean;
@@ -108,15 +108,26 @@ var
   prof: TProfiles;
   URL: string;
   StreamUri: TStreamUri;
+const
+  ERROR_MSG = 'Can''t locate the url';
+
 begin
   profxml := Trim(ONVIFGetProfiles('http://' + FConnInfo.ToString + '/onvif/media', FUser,
     FPassword));
+
+  if profxml = ERROR_MSG then
+    profxml := Trim(ONVIFGetProfiles('http://' + FConnInfo.ToString + '/onvif/media_service', FUser,
+      FPassword));
+
   XMLProfilesToProfiles(profxml, prof);
   if Length(prof) = 0 then
     raise Exception.Create('No channel list');
 
   StreamXml := Trim(ONVIFGetStreamUri('http://' + FConnInfo.ToString + '/onvif/media', FUser,
     FPassword, 'RTP-Unicast', 'RTSP', prof[AIndex].token));
+  if StreamXml = ERROR_MSG then
+    StreamXml := Trim(ONVIFGetStreamUri('http://' + FConnInfo.ToString + '/onvif/media_service',
+      FUser, FPassword, 'RTP-Unicast', 'RTSP', prof[AIndex].token));
 
   XMLStreamUriToStreamUri(StreamXml, StreamUri);
 
