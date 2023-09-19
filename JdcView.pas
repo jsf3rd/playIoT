@@ -22,8 +22,8 @@ type
     procedure sp_InfoMessage(const AName: String; AMsg: String = '');
     procedure sp_DebugMessage(const AName: String; AMsg: String = '');
 
-    procedure sp_SyncMessage(const ACode: String; AMsg: String = '');
-    procedure sp_AsyncMessage(const ACode: String; AMsg: String = '');
+    procedure sp_SyncMessage(const ACode: String; AMsg: String = ''; ARemark: String = '');
+    procedure sp_AsyncMessage(const ACode: String; AMsg: String = ''; ARemark: String = '');
     destructor Destroy; override;
 
     procedure sp_Terminate(const Msg: string = '');
@@ -46,7 +46,7 @@ begin
   inherited;
 end;
 
-procedure TView.sp_AsyncMessage(const ACode: String; AMsg: String = '');
+procedure TView.sp_AsyncMessage(const ACode: String; AMsg: String = ''; ARemark: String = '');
 var
   JsonData: TJsonData;
 begin
@@ -54,6 +54,8 @@ begin
   try
     JsonData.Values['Code'] := ACode;
     JsonData.Values['Msg'] := AMsg;
+    JsonData.Values['Remark'] := ARemark;
+
     AsyncBroadcast(JsonData);
   finally
     JsonData.Free;
@@ -150,7 +152,7 @@ begin
   end;
 end;
 
-procedure TView.sp_SyncMessage(const ACode: String; AMsg: String = '');
+procedure TView.sp_SyncMessage(const ACode: String; AMsg: String = ''; ARemark: String = '');
 var
   JsonData: TJsonData;
 begin
@@ -158,6 +160,7 @@ begin
   try
     JsonData.Values['Code'] := ACode;
     JsonData.Values['Msg'] := AMsg;
+    JsonData.Values['Remark'] := ARemark;
 
     BroadCast(JsonData);
 

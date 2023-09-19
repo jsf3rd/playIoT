@@ -3,11 +3,9 @@ unit JdcRoadMark;
 interface
 
 uses System.SysUtils, System.Classes, System.DateUtils, JdcGlobal.DSCommon,
-  JdcGlobal.ClassHelper, JdcGlobal, JdcGPS;
+  JdcGlobal.ClassHelper, JdcGlobal, JdcGPS, JdcLogging;
 
 type
-  TAskBranchName = function(ACode: string): string of object;
-
   TRoadMarkJudge = class;
 
   TRoadMark = record
@@ -20,13 +18,17 @@ type
     longitude: double;
     utm_x: double;
     utm_y: double;
+    branch_name: string;
     branch_code: string;
     lane_count: integer;
     pavement: integer;
-    function ToString(AName: string): String;
+    function ToString: String;
     function mark_value: double;
     function GetRoadDirection: string;
     function GetMarkName: string;
+
+    procedure NoRoadMark;
+    function IsValid: Boolean;
   end;
 
   TState = class abstract
@@ -35,10 +37,10 @@ type
   public
     constructor Create(Sender: TObject); virtual;
 
-    procedure OnRoadMark(RoadMark: TRoadMark; ADirection: string); virtual;
-    procedure NoRoadmark; virtual;
-    procedure Undirection(RoadMark: TRoadMark); virtual;
-    procedure Nearby(RoadMark: TRoadMark); virtual;
+    procedure OnRoadMark(var RoadMark: TRoadMark; const ADirection: string); virtual;
+    procedure NoRoadMark; virtual;
+    procedure Undirection(const RoadMark: TRoadMark); virtual;
+    procedure Nearby(const RoadMark: TRoadMark); virtual;
     function MarkCaption: string; virtual;
   end;
 
@@ -51,23 +53,26 @@ type
     FStateDrive: TState;
     FStateKeepDirection: TState;
 
-    FDriveMark: TRoadMark;
-    FAskBranchName: TAskBranchName;
+    FDriveMark: TRoadMark; // 1st
+    FAltMark: TRoadMark; // 2nd
+
+    FMarkTick: UInt64;
   public
     procedure SetState(AState: TState);
     constructor Create;
-    procedure OnRoadMarks(Marks: TArray<TRoadMark>);
+    destructor Destroy; override;
+
+    procedure OnRoadMarks(const Marks: TArray<TRoadMark>);
 
     procedure SetNoRoadMark;
-    procedure NoRoadmark;
-    procedure UpdateRoadMark(RoadMark: TRoadMark);
-    function CalcDirection(NewMark: TRoadMark): string;
+    procedure UpdateRoadMark(const RoadMark: TRoadMark);
+    function CalcDirection(const NewMark: TRoadMark): string;
     function DriveRoadDirection: string;
     function DriveRoadCode: string;
     function HasDirection: Boolean;
 
     function MarkCaption: String;
-    function FileName(AIndex: integer; AGPS: TGPS; ATime: TDateTime): string;
+    function FileName(const AIndex: integer; const AGPS: TGPSData; const ATime: TDateTime): string;
 
     property State: TState read FState;
     property StateNoRoadMark: TState read FStateNoRoadMark;
@@ -77,7 +82,9 @@ type
     property StateKeepDirection: TState read FStateKeepDirection;
 
     property DriveMark: TRoadMark read FDriveMark;
-    property AskBranchName: TAskBranchName read FAskBranchName write FAskBranchName;
+    property AltMArk: TRoadMark read FAltMark;
+
+    property MarkTick: UInt64 read FMarkTick;
   end;
 
   TMarkParam = record
@@ -97,7 +104,7 @@ type
 
   TStateUndirection = class(TState)
   public
-    procedure OnRoadMark(RoadMark: TRoadMark; ADirection: string); override;
+    procedure OnRoadMark(var RoadMark: TRoadMark; const ADirection: string); override;
   end;
 
   TStateNearby = class(TState)
@@ -107,7 +114,7 @@ type
 
   TStateDrive = class(TState)
   public
-    procedure OnRoadMark(RoadMark: TRoadMark; ADirection: string); override;
+    procedure OnRoadMark(var RoadMark: TRoadMark; const ADirection: string); override;
   end;
 
   TStateKeepDirection = class(TState)
@@ -115,7 +122,7 @@ type
     FCount: integer;
   public
     procedure Init;
-    procedure OnRoadMark(RoadMark: TRoadMark; ADirection: string); override;
+    procedure OnRoadMark(var RoadMark: TRoadMark; const ADirection: string); override;
   end;
 
 const
@@ -128,23 +135,25 @@ const
 
 implementation
 
+uses Winapi.Windows;
+
 constructor TState.Create(Sender: TObject);
 begin
   FRoadMarkJudge := Sender as TRoadMarkJudge;
 end;
 
-procedure TState.NoRoadmark;
+procedure TState.NoRoadMark;
 begin
   FRoadMarkJudge.SetNoRoadMark;
 end;
 
-procedure TState.OnRoadMark(RoadMark: TRoadMark; ADirection: string);
+procedure TState.OnRoadMark(var RoadMark: TRoadMark; const ADirection: string);
 begin
   FRoadMarkJudge.SetState(FRoadMarkJudge.StateUndirection);
   FRoadMarkJudge.UpdateRoadMark(RoadMark);
 end;
 
-procedure TState.Undirection(RoadMark: TRoadMark);
+procedure TState.Undirection(const RoadMark: TRoadMark);
 begin
   FRoadMarkJudge.SetState(FRoadMarkJudge.StateUndirection);
   FRoadMarkJudge.UpdateRoadMark(RoadMark);
@@ -152,17 +161,16 @@ end;
 
 function TState.MarkCaption: string;
 begin
-  result := FRoadMarkJudge.DriveMark.ToString
-    (FRoadMarkJudge.AskBranchName(FRoadMarkJudge.DriveMark.branch_code));
+  result := FRoadMarkJudge.DriveMark.ToString;
 end;
 
-procedure TState.Nearby(RoadMark: TRoadMark);
+procedure TState.Nearby(const RoadMark: TRoadMark);
 begin
   FRoadMarkJudge.SetState(FRoadMarkJudge.StateNearby);
   FRoadMarkJudge.UpdateRoadMark(RoadMark);
 end;
 
-procedure TStateDrive.OnRoadMark(RoadMark: TRoadMark; ADirection: string);
+procedure TStateDrive.OnRoadMark(var RoadMark: TRoadMark; const ADirection: string);
 begin
   if ADirection = NO_DIRECTION then
   begin
@@ -178,7 +186,7 @@ begin
   FCount := 0;
 end;
 
-procedure TStateKeepDirection.OnRoadMark(RoadMark: TRoadMark; ADirection: string);
+procedure TStateKeepDirection.OnRoadMark(var RoadMark: TRoadMark; const ADirection: string);
 const
   KEEP_LIMIT = 5;
 begin
@@ -195,13 +203,13 @@ begin
   FRoadMarkJudge.UpdateRoadMark(RoadMark);
 end;
 
-procedure TStateUndirection.OnRoadMark(RoadMark: TRoadMark; ADirection: string);
+procedure TStateUndirection.OnRoadMark(var RoadMark: TRoadMark; const ADirection: string);
 begin
   FRoadMarkJudge.SetState(FRoadMarkJudge.StateDrive);
   FRoadMarkJudge.UpdateRoadMark(RoadMark);
 end;
 
-function TRoadMarkJudge.CalcDirection(NewMark: TRoadMark): string;
+function TRoadMarkJudge.CalcDirection(const NewMark: TRoadMark): string;
 begin
   if FDriveMark.road_direction = NO_DIRECTION then // 기존 주행 방향이 없는경우
     Exit(NewMark.road_direction)
@@ -228,6 +236,19 @@ begin
   FStateKeepDirection := TStateKeepDirection.Create(Self);
 
   SetNoRoadMark;
+
+  FMarkTick := GetTickCount64;
+end;
+
+destructor TRoadMarkJudge.Destroy;
+begin
+  FreeAndNilEx(FStateNoRoadMark);
+  FreeAndNilEx(FStateUndirection);
+  FreeAndNilEx(FStateNearby);
+  FreeAndNilEx(FStateDrive);
+  FreeAndNilEx(FStateKeepDirection);
+
+  inherited;
 end;
 
 function TRoadMarkJudge.DriveRoadCode: string;
@@ -248,26 +269,17 @@ end;
 procedure TRoadMarkJudge.SetNoRoadMark;
 begin
   SetState(FStateNoRoadMark);
-  NoRoadmark;
+  FDriveMark.NoRoadMark;
+  FAltMark.NoRoadMark;
 end;
 
-procedure TRoadMarkJudge.NoRoadmark;
-begin
-  FDriveMark.dist := 0;
-  FDriveMark.road_direction := NO_DIRECTION;
-  FDriveMark.road_code := '0000';
-  FDriveMark.road_name := NO_DIRECTION;
-  FDriveMark.mark_name := NO_DIRECTION;
-  FDriveMark.latitude := 0;
-  FDriveMark.longitude := 0;
-end;
-
-procedure TRoadMarkJudge.OnRoadMarks(Marks: TArray<TRoadMark>);
+procedure TRoadMarkJudge.OnRoadMarks(const Marks: TArray<TRoadMark>);
 
   function GetRoadMark: TRoadMark;
   var
     I: integer;
   begin
+    FAltMark := Marks[0];
     for I := Low(Marks) to High(Marks) do
     begin
       // 기존 주행 노선을 우선으로 매칭
@@ -275,16 +287,26 @@ procedure TRoadMarkJudge.OnRoadMarks(Marks: TArray<TRoadMark>);
       if FDriveMark.road_code = Marks[I].road_code then
         Exit(Marks[I]);
     end;
+    if Length(Marks) > 1 then
+      FAltMark := Marks[1];
     result := Marks[0];
   end;
 
 var
   NewMark: TRoadMark;
 begin
+  FMarkTick := GetTickCount64;
+
   if Length(Marks) = 0 then
-    FState.NoRoadmark
+    FState.NoRoadMark
   else if Marks[0].dist > ROADMARK_DIST then
-    FState.Nearby(Marks[0])
+  begin
+    FState.Nearby(Marks[0]);
+    if Length(Marks) > 1 then
+      FAltMark := Marks[1]
+    else
+      FAltMark := Marks[0];
+  end
   else
   begin
     NewMark := GetRoadMark;
@@ -300,7 +322,8 @@ begin
   FState := AState;
 end;
 
-function TRoadMarkJudge.FileName(AIndex: integer; AGPS: TGPS; ATime: TDateTime): string;
+function TRoadMarkJudge.FileName(const AIndex: integer; const AGPS: TGPSData;
+  const ATime: TDateTime): string;
 begin
   result := FormatDateTime('YYYYMMDD_HHNNSS.ZZZ_', ATime) +
     Format('%0.6d_%0.7f_%0.7f_%d_%s_%s_%s_%0.3d.jpg', [AIndex, AGPS.latitude, AGPS.longitude,
@@ -313,7 +336,7 @@ begin
   result := FState.MarkCaption;
 end;
 
-procedure TRoadMarkJudge.UpdateRoadMark(RoadMark: TRoadMark);
+procedure TRoadMarkJudge.UpdateRoadMark(const RoadMark: TRoadMark);
 begin
   FDriveMark := RoadMark;
 end;
@@ -330,8 +353,7 @@ end;
 function TStateNearby.MarkCaption: string;
 begin
   result := Format('%s %skm 근방(%s)', [FRoadMarkJudge.DriveMark.road_name,
-    FRoadMarkJudge.DriveMark.mark_name,
-    FRoadMarkJudge.AskBranchName(FRoadMarkJudge.DriveMark.branch_code)])
+    FRoadMarkJudge.DriveMark.mark_name, FRoadMarkJudge.DriveMark.branch_name])
 end;
 
 { TRoadMark }
@@ -349,15 +371,34 @@ begin
     result := Self.road_direction;
 end;
 
+function TRoadMark.IsValid: Boolean;
+begin
+  result := (Self.dist < ROADMARK_DIST) and ((Self.road_direction = START_DRIECTION) or
+    (Self.road_direction = END_DRIECTION));
+end;
+
 function TRoadMark.mark_value: double;
 begin
   result := StrToFloatDef(Self.mark_name, 0);
 end;
 
-function TRoadMark.ToString(AName: string): String;
+procedure TRoadMark.NoRoadMark;
 begin
-  result := Format('%s %s %skm (%s)', [Self.road_name, Self.GetRoadDirection,
-    Self.mark_name, AName]);
+  Self.dist := 0;
+  Self.road_direction := NO_DIRECTION;
+  Self.road_code := '0000';
+  Self.road_name := NO_DIRECTION;
+  Self.mark_name := NO_DIRECTION;
+  Self.latitude := 0;
+  Self.longitude := 0;
+  Self.branch_code := '';
+  Self.branch_name := '';
+end;
+
+function TRoadMark.ToString: String;
+begin
+  result := Format('%s %s %skm (%s)', [Self.road_name, Self.GetRoadDirection, Self.mark_name,
+    Self.branch_name]);
 end;
 
 end.

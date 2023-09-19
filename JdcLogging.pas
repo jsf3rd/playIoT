@@ -56,6 +56,7 @@ type
     FLogServer: TConnInfo;
     FProjectCode: string;
     FAppCode: String;
+    FPublisher: string;
 
     FUseDebug: Boolean;
     FUseCloudLog: Boolean;
@@ -71,7 +72,7 @@ type
       const AOutputs: TMsgOutputs = [moDebugView, moLogFile, moCloudMessage]);
 
     function GetLogName: String;
-    procedure _PrintLog(ALog: TJdcLog);
+    procedure _PrintLog;
   public
     destructor Destroy; override;
 
@@ -81,7 +82,7 @@ type
     procedure StartLogging;
     procedure StopLogging;
 
-    procedure Init(AGlobal: TGlobalAbstract; AOption: TOptionAbstract);
+    procedure Init(AGlobal: TGlobalAbstract; AOption: TOptionAbstract; APath: string = '');
 
     function GetLogNameEx(const ATag: string): string;
 
@@ -120,6 +121,21 @@ implementation
 var
   MyObj: TLogging = nil;
 
+procedure PrintDebug(const Format: string; const Args: array of const); overload;
+var
+  str: string;
+begin
+  FmtStr(str, Format, Args);
+  PrintDebug(str);
+end;
+
+procedure PrintDebug(const str: string); overload;
+begin
+{$IFDEF MSWINDOWS}
+  OutputDebugString(PChar('[JDC] ' + str));
+{$ENDIF}
+end;
+
 procedure BackupLogFile(AName: string; AMaxSize: Integer = 1024 * 1024 * 5);
 begin
   if FileExists(AName) then
@@ -138,7 +154,7 @@ begin
 {$ENDIF}
       except
         on E: Exception do
-          AName := ChangeFileExt(AName, FormatDateTime('_YYYYMMDD', Now) + '.tmp');
+          PrintDebug('BackupLogFile - E=' + E.Message);
       end;
     end;
   end;
@@ -148,6 +164,9 @@ end;
 
 procedure PrintLog(const AMemo: TMemo; const AMsg: String);
 begin
+  if not Assigned(AMemo) then
+    Exit;
+
   if AMemo.Lines.Count > 5000 then
     AMemo.Lines.Clear;
 
@@ -185,21 +204,6 @@ begin
     on E: Exception do
       PrintDebug(E.Message + ', ' + AMessage);
   end;
-end;
-
-procedure PrintDebug(const Format: string; const Args: array of const); overload;
-var
-  str: string;
-begin
-  FmtStr(str, Format, Args);
-  PrintDebug(str);
-end;
-
-procedure PrintDebug(const str: string); overload;
-begin
-{$IFDEF MSWINDOWS}
-  OutputDebugString(PChar('[JDC] ' + str));
-{$ENDIF}
 end;
 
 { TLogging }
@@ -243,6 +247,7 @@ end;
 constructor TLogging.Create;
 begin
   FMsgQueue := TQueue<TJdcLog>.Create;
+  FMsgQueue.Capacity := 1024;
 
   FProjectCode := 'MyProject';
   FAppCode := 'MyApp';
@@ -266,48 +271,53 @@ begin
     FreeAndNil(FMsgQueue);
 end;
 
-procedure TLogging._PrintLog(ALog: TJdcLog);
+procedure TLogging._PrintLog;
 var
   Stream: TStreamWriter;
   PrevLog, NewLog: TJdcLog;
 begin
-  NewLog := ALog;
-  if NewLog.LogName.IsEmpty then
-    Exit;
-
-  BackupLogFile(NewLog.LogName);
-  Stream := TFile.AppendText(NewLog.LogName);
+  Stream := nil;
+  NewLog := TJdcLog.Create('', Now, '');
   try
-    if NewLog.Msg.IsEmpty then
-      Stream.WriteLine
-    else
-      Stream.WriteLine(NewLog.ToString);
-
     while FMsgQueue.Count > 0 do
     begin
       Sleep(1);
       PrevLog := NewLog;
       NewLog := FMsgQueue.Dequeue;
+      if NewLog.LogName.IsEmpty then
+        Continue;
+
+      if Stream = nil then
+        BackupLogFile(NewLog.LogName);
 
       if PrevLog.LogName <> NewLog.LogName then
       begin
-        Stream.Free;
+        if Assigned(Stream) then
+          FreeAndNil(Stream);
         Stream := TFile.AppendText(NewLog.LogName);
       end;
 
       if NewLog.Msg.IsEmpty then
         Stream.WriteLine
       else
-        Stream.WriteLine(NewLog.ToString);
+      begin
+        try
+          Stream.WriteLine(NewLog.ToString);
+        except
+          on E: Exception do
+            _ApplicationMessage(MessageTypeToStr(msError), '_PrintLog',
+              NewLog.ToString + ',E=' + E.Message, [moCloudMessage]);
+        end;
+
+      end;
     end;
   finally
-    Stream.Free;
+    if Assigned(Stream) then
+      FreeAndNil(Stream);
   end;
 end;
 
 procedure TLogging.FlushLog;
-var
-  MyLog: TJdcLog;
 begin
   if FMsgQueue.Count = 0 then
     Exit;
@@ -318,13 +328,15 @@ begin
     FUseDebug := FOption.UseDebug;
   end;
 
-  Sleep(441);
-  MyLog := FMsgQueue.Dequeue;
+  // Sleep(441);
   try
-    _PrintLog(MyLog);
+    _PrintLog;
   except
     on E: Exception do
-      PrintLog(LogName + '.tmp', MyLog.Time, MyLog.Msg + ',E=' + E.Message);
+    begin
+      _ApplicationMessage(MessageTypeToStr(msError), 'PrintLog', 'E=' + E.Message,
+        [moCloudMessage]);
+    end;
   end;
 end;
 
@@ -346,7 +358,7 @@ begin
 {$ENDIF}
 end;
 
-procedure TLogging.Init(AGlobal: TGlobalAbstract; AOption: TOptionAbstract);
+procedure TLogging.Init(AGlobal: TGlobalAbstract; AOption: TOptionAbstract; APath: string);
 var
   ExeName: string;
 begin
@@ -354,6 +366,7 @@ begin
 
   FProjectCode := AGlobal.ProjectCode;
   FAppCode := AGlobal.AppCode;
+  FPublisher := AGlobal.Publisher;
   FUseDebug := AOption.UseDebug;
   FUseCloudLog := AOption.UseCloudLog;
   FLogServer := AOption.LogServer;
@@ -361,11 +374,14 @@ begin
   ExeName := AGlobal.ExeName;
   FExeVersion := FileVersion(ExeName);
 
-  FLogName := TPath.Combine(ExtractFilePath(ExeName) + 'logs',
-    ChangeFileExt(ExtractFileName(ExeName), '.log'));
+  if APath = '' then
+    FLogName := TPath.Combine(ExtractFilePath(ExeName) + 'logs',
+      ChangeFileExt(ExtractFileName(ExeName), '.log'))
+  else
+    FLogName := TPath.Combine(APath, ChangeFileExt(ExtractFileName(ExeName), '.log'));
 {$IFDEF LOCALAPPDATA}
-  FLogName := GetEnvironmentVariable('LOCALAPPDATA') + '\Judico\' + FAppCode + '\logs\' +
-    ExtractFileName(FLogName);
+  FLogName := GetEnvironmentVariable('LOCALAPPDATA') + '\' + FPublisher + '\' + FAppCode + '\logs\'
+    + ExtractFileName(FLogName);
 {$ENDIF}
   if not TDirectory.Exists(ExtractFilePath(FLogName)) then
     TDirectory.CreateDirectory(ExtractFilePath(FLogName));
@@ -400,12 +416,12 @@ end;
 
 procedure TLogging.PrintUseCloudLog;
 begin
-  ApplicationMessage(msInfo, 'UseCloudLog', BoolToStr(FUseCloudLog, True));
+  ApplicationMessage(msInfo, 'UseCloudLog', BoolToStr(FUseCloudLog));
 end;
 
 procedure TLogging.PrintUseDebug;
 begin
-  ApplicationMessage(msInfo, 'UseDebug', BoolToStr(FUseDebug, True));
+  ApplicationMessage(msInfo, 'UseDebug', BoolToStr(FUseDebug));
 end;
 
 procedure TLogging.StartLogging;
@@ -425,15 +441,23 @@ begin
       while not TThread.CurrentThread.CheckTerminated do
       begin
         Sleep(101);
-        FlushLog;
+        try
+          FlushLog;
+        except
+          on E: Exception do
+          begin
+            _ApplicationMessage(MessageTypeToStr(msError), 'FlushLog', 'E=' + E.Message,
+              [moCloudMessage]);
+          end;
+        end;
       end;
     end);
   FLogTask.FreeOnTerminate := False;
   FLogTask.Start;
   ApplicationMessage(msDebug, 'Logging',
     'Project=%s,AppCode=%s,UseDebug=%s,UseCloudLog=%s,LogServer=%s,File=%s',
-    [FProjectCode, FAppCode, BoolToStr(FUseDebug, True), BoolToStr(FUseCloudLog, True),
-    FLogServer.ToString, FLogName]);
+    [FProjectCode, FAppCode, BoolToStr(FUseDebug), BoolToStr(FUseCloudLog), FLogServer.ToString,
+    FLogName]);
 end;
 
 procedure TLogging.StopLogging;
@@ -460,14 +484,14 @@ begin
     splitter := ' - ';
 
   MyType := '<' + AType + '>';
-  if moDebugView in AOutputs then
-    PrintDebug('%-9s [%s] %s%s%s', [MyType, FAppCode, ATitle, splitter, AMessage]);
+  if (moCloudMessage in AOutputs) and FUseCloudLog then
+    CloudMessage(FProjectCode, FAppCode, AType, ATitle, AMessage, FExeVersion, FLogServer);
 
   if moLogFile in AOutputs then
     AppendLog(GetLogName, Format('%-9s %s%s%s', [MyType, ATitle, splitter, AMessage]));
 
-  if (moCloudMessage in AOutputs) and FUseCloudLog then
-    CloudMessage(FProjectCode, FAppCode, AType, ATitle, AMessage, FExeVersion, FLogServer);
+  if moDebugView in AOutputs then
+    PrintDebug('%-9s [%s] %s%s%s', [MyType, FAppCode, ATitle, splitter, AMessage]);
 end;
 
 { TJdcLog }

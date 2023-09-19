@@ -2,7 +2,7 @@ unit JdcRTSP;
 
 interface
 
-uses System.SysUtils, System.Classes, Winapi.Windows, ONVIF, JdcGlobal;
+uses System.SysUtils, System.Classes, Winapi.Windows, ONVIF, JdcGlobal, JdcLogging;
 
 type
   plibvlc_instance_t = type Pointer;
@@ -18,8 +18,9 @@ type
 
     FURI: string;
 
-    vlcLib: Integer;
+    vlcLib: NativeInt;
     vlcInstance: plibvlc_instance_t;
+    vlcMedia: plibvlc_media_t;
     vlcMediaPlayer: plibvlc_media_player_t;
 
     libvlc_media_new_path: function(p_instance: plibvlc_instance_t; path: PAnsiChar)
@@ -44,10 +45,10 @@ type
     libvlc_video_take_snapshot: procedure(media_player: plibvlc_media_player_t; num: Integer;
       psz_filepath: PAnsiChar; i_width: Cardinal; i_height: Cardinal); cdecl;
 
-    function LoadVLCLibrary(APath: string): Integer;
-    function GetAProcAddress(Handle: Integer; var addr: Pointer; procName: string;
+    function LoadVLCLibrary(APath: string): THandle;
+    function GetAProcAddress(Handle: THandle; var addr: Pointer; procName: PAnsiChar;
       failedList: TStringList): Integer;
-    function LoadVLCFunctions(vlcHandle: Integer; failedList: TStringList): Boolean;
+    function LoadVLCFunctions(vlcHandle: THandle; failedList: TStringList): Boolean;
   private
     FRtspPort: Integer;
   public
@@ -69,7 +70,7 @@ implementation
 
 { TRTSP }
 
-function TRTSP.LoadVLCFunctions(vlcHandle: Integer; failedList: TStringList): Boolean;
+function TRTSP.LoadVLCFunctions(vlcHandle: THandle; failedList: TStringList): Boolean;
 begin
   GetAProcAddress(vlcHandle, @libvlc_new, 'libvlc_new', failedList);
   GetAProcAddress(vlcHandle, @libvlc_media_new_location, 'libvlc_media_new_location', failedList);
@@ -94,16 +95,14 @@ begin
   Result := failedList.Count = 0;
 end;
 
-function TRTSP.LoadVLCLibrary(APath: string): Integer;
+function TRTSP.LoadVLCLibrary(APath: string): THandle;
 begin
-  Result := LoadLibrary(PChar(APath + 'libvlc.dll')) and
-    LoadLibrary(PChar(APath + 'libvlccore.dll'));
+  LoadLibrary(PChar(APath + 'libvlccore.dll'));
+  Result := LoadLibrary(PChar(APath + 'libvlc.dll'));
 end;
 
 function TRTSP.Play(AIndex: Integer; AHandle: HWND; Caching: string): Boolean;
 var
-  vlcMedia: plibvlc_media_t;
-
   profxml, StreamXml: string;
   prof: TProfiles;
   URL: string;
@@ -111,6 +110,10 @@ var
 const
   ERROR_MSG = 'Can''t locate the url';
 
+  LibVLCOptions: array [0 .. 1] of PAnsiChar = //
+    (PAnsiChar('--no-snapshot-preview'), //
+    PAnsiChar('--no-osd') //
+    );
 begin
   profxml := Trim(ONVIFGetProfiles('http://' + FConnInfo.ToString + '/onvif/media', FUser,
     FPassword));
@@ -135,6 +138,9 @@ begin
     raise Exception.Create('No RTSP URI');
 
   FURI := StreamUri.URI;
+
+  // FURL := 'rtsp://192.168.11.100:554/profile2/media.smp';
+  // FURI := 'rtsp://ys01.jrpwim.com:55415/media/video1';
   if FRtspPort = 0 then
   begin
     // 카메라에 설정된 RTSP포트 사용
@@ -149,13 +155,13 @@ begin
       FRtspPort, URL]);
   end;
 
-  vlcInstance := libvlc_new(0, nil);
+  TLogging.Obj.ApplicationMessage(msInfo, 'StreamURL', URL);
+  vlcInstance := libvlc_new(Length(LibVLCOptions), @LibVLCOptions[0]);
   vlcMedia := libvlc_media_new_location(vlcInstance, PAnsiChar(AnsiString(URL)));
   libvlc_media_add_option(vlcMedia, PAnsiChar(AnsiString(':network-caching=' + Caching)));
   libvlc_media_add_option(vlcMedia, ':clock-jitter=0');
   libvlc_media_add_option(vlcMedia, ':clock-synchro=0');
   vlcMediaPlayer := libvlc_media_player_new_from_media(vlcMedia);
-  libvlc_media_release(vlcMedia);
   libvlc_video_set_aspect_ratio(vlcMediaPlayer, '16:9');
   libvlc_media_player_set_hwnd(vlcMediaPlayer, Pointer(AHandle));
   libvlc_media_player_play(vlcMediaPlayer);
@@ -193,6 +199,12 @@ begin
     vlcMediaPlayer := nil;
   end;
 
+  if Assigned(vlcMedia) then
+  begin
+    libvlc_media_release(vlcMedia);
+    vlcMedia := nil;
+  end;
+
   if Assigned(vlcInstance) then
   begin
     libvlc_release(vlcInstance);
@@ -203,6 +215,7 @@ end;
 constructor TRTSP.Create(ConnInfo: TConnInfo; AUser, APassword, ARemark: string);
 var
   sL: TStringList;
+  _path: string;
 begin
   FConnInfo := ConnInfo;
   FUser := AUser;
@@ -211,7 +224,8 @@ begin
   FRtspPort := 0;
   FURI := '';
 
-  vlcLib := LoadVLCLibrary(ExtractFilePath(ParamStr(0)));
+  _path := ExtractFilePath(ParamStr(0));
+  vlcLib := LoadVLCLibrary(_path);
   if vlcLib = 0 then
     raise Exception.Create('Load vlc library failed');
 
@@ -233,16 +247,16 @@ begin
   inherited;
 end;
 
-function TRTSP.GetAProcAddress(Handle: Integer; var addr: Pointer; procName: string;
+function TRTSP.GetAProcAddress(Handle: THandle; var addr: Pointer; procName: PAnsiChar;
   failedList: TStringList): Integer;
 begin
-  addr := GetProcAddress(Handle, PWideChar(procName));
+  addr := GetProcAddress(Handle, procName);
   if Assigned(addr) then
     Result := 0
   else
   begin
     if Assigned(failedList) then
-      failedList.Add(procName);
+      failedList.Add(String(procName));
     Result := -1;
   end;
 end;
