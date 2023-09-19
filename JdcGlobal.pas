@@ -72,6 +72,7 @@ type
   protected
     FProjectCode: string;
     FAppCode: string;
+    FPublisher: string;
 
     FIsInitialized: Boolean;
     FIsFinalized: Boolean;
@@ -94,6 +95,7 @@ type
     property ExeName: String read FExeName;
     property ProjectCode: string read FProjectCode write FProjectCode;
     property AppCode: string read FAppCode write FAppCode;
+    property Publisher: string read FPublisher write FPublisher;
   end;
 
   // 특정 자리수 이하 0 만들기
@@ -200,6 +202,8 @@ function CopyStream(const AStream: TStream): TMemoryStream;
 // 도분초 to Degree
 function ConvertDegree(Value: string): double;
 
+function BoolToStr(AValue: Boolean; T: String = 'True'; F: String = 'False'): string;
+
 const
   LOG_PORT = 8094;
   LOCAL_SERVER = '\\localhost';
@@ -215,6 +219,14 @@ const
 implementation
 
 uses JdcGlobal.ClassHelper, JdcLogging;
+
+function BoolToStr(AValue: Boolean; T: String = 'True'; F: String = 'False'): string;
+begin
+  if AValue then
+    result := T
+  else
+    result := F;
+end;
 
 function ConvertDegree(Value: string): double;
 var
@@ -872,6 +884,7 @@ begin
   FStartTime := Now;
   FProjectCode := 'MyProject';
   FAppCode := 'MyApp';
+  FPublisher := 'UDNS';
   FExeName := ParamStr(0);
   FIsInitialized := False;
   FIsFinalized := False;
@@ -1018,6 +1031,7 @@ begin
   AStream.Position := 0;
   AStream.Read(buff[0], AStream.Size);
   result := IdBytesToA94(buff);
+  SetLength(buff, 0);
 end;
 
 function A94ToStream(const str: string): TStream;
