@@ -12,6 +12,8 @@ function MV_CC_EnumDevices(nTLayerType: DWORD; Var pstDevList: MV_CC_DEVICE_INFO
   stdcall; external 'MvCameraControl.dll';
 function MV_CC_CreateHandle(Var handle: PPointer; Var pstDevInfo: MV_CC_DEVICE_INFO): Integer;
   stdcall; external 'MvCameraControl.dll';
+function MV_CC_CreateHandleWithoutLog(Var handle: PPointer; Var pstDevInfo: MV_CC_DEVICE_INFO)
+  : Integer; stdcall; external 'MvCameraControl.dll';
 function MV_CC_OpenDevice(Var handle: Pointer; nAccessMode: DWORD = 1; nSwitchoverKey: Word = 0)
   : Integer; stdcall; external 'MvCameraControl.dll';
 function MV_CC_CloseDevice(Var handle: Pointer): Integer; stdcall; external 'MvCameraControl.dll';
