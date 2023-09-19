@@ -17,13 +17,14 @@ interface
 uses System.Classes, System.SysUtils, Winapi.Windows;
 
 type
-  TDataCount = (dc1 = 1, dc128 = 128, dc256 = 256, dc512 = 512, dc1024 = 1024, dc2048 = 2048);
+  TDataCount = (dc1 = 1, dc16 = 16, dc32 = 32, dc128 = 128, dc256 = 256, dc512 = 512, dc1024 = 1024,
+    dc2048 = 2048);
 
   TDataInfo = packed record
     DataLength: Cardinal;
     MaxCount: Cardinal;
     Mask: Cardinal;
-    LastSequence: Cardinal;
+    LastSequence: UInt64;
   end;
 
   PDataInfo = ^TDataInfo;

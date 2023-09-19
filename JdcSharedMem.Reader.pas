@@ -22,7 +22,7 @@ type
     FDataInfo: PDataInfo;
     FDataList: Pointer;
     FCodeName: String;
-    FCurrentSequence: Cardinal;
+    FCurrentSequence: UInt64;
     function GetPointer: Pointer;
   public
     constructor Create(ACodeName: String);
@@ -33,7 +33,7 @@ type
     function GetPreviousPointer: Pointer;
     function GetLastPointer: Pointer;
 
-    property Sequence: Cardinal read FCurrentSequence;
+    property Sequence: UInt64 read FCurrentSequence;
   end;
 
 implementation
@@ -63,27 +63,28 @@ function TJdcSharedMemReader.GetPointer: Pointer;
 var
   PData: Pointer;
   ReadPosition: Cardinal;
-  Sequence: Cardinal;
+  Sequence: UInt64;
 begin
   PData := FDataList;
   ReadPosition := FCurrentSequence and FDataInfo.Mask;
-  PData := Ptr(UInt32(PData) + ReadPosition * FDataInfo.DataLength);
+  PData := Ptr(NativeUInt(PData) + ReadPosition * FDataInfo.DataLength);
 
   // PrintDebug('[GetData] CodeName=%s,Seq=%u,Pos=%u',
   // [FCodeName, FCurrentSequence, ReadPosition]);
 
-  CopyMemory(@Sequence, PData, SizeOf(Cardinal));
+  CopyMemory(@Sequence, PData, SizeOf(UInt64));
 
   if Sequence = 0 then
     Exit(nil);
 
   if FCurrentSequence <> Sequence then
   begin
-    PrintDebug('[SeqError] CodeName=%s,CurSeq=%u,DataSeq=%u', [FCodeName, FCurrentSequence, Sequence]);
+    PrintDebug('[SeqError] CodeName=%s,CurSeq=%u,DataSeq=%u',
+      [FCodeName, FCurrentSequence, Sequence]);
     Exit(nil);
   end;
 
-  PData := Ptr(Integer(PData) + SizeOf(Cardinal));
+  PData := Ptr(NativeUInt(PData) + SizeOf(UInt64));
   result := PData;
 end;
 
@@ -100,7 +101,7 @@ function TJdcSharedMemReader.GetFirstPointer: Pointer;
 begin
   if FDataInfo.LastSequence = 0 then
     FCurrentSequence := 0
-  else if FDataInfo.LastSequence < FDataInfo.Mask then
+  else if FDataInfo.LastSequence <= FDataInfo.Mask then
     FCurrentSequence := 1
   else
     FCurrentSequence := FDataInfo.LastSequence - FDataInfo.Mask;
