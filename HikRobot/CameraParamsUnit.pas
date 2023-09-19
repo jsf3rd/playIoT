@@ -10,6 +10,7 @@ const
   MV_OK: Integer = $00000000;
 
   // ch:通用错误码定义:范围0x80000000-0x800000FF | en: Definition of common error code : 0x80000000-0x800000FF
+
   MV_E_HANDLE: Integer = $80000000;
   /// < 错误或无效的句柄 | en:Error or invalid handle
   MV_E_SUPPORT: Integer = $80000001;
@@ -112,6 +113,9 @@ const
   MV_1394_DEVICE: Integer = $00000002; // ch:1394-a/b 设备 | en:1394-a/b Device
   MV_USB_DEVICE: Integer = $00000004; // ch:USB3.0 设备 | en:USB3.0 Device
   MV_CAMERALINK_DEVICE: Integer = $00000008; // ch:CameraLink设备 | en:CameraLink Device
+
+  LINE_SCAN = 'MV-CL';
+  AREA_CAM = 'MV-CS';
 
   // device information
 type
