@@ -10,8 +10,6 @@ object Form1: TForm1
   Font.Height = -11
   Font.Name = 'Tahoma'
   Font.Style = []
-  OldCreateOrder = False
-  PixelsPerInch = 96
   TextHeight = 13
   object GroupBox2: TGroupBox
     Left = 26
@@ -90,7 +88,7 @@ object Form1: TForm1
     Height = 21
     Alignment = taRightJustify
     EditLabel.Width = 52
-    EditLabel.Height = 13
+    EditLabel.Height = 21
     EditLabel.Caption = 'CodeName'
     LabelPosition = lpLeft
     TabOrder = 1

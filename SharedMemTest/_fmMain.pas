@@ -7,7 +7,7 @@ uses
   System.Classes, Vcl.Graphics,
   Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls,
   System.DateUtils, Vcl.ExtCtrls, JdcSharedMem.Reader, JdcSharedMem.Writer,
-  JdcSharedMem.Common, System.StrUtils;
+  JdcSharedMem.Common, System.StrUtils, Vcl.Mask;
 
 type
   TForm2 = class(TForm)
@@ -179,7 +179,7 @@ begin
     FreeAndNil(FMemWriter);
 
   FMemWriter := TJdcSharedMemWriter.Create(edtCodeName.Text, SizeOf(TItemDataFormatHeader) + 100 *
-    SizeOf(double), dc1);
+    SizeOf(double), dc16);
 end;
 
 procedure TForm2.btnAutoPutClick(Sender: TObject);
@@ -237,11 +237,12 @@ var
   pdata: Pointer;
 begin
   CopyMemory(@Header, p, SizeOf(Header));
-  pdata := Pointer(Integer(p) + SizeOf(Header));
+  pdata := Pointer(NativeUInt(p) + SizeOf(Header));
   SetLength(Data, Header.SampleCount);
   CopyMemory(@Data[0], pdata, Header.DataLength);
 
-  PrintLog(Memo1, 'Get Data : ' + edtCodeName.Text + ', Data[0] :' + Data[0].ToString);
+  PrintLog(Memo1, Format('Get Data: %s, Data[0]: %f, seq: %d', [edtCodeName.Text, Data[0],
+    FMemReader.Sequence]));
 end;
 
 procedure TForm2.GetTimerTimer(Sender: TObject);

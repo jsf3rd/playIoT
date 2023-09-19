@@ -10,10 +10,8 @@ object Form2: TForm2
   Font.Height = -11
   Font.Name = 'Tahoma'
   Font.Style = []
-  OldCreateOrder = False
   OnCreate = FormCreate
   OnDestroy = FormDestroy
-  PixelsPerInch = 96
   TextHeight = 13
   object Memo1: TMemo
     Left = 0
@@ -23,6 +21,8 @@ object Form2: TForm2
     Align = alClient
     ScrollBars = ssBoth
     TabOrder = 0
+    ExplicitWidth = 631
+    ExplicitHeight = 235
   end
   object Panel1: TPanel
     Left = 0
@@ -31,6 +31,7 @@ object Form2: TForm2
     Height = 257
     Align = alTop
     TabOrder = 1
+    ExplicitWidth = 631
     object edtCodeName: TLabeledEdit
       Left = 86
       Top = 16
@@ -38,7 +39,7 @@ object Form2: TForm2
       Height = 21
       Alignment = taRightJustify
       EditLabel.Width = 52
-      EditLabel.Height = 13
+      EditLabel.Height = 21
       EditLabel.Caption = 'CodeName'
       LabelPosition = lpLeft
       TabOrder = 0

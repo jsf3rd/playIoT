@@ -4,8 +4,8 @@ interface
 
 uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes,
-  Vcl.Graphics, JdcGlobal,
-  Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.ExtCtrls, Vcl.StdCtrls;
+  Vcl.Graphics, JdcGlobal, JdcLogging,
+  Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.ExtCtrls, Vcl.StdCtrls, Vcl.Mask;
 
 type
   TForm1 = class(TForm)
@@ -113,7 +113,7 @@ var
   I: Integer;
 begin
   CopyMemory(@Header, p, SizeOf(Header));
-  pdata := Pointer(Integer(p) + SizeOf(Header));
+  pdata := Pointer(NativeUInt(p) + SizeOf(Header));
   SetLength(Data, Header.SampleCount);
   CopyMemory(@Data[0], pdata, Header.DataLength);
 
