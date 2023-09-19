@@ -700,13 +700,24 @@ begin
         ParamByJSONObject(AParams);
 
       ExecTime := Now;
-      Result := AProc(Self);
-      TLogging.Obj.ApplicationMessage(AType, 'OpenTo',
-        Format('Query=%s,RecordCount=%d,ExecSec=%0.2f', [Self.Name, Self.RecordCount,
-        TDSCommon.CalcExecTime(ExecTime)]));
+      try
+        Result := AProc(Self);
+      except
+        on E: Exception do
+          raise Exception.Create(Format('ExecQuery,E=%s', [E.Message]));
+      end;
+
+      try
+        TLogging.Obj.ApplicationMessage(AType, 'OpenTo',
+          Format('Query=%s,RecordCount=%d,ExecSec=%0.2f', [Self.Name, Self.RecordCount,
+          TDSCommon.CalcExecTime(ExecTime)]));
+      except
+        on E: Exception do
+          raise Exception.Create(Format('RecordCount,E=%s', [E.Message]));
+      end;
     except
       on E: Exception do
-        raise Exception.Create(Format('Query=%s,E=%s', [Self.Name, E.Message]));
+        raise Exception.Create(Format('OpenTo,Query=%s,E=%s', [Self.Name, E.Message]));
     end;
   finally
     if Assigned(AConn) then
@@ -1228,14 +1239,20 @@ end;
 function TFDDataSetHelper.ToRecordArray<T>(const AName: String): TArray<T>;
 var
   _record: T;
+  Index: Integer;
 begin
-  SetLength(Result, 0);
+  SetLength(Result, Self.RecordCount);
 
+  Index := 0;
   Self.First;
   while not Self.Eof do
   begin
     _record := Self.ToRecord<T>(AName);
-    Result := Result + [_record];
+    if Length(Result) > Index then
+      Result[Index] := _record
+    else
+      Result := Result + [_record];
+    Index := Index + 1;
     Self.Next;
   end;
 end;
