@@ -150,6 +150,11 @@ type
     class function JsonArrayToRecordArray<T: record >(const JsonArray: TJSONArray): TArray<T>;
   end;
 
+  TStringListHelper = class helper for TStringList
+  Public
+    procedure AddParam(AValue: string; ADefault: string = '');
+  end;
+
 function ReplaceStringNumber(const AInput: string): string;
 
 implementation
@@ -658,6 +663,16 @@ end;
 class function TJSONHelper.RecordToJsonString<T>(const ARecord: T): String;
 begin
   result := TSuperRecord<T>.AsJSON(ARecord);
+end;
+
+{ TStringListHelper }
+
+procedure TStringListHelper.AddParam(AValue: string; ADefault: string);
+begin
+  if AValue = '' then
+    Self.Add('"' + ADefault + '"')
+  else
+    Self.Add('"' + AValue + '"');
 end;
 
 end.
