@@ -20,8 +20,16 @@ const
   NETDEV_DTYPE_IPC = 1;
   NETDEV_DTYPE_NVR = 101;
 
-  ERROR_CODE: array [0 .. 507, 0 .. 1] of string = //
+  ERROR_CODE: array [0 .. 513, 0 .. 1] of string = //
     (
+    // Exception callback message types Enumeration definition
+    ('300', 'Playback ended'), //
+    ('301', 'Playback exception occured'), //
+    ('302', 'Backup ended'), //
+    ('303', 'Disk removed'), //
+    ('304', 'Disk full'), //
+    ('305', 'Backup failure caused by other reasons'),
+
     // Common Error Codes
     ('-1', 'Failed'), //
     ('0', 'No Error'), //
@@ -596,7 +604,9 @@ const
     ('20036', 'Failure to add devices to cloud organizations'), //
     ('20037', 'Failure to access cloud device channel'), //
     ('20038', 'Failed to get cloud video time information'), //
-    ('20039', 'M3u8 Failed to get cloud video M3u8 information'));
+    ('20039', 'M3u8 Failed to get cloud video M3u8 information') //
+
+    );
 
 type
   TPlayerInfo = class;
@@ -656,7 +666,7 @@ type
     NETDEV_EXCEPTION_REPORT_BACKUP_ABEND = 305, NETDEV_EXCEPTION_EXCHANGE = $8000,
     NETDEV_EXCEPTION_REPORT_INVALID = $FFFF);
 
-  TOnException = procedure(AInfo: TPlayerInfo; AType: TNETDEVException) of object;
+  TOnException = procedure(AInfo: TPlayerInfo; AType: Int32) of object;
 
   TNetDEVDeviceInfo = record
     dwDevType: Int32;
@@ -897,6 +907,7 @@ type
     procedure FreeDLL;
     procedure LoadDLL(APath: string);
     procedure SetOnException(const Value: TOnException);
+
   public
     constructor Create;
     destructor Destroy; override;
@@ -905,6 +916,7 @@ type
     function Initialize(const ALibPath: string; const ALogPath: string): Boolean;
 
     function GetLastError: string;
+    function GetErrorMessage(ACode: Int32): string;
     function Cleanup: Boolean;
     function SetLogPath(const szPath: string): Boolean;
 
@@ -984,7 +996,7 @@ procedure ExceptionCallBack(plUserID: IntPtr; dwType: Int32; plExpHandle: IntPtr
   plUserData: IntPtr)stdcall;
 begin
   if Assigned(MyOnException) then
-    MyOnException(TPlayerInfo(plUserData), TNETDEVException(dwType));
+    MyOnException(TPlayerInfo(plUserData), dwType);
 end;
 
 { TNetDEV }
@@ -1062,7 +1074,6 @@ begin
       on E: Exception do
     end;
   end;
-
 end;
 
 function TNetDEV.Initialize(const ALibPath: string; const ALogPath: string): Boolean;
@@ -1071,7 +1082,7 @@ begin
     raise Exception.Create('path not exist. [' + ALibPath + ']');
 
   LoadDLL(ALibPath);
-  SetLogPath(ALogPath + '\NetDEV');
+  SetLogPath(ALogPath + 'NetDEV');
 
   if not FInited then
     FInited := FNETDEV_Init;
@@ -1087,23 +1098,26 @@ begin
   Result := FPlayerDic.Keys.ToArray;
 end;
 
-function TNetDEV.GetLastError: String;
+function TNetDEV.GetErrorMessage(ACode: Int32): string;
 var
-  I: Int32;
-  code: Int32;
   Msg: string;
+  I: Int32;
+begin
+  Msg := 'Unknown Error';
+  for I := Low(ERROR_CODE) to High(ERROR_CODE) do
+  begin
+    if ERROR_CODE[I, 0].ToInteger = ACode then
+      Msg := ERROR_CODE[I, 1];
+  end;
+  Result := format('%s(%d)', [Msg, ACode]);
+end;
+
+function TNetDEV.GetLastError: String;
 begin
   if FDLLHandle = 0 then
     Exit('Unload DLL');
 
-  Msg := 'Unknown Error';
-  code := FNETDEV_GetLastError;
-  for I := Low(ERROR_CODE) to High(ERROR_CODE) do
-  begin
-    if ERROR_CODE[I, 0].ToInteger = code then
-      Msg := ERROR_CODE[I, 1];
-  end;
-  Result := format('%s(%d)', [Msg, code]);
+  Result := GetErrorMessage(FNETDEV_GetLastError);
 end;
 
 function TNetDEV.GetPlayer(AID: String): TPlayerInfo;
@@ -1440,7 +1454,7 @@ begin
 
     // No Data ¿ÁΩ√¿€!
     if Assigned(MyOnException) then
-      MyOnException(Self, TNETDEVException.NETDEV_EXCEPTION_REPORT_VOD_END);
+      MyOnException(Self, Int32(TNETDEVException.NETDEV_EXCEPTION_REPORT_VOD_END));
   end;
 end;
 
@@ -1505,11 +1519,11 @@ begin
       PreviewInfo := TPreviewInfo.Create(AControl.Handle, AChannel, AStreamType);
 
       // TODO : No idea
-      // cb.bDecode := False;
-      // cb.dwCBType := 2;
-      // cb.lpVideoDataCB := 0;
-      // cb.lpAudioDataCB := 0;
-      // cb.lpUserData := 0;
+      cb.bDecode := False;
+      cb.dwCBType := 2;
+      cb.lpVideoDataCB := 0; // ??
+      cb.lpAudioDataCB := 0;
+      cb.lpUserData := IntPtr(Self);
       FRealHandle := FNETDEV_RealPlay_V30(FUserID, PreviewInfo, cb);
     end);
 
