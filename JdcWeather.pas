@@ -91,7 +91,7 @@ begin
   FAPIKey := APIKey;
   FRestClient := TRESTClient.Create('');
   FRestReqeust := TRESTRequest.Create(nil);
-  FRestReqeust.ReadTimeout := 15000;
+  FRestReqeust.ReadTimeout := 60000;
   FRestResponse := TRESTResponse.Create(nil);
   FRestReqeust.Client := FRestClient;
   FRestReqeust.Response := FRestResponse;
