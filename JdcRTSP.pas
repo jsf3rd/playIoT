@@ -51,6 +51,8 @@ type
     function LoadVLCFunctions(vlcHandle: THandle; failedList: TStringList): Boolean;
   private
     FRtspPort: Integer;
+    function _Play(AIndex: Integer; AHandle: HWND; Caching: string = '150'): Boolean;
+    procedure _Stop;
   public
     constructor Create(ConnInfo: TConnInfo; AUser, APassword, ARemark: string);
     destructor Destroy; override;
@@ -68,7 +70,10 @@ type
 
 implementation
 
-{ TRTSP }
+var
+  CritSect: TRTLCriticalSection;
+
+  { TRTSP }
 
 function TRTSP.LoadVLCFunctions(vlcHandle: THandle; failedList: TStringList): Boolean;
 begin
@@ -102,6 +107,37 @@ begin
 end;
 
 function TRTSP.Play(AIndex: Integer; AHandle: HWND; Caching: string): Boolean;
+begin
+  EnterCriticalSection(CritSect);
+  try
+    Result := _Play(AIndex, AHandle, Caching);
+  finally
+    LeaveCriticalSection(CritSect);
+  end;
+end;
+
+procedure TRTSP.SetAspectRatio(W, H: Integer);
+begin
+  if Assigned(vlcMediaPlayer) then
+    libvlc_video_set_aspect_ratio(vlcMediaPlayer, PAnsiChar(AnsiString(Format('%d:%d', [W, H]))));
+end;
+
+procedure TRTSP.SnapShot(AFileName: String; width: Integer; height: Integer);
+begin
+  libvlc_video_take_snapshot(vlcMediaPlayer, 0, PAnsiChar(AnsiString(AFileName)), width, height);
+end;
+
+procedure TRTSP.Stop;
+begin
+  EnterCriticalSection(CritSect);
+  try
+    _Stop;
+  finally
+    LeaveCriticalSection(CritSect);
+  end;
+end;
+
+function TRTSP._Play(AIndex: Integer; AHandle: HWND; Caching: string): Boolean;
 var
   profxml, StreamXml: string;
   prof: TProfiles;
@@ -155,10 +191,12 @@ begin
       FRtspPort, URL]);
   end;
 
-  TLogging.Obj.ApplicationMessage(msInfo, 'StreamURL', URL);
+  TLogging.Obj.ApplicationMessage(msInfo, 'libvlc_new', URL);
   vlcInstance := libvlc_new(Length(LibVLCOptions), @LibVLCOptions[0]);
+
   vlcMedia := libvlc_media_new_location(vlcInstance, PAnsiChar(AnsiString(URL)));
   libvlc_media_add_option(vlcMedia, PAnsiChar(AnsiString(':network-caching=' + Caching)));
+
   libvlc_media_add_option(vlcMedia, ':clock-jitter=0');
   libvlc_media_add_option(vlcMedia, ':clock-synchro=0');
   vlcMediaPlayer := libvlc_media_player_new_from_media(vlcMedia);
@@ -168,18 +206,7 @@ begin
   Result := IsPlaying;
 end;
 
-procedure TRTSP.SetAspectRatio(W, H: Integer);
-begin
-  if Assigned(vlcMediaPlayer) then
-    libvlc_video_set_aspect_ratio(vlcMediaPlayer, PAnsiChar(AnsiString(Format('%d:%d', [W, H]))));
-end;
-
-procedure TRTSP.SnapShot(AFileName: String; width: Integer; height: Integer);
-begin
-  libvlc_video_take_snapshot(vlcMediaPlayer, 0, PAnsiChar(AnsiString(AFileName)), width, height);
-end;
-
-procedure TRTSP.Stop;
+procedure TRTSP._Stop;
 var
   Count: Integer;
 begin
@@ -243,6 +270,7 @@ end;
 
 destructor TRTSP.Destroy;
 begin
+  Self.Stop;
   FreeLibrary(vlcLib);
   inherited;
 end;
@@ -265,5 +293,13 @@ function TRTSP.IsPlaying: Boolean;
 begin
   Result := Assigned(vlcMediaPlayer) and (libvlc_media_player_is_playing(vlcMediaPlayer) = 1);
 end;
+
+initialization
+
+InitializeCriticalSection(CritSect);
+
+finalization
+
+DeleteCriticalSection(CritSect);
 
 end.
