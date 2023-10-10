@@ -850,7 +850,7 @@ begin
       else
         AParam.AsSingles[Self.Tag] := (AValue as TJSONNumber).AsDouble;
 
-    ftWideMemo:
+    ftMemo, ftWideMemo:
       if Self.Params.ArraySize = 1 then
         AParam.AsWideMemo := (AValue as TJSONString).Value
       else
