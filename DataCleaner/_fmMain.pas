@@ -108,21 +108,29 @@ var
   MyDir, MyFile: String;
   tmp: string;
   WriteTime: TDateTime;
+  count: Integer;
 begin
   if not TDirectory.Exists(APath) then
     raise Exception.Create('Not exist. ' + APath);
 
-  for MyDir in TDirectory.GetDirectories(APath) do
-  begin
-    CheckDir(MyDir, ADateTime);
-  end;
+  if FSubFolder then
+    for MyDir in TDirectory.GetDirectories(APath) do
+    begin
+      CheckDir(MyDir, ADateTime);
+    end;
 
   // File Copy  FTPServer
   tmp := ChangeFileExt(ExtractFileName(TGlobal.Obj.ExeName), '');
+  count := 0;
   for MyFile in TDirectory.GetFiles(APath, TOption.Obj.SearchPattern) do
   begin
     try
       CheckFile(MyFile, ADateTime);
+      inc(count);
+
+      // 1000개씩 처리
+      if count > 1000 then
+        Break;
     except
       on E: Exception do
         PrintLog('Error on CheckFile, ' + MyFile);
