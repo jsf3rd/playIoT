@@ -151,44 +151,61 @@ const
     PAnsiChar('--no-osd') //
     );
 begin
-  profxml := Trim(ONVIFGetProfiles('http://' + FConnInfo.ToString + '/onvif/media', FUser,
-    FPassword));
-
-  if profxml = ERROR_MSG then
-    profxml := Trim(ONVIFGetProfiles('http://' + FConnInfo.ToString + '/onvif/media_service', FUser,
-      FPassword));
-
-  XMLProfilesToProfiles(profxml, prof);
-  if Length(prof) = 0 then
-    raise Exception.Create('No channel list');
-
-  StreamXml := Trim(ONVIFGetStreamUri('http://' + FConnInfo.ToString + '/onvif/media', FUser,
-    FPassword, 'RTP-Unicast', 'RTSP', prof[AIndex].token));
-  if StreamXml = ERROR_MSG then
-    StreamXml := Trim(ONVIFGetStreamUri('http://' + FConnInfo.ToString + '/onvif/media_service',
-      FUser, FPassword, 'RTP-Unicast', 'RTSP', prof[AIndex].token));
-
-  XMLStreamUriToStreamUri(StreamXml, StreamUri);
-
-  if StreamUri.URI = '' then
-    raise Exception.Create('No RTSP URI');
-
-  FURI := StreamUri.URI;
-
-  // FURL := 'rtsp://192.168.11.100:554/profile2/media.smp';
-  // FURI := 'rtsp://ys01.jrpwim.com:55415/media/video1';
-  if FRtspPort = 0 then
+  if FConnInfo.StringValue.Contains('/') then
   begin
-    // 카메라에 설정된 RTSP포트 사용
-    URL := FURI.Substring(Pos(':', FURI, 7));
-    URL := Format('rtsp://%s:%s@%s:%s', [FUser, FPassword, FConnInfo.StringValue, URL]);
+    // has URI
+    FURI := FConnInfo.StringValue;
+    URL := 'rtsp://' + FURI.Insert(Pos('/', FURI) - 1, Format(':%d', [FConnInfo.IntegerValue]));
   end
   else
   begin
-    // 사용자가 설정한 RTSP포트 사용
-    URL := FURI.Substring(Pos('/', FURI, 7));
-    URL := Format('rtsp://%s:%s@%s:%d/%s', [FUser, FPassword, FConnInfo.StringValue,
-      FRtspPort, URL]);
+    profxml := '';
+    try
+      profxml := Trim(ONVIFGetProfiles('http://' + FConnInfo.ToString + '/onvif/media', FUser,
+        FPassword));
+
+    except
+      on E: Exception do
+        TLogging.Obj.ApplicationMessage(msError, 'ONVIF', E.Message);
+    end;
+
+    if profxml = ERROR_MSG then
+      profxml := Trim(ONVIFGetProfiles('http://' + FConnInfo.ToString + '/onvif/media_service',
+        FUser, FPassword));
+
+    XMLProfilesToProfiles(profxml, prof);
+    if Length(prof) = 0 then
+      raise Exception.Create('No channel list');
+
+    StreamXml := Trim(ONVIFGetStreamUri('http://' + FConnInfo.ToString + '/onvif/media', FUser,
+      FPassword, 'RTP-Unicast', 'RTSP', prof[AIndex].token));
+    if StreamXml = ERROR_MSG then
+      StreamXml := Trim(ONVIFGetStreamUri('http://' + FConnInfo.ToString + '/onvif/media_service',
+        FUser, FPassword, 'RTP-Unicast', 'RTSP', prof[AIndex].token));
+
+    XMLStreamUriToStreamUri(StreamXml, StreamUri);
+
+    if StreamUri.URI = '' then
+      raise Exception.Create('No RTSP URI');
+
+    FURI := StreamUri.URI;
+
+    // FURI := 'rtsp://192.168.11.100:554/profile2/media.smp';
+    // FURI := 'rtsp://ys01.jrpwim.com:55415/media/video1';
+
+    if FRtspPort = 0 then
+    begin
+      // 카메라에 설정된 RTSP포트 사용
+      URL := FURI.Substring(Pos(':', FURI, 7));
+      URL := Format('rtsp://%s:%s@%s:%s', [FUser, FPassword, FConnInfo.StringValue, URL]);
+    end
+    else
+    begin
+      // 사용자가 설정한 RTSP포트 사용
+      URL := FURI.Substring(Pos('/', FURI, 7));
+      URL := Format('rtsp://%s:%s@%s:%d/%s', [FUser, FPassword, FConnInfo.StringValue,
+        FRtspPort, URL]);
+    end;
   end;
 
   TLogging.Obj.ApplicationMessage(msInfo, 'libvlc_new', URL);
