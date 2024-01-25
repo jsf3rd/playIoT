@@ -36,8 +36,8 @@ type
   /// - int iAlarmStatus: 경보 상태 표시 값(복귀: 255 , 정상: 0, 경보: 1 이상의 값)
   /// - int iStatus :  태그 상태표시값(Unload (iStatus & 128=128), Failed(iStatus & 1=1),  OutOfService(iStatus & 2=2), System Alarm(iStatus & 4= 4), Normal(iStatus==0))
   /// </summary>
-  TOnFireCOVEvent = procedure(const iIndex: Int32; const szTagName: PAnsiChar; const szValue: PAnsiChar;
-    const iAlarm: Int32; const iStatus: Int32)stdcall;
+  TOnFireCOVEvent = procedure(const iIndex: Int32; const szTagName: PAnsiChar;
+    const szValue: PAnsiChar; const iAlarm: Int32; const iStatus: Int32)stdcall;
 
   /// <summary>
   /// 감시할 태그의 이름을 입력하여 태그들을 등록합니다.
@@ -62,7 +62,8 @@ type
   /// iBufferSize : 버퍼 최대 길이.
   /// - 출력 인자: szBuffer 길이
   /// </summary>
-  TGetTagValue = function(const iTag: Int32; szBuffer: PAnsiChar; const iBuffSize: Int32): Int32; stdcall;
+  TGetTagValue = function(const iTag: Int32; szBuffer: PAnsiChar; const iBuffSize: Int32)
+    : Int32; stdcall;
 
   /// <summary>
   /// SetMonitoringTag 에서 설정한 태그 감시의 반환값 Index를 이용하여 현재의 태그 값을 읽어 옵니다.
