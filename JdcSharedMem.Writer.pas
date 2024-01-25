@@ -22,14 +22,15 @@ type
     FCodeName: String;
     FDataInfo: PDataInfo;
     FDataList: Pointer;
-    function GetSequence: UInt64;
+
   public
     constructor Create(ACodeName: String; ADataSize: Cardinal; AMaxCount: TDataCount = dc256);
     destructor Destroy; override;
 
     function GetDataInfo: TDataInfo;
     procedure PutData(AData: TStream);
-    property Sequence: UInt64 read GetSequence;
+    function LastSequence: UInt64;
+
   end;
 
 implementation
@@ -63,7 +64,7 @@ begin
   result := FDataInfo^;
 end;
 
-function TJdcSharedMemWriter.GetSequence: UInt64;
+function TJdcSharedMemWriter.LastSequence: UInt64;
 begin
   result := FDataInfo.LastSequence;
 end;

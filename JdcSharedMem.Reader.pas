@@ -28,12 +28,13 @@ type
     constructor Create(ACodeName: String);
     destructor Destroy; override;
 
+    function EchoString(AValue: string): string;
     function GetFirstPointer: Pointer;
     function GetNextPointer: Pointer;
     function GetPreviousPointer: Pointer;
     function GetLastPointer: Pointer;
-
-    property Sequence: UInt64 read FCurrentSequence;
+    function GetCurrentSequence: UInt64;
+    function GetLastSequence: UInt64;
   end;
 
 implementation
@@ -57,6 +58,11 @@ destructor TJdcSharedMemReader.Destroy;
 begin
   SharedFreeMem(FDataInfo);
   SharedFreeMem(FDataList);
+end;
+
+function TJdcSharedMemReader.EchoString(AValue: string): string;
+begin
+  result := AValue;
 end;
 
 function TJdcSharedMemReader.GetPointer: Pointer;
@@ -97,6 +103,11 @@ begin
     FCurrentSequence := FDataInfo.LastSequence;
 end;
 
+function TJdcSharedMemReader.GetCurrentSequence: UInt64;
+begin
+  result := FCurrentSequence;
+end;
+
 function TJdcSharedMemReader.GetFirstPointer: Pointer;
 begin
   if FDataInfo.LastSequence = 0 then
@@ -113,6 +124,11 @@ function TJdcSharedMemReader.GetLastPointer: Pointer;
 begin
   FCurrentSequence := FDataInfo.LastSequence;
   result := GetPointer;
+end;
+
+function TJdcSharedMemReader.GetLastSequence: UInt64;
+begin
+  result := FDataInfo.LastSequence;
 end;
 
 function TJdcSharedMemReader.GetNextPointer: Pointer;
