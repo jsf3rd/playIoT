@@ -60,6 +60,9 @@ function MV_CC_RotateImage(Var handle: Pointer; pstRotateParam: PMV_CC_ROTATE_IM
 function MV_CC_FlipImage(Var handle: Pointer; pstFlipParam: PMV_CC_FLIP_IMAGE_PARAM): Integer;
   stdcall; external 'MvCameraControl.dll';
 
+function MV_CC_RegisterImageCallBackEx(Var handle: Pointer; fOutputCallBack: TcbOutput;
+  Var pUser: Pointer): Integer; stdcall; external 'MvCameraControl.dll';
+
 // Support common operation
 function GigeDeviceInfoToShow(pDeviceInfo: MV_CC_DEVICE_INFO; Var pInfoToShow: string): Integer;
 function USB3DeviceInfoToShow(pDeviceInfo: MV_CC_DEVICE_INFO; Var pInfoToShow: string): Integer;
@@ -87,10 +90,10 @@ cdecl varargs = _FormaCtName;
 
 implementation
 
-Var
-  ShowCalendar: THandle;
+// Var
+// ShowCalendar: THandle;
 
-  // Parse and display the Gige device information
+// Parse and display the Gige device information
 function GigeDeviceInfoToShow(pDeviceInfo: MV_CC_DEVICE_INFO; Var pInfoToShow: string): Integer;
 Var
   nIp1: Integer;
@@ -290,7 +293,7 @@ begin
   pAnsiKey := PAnsiChar(AnsiString(strKey));
   ZeroMemory(@strNode, sizeof(MVCC_STRINGVALUE));
   Result := MV_CC_GetStringValue(hDevHandle^, pAnsiKey, @strNode);
-  pStrValue := PAnsiChar(@(strNode.chCurValue));
+  pStrValue := String(PAnsiChar(@(strNode.chCurValue)));
 end;
 
 // Set String value

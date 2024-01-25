@@ -11,100 +11,100 @@ const
 
   // ch:通用错误码定义:范围0x80000000-0x800000FF | en: Definition of common error code : 0x80000000-0x800000FF
 
-  MV_E_HANDLE: Integer = $80000000;
+  MV_E_HANDLE: UInt32 = $80000000;
   /// < 错误或无效的句柄 | en:Error or invalid handle
-  MV_E_SUPPORT: Integer = $80000001;
+  MV_E_SUPPORT: UInt32 = $80000001;
   /// < 不支持的功能 | en:Not supported function
-  MV_E_BUFOVER: Integer = $80000002;
+  MV_E_BUFOVER: UInt32 = $80000002;
   /// < 缓存已满 | en:Cache is full
-  MV_E_CALLORDER: Integer = $80000003;
+  MV_E_CALLORDER: UInt32 = $80000003;
   /// < 函数调用顺序错误 | en:Function calling order error
-  MV_E_PARAMETER: Integer = $80000004;
+  MV_E_PARAMETER: UInt32 = $80000004;
   /// < 错误的参数 | en:Incorrect parameter
-  MV_E_RESOURCE: Integer = $80000006;
+  MV_E_RESOURCE: UInt32 = $80000006;
   /// < 资源申请失败 | en:Applying resource failed
-  MV_E_NODATA: Integer = $80000007;
+  MV_E_NODATA: UInt32 = $80000007;
   /// < 无数据 | en:No data
-  MV_E_PRECONDITION: Integer = $80000008;
+  MV_E_PRECONDITION: UInt32 = $80000008;
   /// < 前置条件有误，或运行环境已发生变化 | en:Precondition error, or running environment changed
-  MV_E_VERSION: Integer = $80000009;
+  MV_E_VERSION: UInt32 = $80000009;
   /// < 版本不匹配 | en:Version mismatches
-  MV_E_NOENOUGH_BUF: Integer = $8000000A;
+  MV_E_NOENOUGH_BUF: UInt32 = $8000000A;
   /// < 传入的内存空间不足 | en:Insufficient memory
-  MV_E_ABNORMAL_IMAGE: Integer = $8000000B;
+  MV_E_ABNORMAL_IMAGE: UInt32 = $8000000B;
   /// < 异常图像，可能是丢包导致图像不完整 | en:Abnormal image, maybe incomplete image because of lost packet
-  MV_E_LOAD_LIBRARY: Integer = $8000000C;
+  MV_E_LOAD_LIBRARY: UInt32 = $8000000C;
   /// < 动态导入DLL失败 | en:Load library failed
-  MV_E_UNKNOW: Integer = $800000FF;
+  MV_E_UNKNOW: UInt32 = $800000FF;
   /// < 未知的错误 | en:Unknown error
 
   // ch:GenICam系列错误:范围0x80000100-0x800001FF | en:GenICam Series Error Codes: Range from 0x80000100 to 0x800001FF
-  MV_E_GC_GENERIC: Integer = $80000100;
+  MV_E_GC_GENERIC: UInt32 = $80000100;
   /// < 通用错误 | en:General error
-  MV_E_GC_ARGUMENT: Integer = $80000101;
+  MV_E_GC_ARGUMENT: UInt32 = $80000101;
   /// < 参数非法 | en:Illegal parameters
-  MV_E_GC_RANGE: Integer = $80000102;
+  MV_E_GC_RANGE: UInt32 = $80000102;
   /// < 值超出范围 | en:The value is out of range
-  MV_E_GC_PROPERTY: Integer = $80000103;
+  MV_E_GC_PROPERTY: UInt32 = $80000103;
   /// < 属性 | en:Property
-  MV_E_GC_RUNTIME: Integer = $80000104;
+  MV_E_GC_RUNTIME: UInt32 = $80000104;
   /// < 运行环境有问题 | en:Running environment error
-  MV_E_GC_LOGICAL: Integer = $80000105;
+  MV_E_GC_LOGICAL: UInt32 = $80000105;
   /// < 逻辑错误 | en:Logical error
-  MV_E_GC_ACCESS: Integer = $80000106;
+  MV_E_GC_ACCESS: UInt32 = $80000106;
   /// < 节点访问条件有误 | en:Node accessing condition error
-  MV_E_GC_TIMEOUT: Integer = $80000107;
+  MV_E_GC_TIMEOUT: UInt32 = $80000107;
   /// < 超时 | en:Timeout
-  MV_E_GC_DYNAMICCAST: Integer = $80000108;
+  MV_E_GC_DYNAMICCAST: UInt32 = $80000108;
   /// < 转换异常 | en:Transformation exception
-  MV_E_GC_UNKNOW: Integer = $800001FF;
+  MV_E_GC_UNKNOW: UInt32 = $800001FF;
   /// < GenICam未知错误 | en:GenICam unknown error
 
   // ch:GigE_STATUS对应的错误码:范围0x80000200-0x800002FF | en:GigE_STATUS Error Codes: Range from 0x80000200 to 0x800002FF
-  MV_E_NOT_IMPLEMENTED: Integer = $80000200;
+  MV_E_NOT_IMPLEMENTED: UInt32 = $80000200;
   /// < 命令不被设备支持 | en:The command is not supported by device
-  MV_E_INVALID_ADDRESS: Integer = $80000201;
+  MV_E_INVALID_ADDRESS: UInt32 = $80000201;
   /// < 访问的目标地址不存在 | en:The target address being accessed does not exist
-  MV_E_WRITE_PROTECT: Integer = $80000202;
+  MV_E_WRITE_PROTECT: UInt32 = $80000202;
   /// < 目标地址不可写 | en:The target address is not writable
-  MV_E_ACCESS_DENIED: Integer = $80000203;
+  MV_E_ACCESS_DENIED: UInt32 = $80000203;
   /// < 设备无访问权限 | en:No permission
-  MV_E_BUSY: Integer = $80000204;
+  MV_E_BUSY: UInt32 = $80000204;
   /// < 设备忙，或网络断开 | en:Device is busy, or network disconnected
-  MV_E_PACKET: Integer = $80000205;
+  MV_E_PACKET: UInt32 = $80000205;
   /// < 网络包数据错误 | en:Network data packet error
-  MV_E_NETER: Integer = $80000206;
+  MV_E_NETER: UInt32 = $80000206;
   /// < 网络相关错误 | en:Network error
   // GigE相机特有的错误码
-  MV_E_IP_CONFLICT = $80000221;
+  MV_E_IP_CONFLICT: UInt32 = $80000221;
   /// < 设备IP冲突 | en:Device IP conflict
 
   // ch:USB_STATUS对应的错误码:范围0x80000300-0x800003FF | en:USB_STATUS Error Codes: Range from 0x80000300 to 0x800003FF
-  MV_E_USB_READ: Integer = $80000300;
+  MV_E_USB_READ: UInt32 = $80000300;
   /// < 读usb出错 | en:Reading USB error
-  MV_E_USB_WRITE: Integer = $80000301;
+  MV_E_USB_WRITE: UInt32 = $80000301;
   /// < 写usb出错 | en:Writing USB error
-  MV_E_USB_DEVICE: Integer = $80000302;
+  MV_E_USB_DEVICE: UInt32 = $80000302;
   /// < 设备异常 | en:Device exception
-  MV_E_USB_GENICAM: Integer = $80000303;
+  MV_E_USB_GENICAM: UInt32 = $80000303;
   /// < GenICam相关错误 | en:GenICam error
-  MV_E_USB_BANDWIDTH: Integer = $80000304;
+  MV_E_USB_BANDWIDTH: UInt32 = $80000304;
   /// < 带宽不足  该错误码新增 | en:Insufficient bandwidth, this error code is newly added
-  MV_E_USB_DRIVER: Integer = $80000305;
+  MV_E_USB_DRIVER: UInt32 = $80000305;
   /// < 驱动不匹配或者未装驱动 | en:Driver mismatch or unmounted drive
-  MV_E_USB_UNKNOW: Integer = $800003FF;
+  MV_E_USB_UNKNOW: UInt32 = $800003FF;
   /// < USB未知的错误 | en:USB unknown error
 
   // ch:升级时对应的错误码:范围0x80000400-0x800004FF | en:Upgrade Error Codes: Range from 0x80000400 to 0x800004FF
-  MV_E_UPG_FILE_MISMATCH: Integer = $80000400;
+  MV_E_UPG_FILE_MISMATCH: UInt32 = $80000400;
   /// < 升级固件不匹配 | en:Firmware mismatches
-  MV_E_UPG_LANGUSGE_MISMATCH: Integer = $80000401;
+  MV_E_UPG_LANGUSGE_MISMATCH: UInt32 = $80000401;
   /// < 升级固件语言不匹配 | en:Firmware language mismatches
-  MV_E_UPG_CONFLICT: Integer = $80000402;
+  MV_E_UPG_CONFLICT: UInt32 = $80000402;
   /// < 升级冲突（设备已经在升级了再次请求升级即返回此错误） | en:Upgrading conflicted (repeated upgrading requests during device upgrade)
-  MV_E_UPG_INNER_ERR: Integer = $80000403;
+  MV_E_UPG_INNER_ERR: UInt32 = $80000403;
   /// < 升级时相机内部出现错误 | en:Camera internal error during upgrade
-  MV_E_UPG_UNKNOW: Integer = $800004FF;
+  MV_E_UPG_UNKNOW: UInt32 = $800004FF;
   /// < 升级时未知错误 | en:Unknown error during upgrade
 
   // ch: 设备类型 | en: device type
@@ -116,6 +116,15 @@ const
 
   LINE_SCAN = 'MV-CL';
   AREA_CAM = 'MV-CS';
+
+type
+  MV_IMG_PARAM_BASE = record
+    pData: PAnsiChar; // [IN] ch:输入数据缓存 | en:Input Data Buffer
+    nDataLen: Cardinal; // [IN] ch:输入数据大小 | en:Input Data Size
+    enPixelType: MvGvspPixelType; // [IN] ch:输入数据的像素格式 | en:Input Data Pixel Format
+    nWidth: Word; // [IN] ch:图像宽 | en:Image Width
+    nHeight: Word; // [IN] ch:图像高 | en:Image Height
+  end;
 
   // device information
 type
@@ -133,6 +142,11 @@ type
     chUserDefinedName: array [0 .. 15] of Byte;
     nNetExport: Cardinal;
     nReserved: array [0 .. 3] of Cardinal;
+  end;
+
+type
+  MV_DISPLAY_FRAME_INFO = record
+
   end;
 
 type
@@ -271,11 +285,13 @@ type
     nLostPacket: Cardinal; // ch:本帧丢包数 | en:Lost Pacekt Number In This Frame
 
     nReserved: array [0 .. 38] of Cardinal;
+
+    function ToParamBase(const pData: PAnsiChar): MV_IMG_PARAM_BASE;
   end;
 
   // en:Save image type
 type
-  MV_SAVE_IAMGE_TYPE = (MV_Image_Undefined = 0, MV_Image_Bmp = 1, MV_Image_Jpeg = 2,
+  MV_SAVE_IMAGE_TYPE = (MV_Image_Undefined = 0, MV_Image_Bmp = 1, MV_Image_Jpeg = 2,
     MV_Image_Png = 3, // ch:不支持 | en:Not support
     MV_Image_Tif = 4); // ch:不支持 | en:Not support
 
@@ -293,7 +309,7 @@ type
     pImageBuffer: PAnsiChar; // [OUT] ch:输出图片缓存 | en:Output Image Buffer
     nImageLen: Cardinal; // [OUT] ch:输出图片大小 | en:Output Image Size
     nBufferSize: Cardinal; // [IN] ch:提供的输出缓冲区大小 | en:Output buffer size provided
-    enImageType: MV_SAVE_IAMGE_TYPE; // [IN] ch:输出图片格式 | en:Output Image Format
+    enImageType: MV_SAVE_IMAGE_TYPE; // [IN] ch:输出图片格式 | en:Output Image Format
     nJpgQuality: Cardinal; // [IN] ch:编码质量, (50-99] | en:Encoding quality, (50-99]
 
     // [IN]ch:Bayer格式转为RGB24的插值方法  0-最近邻 1-双线性 2-Hamilton （如果传入其它值则默认为最近邻）
@@ -301,6 +317,8 @@ type
     nMethodValue: Cardinal;
 
     nReserved: array [0 .. 2] of Cardinal;
+
+    function ToParamBase: MV_IMG_PARAM_BASE;
   end;
 
   // en:device state
@@ -351,7 +369,8 @@ type
     // ch:表示局域网内广播，暂不支持 | en:Limited broadcast mode,not support
     MV_GIGE_TRANSTYPE_SUBNETBROADCAST = $3,
     // ch:表示子网内广播，暂不支持 | en:Subnet broadcast mode,not support
-    MV_GIGE_TRANSTYPE_CAMERADEFINED = $4, // ch:表示从相机获取，暂不支持 | en:Transtype from camera,not support
+    MV_GIGE_TRANSTYPE_CAMERADEFINED = $4,
+    // ch:表示从相机获取，暂不支持 | en:Transtype from camera,not support
     MV_GIGE_TRANSTYPE_UNICAST_DEFINED_PORT = $5,
     // ch:表示用户自定义应用端接收图像数据Port号 | en:User Defined Receive Data Port
     MV_GIGE_TRANSTYPE_UNICAST_WITHOUT_RECV = $00010000,
@@ -360,8 +379,8 @@ type
   // ch:表示组播模式，但本实例不接收图像数据 | en:Multicast without receive data
 
 type
-  MV_IMG_ROTATION_ANGLE = (MV_IMAGE_ROTATE_90 = 1, MV_IMAGE_ROTATE_180 = 2,
-    MV_IMAGE_ROTATE_270 = 3);
+  MV_IMG_ROTATION_ANGLE = (MV_IMAGE_ROTATE_NONE = 0, MV_IMAGE_ROTATE_90 = 1,
+    MV_IMAGE_ROTATE_180 = 2, MV_IMAGE_ROTATE_270 = 3);
 
 type
   PMV_CC_ROTATE_IMAGE_PARAM = ^MV_CC_ROTATE_IMAGE_PARAM;
@@ -380,10 +399,13 @@ type
 
     enRotationAngle: MV_IMG_ROTATION_ANGLE; // [IN] en: Flip type
     nReserved: array [0 .. 7] of Cardinal;
+
+    function ToParamBase: MV_IMG_PARAM_BASE;
   end;
 
 type
-  MV_IMG_FLIP_TYPE = (MV_FLIP_VERTICAL = 1, MV_FLIP_HORIZONTAL = 2);
+  MV_IMG_FLIP_TYPE = (MV_FLIP_NONE = 0, MV_FLIP_VERTICAL = 1, MV_FLIP_HORIZONTAL = 2,
+    MV_FLIP_BOTH = 3);
 
 type
   PMV_CC_FLIP_IMAGE_PARAM = ^MV_CC_FLIP_IMAGE_PARAM;
@@ -402,8 +424,57 @@ type
 
     enFlipType: MV_IMG_FLIP_TYPE; // [IN] en: Flip type
     nReserved: array [0 .. 7] of Cardinal;
+
+    function ToParamBase: MV_IMG_PARAM_BASE;
   end;
 
+  TcbOutput = procedure(const pData: PAnsiChar; pFrameInfo: PMV_FRAME_OUT_INFO_EX;
+    Var pUser: Pointer)stdcall;
+
 implementation
+
+{ MV_SAVE_IMAGE_PARAM_EX }
+
+function MV_SAVE_IMAGE_PARAM_EX.ToParamBase: MV_IMG_PARAM_BASE;
+begin
+  result.pData := Self.pData;
+  result.nDataLen := Self.nDataLen;
+  result.enPixelType := Self.enPixelType;
+  result.nWidth := Self.nWidth;
+  result.nHeight := Self.nHeight;
+end;
+
+{ MV_CC_FLIP_IMAGE_PARAM }
+
+function MV_CC_FLIP_IMAGE_PARAM.ToParamBase: MV_IMG_PARAM_BASE;
+begin
+  result.pData := Self.pDstBuf;
+  result.nDataLen := Self.nDstBufLen;
+  result.enPixelType := Self.enPixelType;
+  result.nWidth := Self.nWidth;
+  result.nHeight := Self.nHeight;
+end;
+
+{ MV_CC_ROTATE_IMAGE_PARAM }
+
+function MV_CC_ROTATE_IMAGE_PARAM.ToParamBase: MV_IMG_PARAM_BASE;
+begin
+  result.pData := Self.pDstBuf;
+  result.nDataLen := Self.nDstBufLen;
+  result.enPixelType := Self.enPixelType;
+  result.nWidth := Self.nWidth;
+  result.nHeight := Self.nHeight;
+end;
+
+{ MV_FRAME_OUT_INFO_EX }
+
+function MV_FRAME_OUT_INFO_EX.ToParamBase(const pData: PAnsiChar): MV_IMG_PARAM_BASE;
+begin
+  result.pData := pData;
+  result.nDataLen := Self.nFrameLen;
+  result.enPixelType := Self.enPixelType;
+  result.nWidth := Self.nWidth;
+  result.nHeight := Self.nHeight;
+end;
 
 end.

@@ -3,9 +3,9 @@ unit PixelTypeUnit;
 interface
 
 const
-  MV_GVSP_PIX_MONO: Integer = $01000000;
-  MV_GVSP_PIX_COLOR: Integer = $02000000;
-  MV_GVSP_PIX_CUSTOM: Integer = $80000000;
+  MV_GVSP_PIX_MONO: UInt32 = $01000000;
+  MV_GVSP_PIX_COLOR: UInt32 = $02000000;
+  MV_GVSP_PIX_CUSTOM: UInt32 = $80000000;
 
 //function MV_PIXEL_BIT_COUNT( n: Integer ): Integer;
 
