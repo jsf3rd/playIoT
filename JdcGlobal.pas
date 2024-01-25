@@ -208,6 +208,8 @@ const
   LOG_PORT = 8094;
   LOCAL_SERVER = '\\localhost';
 
+  COLOR_UDNS_YELLOW = $0030A3D1;
+
 const
   DEBUG_LEVEL_ALL = 0;
   DEBUG_LEVEL_LOG = 1;
