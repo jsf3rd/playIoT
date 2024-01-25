@@ -46,7 +46,6 @@ type
 
     FBuffer: TIdBytes;
     FGPSMsg: TStrings;
-    FData: TGPSData;
     FSpeed: double;
 
     FConnMode: TConnMode;
@@ -69,7 +68,6 @@ type
     function Connected: Boolean;
 
     property ConnInfo: TConnInfo read GetConnInfo write SetConnInfo;
-    property Data: TGPSData read FData write FData;
     property OnGPSData: TOnGPSData read FOnGPSData write FOnGPSData;
   end;
 
@@ -338,9 +336,6 @@ procedure TGPS.Open;
 begin
   try
     FSpeed := 0;
-    FData.DateTime := 0;
-    FData.PCTime := 0;
-    FData.quality := 0;
 
     if FConnMode = cmUSB then
     begin
@@ -413,14 +408,13 @@ begin
     GPS := TGPSData.Create(MyMsg, PCTime);
     if GPS.Header = GPS_GGA then
     begin
-      FData := GPS;
-      FData.Speed := FSpeed;
+      GPS.Speed := FSpeed;
     end
     else if GPS.Header = GPS_RMC then
       FSpeed := GPS.Speed;
 
     if Assigned(FOnGPSData) then
-      FOnGPSData(FData);
+      FOnGPSData(GPS);
   end;
 end;
 
