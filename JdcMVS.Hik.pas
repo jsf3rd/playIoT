@@ -11,16 +11,20 @@ type
   protected
     function GetVendorName: string; override;
   public
-    constructor Create(AModel: string); override;
+    constructor Create(const AModel: string; const AType: MV_SAVE_IMAGE_TYPE;
+      const AFlip: MV_IMG_FLIP_TYPE = MV_FLIP_NONE;
+      const ARotate: MV_IMG_ROTATION_ANGLE = MV_IMAGE_ROTATE_NONE); override;
 
-    procedure SetAutoConfig(GainAuto: MV_CAM_GAIN_MODE = MV_GAIN_MODE_OFF;
-      ExposureAuto: MV_CAM_EXPOSURE_AUTO_MODE = MV_EXPOSURE_AUTO_MODE_CONTINUOUS); override;
-    procedure SetGain(AValue: Double); override;
-    function SetAcquisitionLineRate(AValue: Double): Integer; override;
-    function SetAutoExposureTimeUpperLimit(AValue: Double): Integer; override;
+    procedure SetAutoConfig(const GainAuto: MV_CAM_GAIN_MODE = MV_GAIN_MODE_OFF;
+      const ExposureAuto: MV_CAM_EXPOSURE_AUTO_MODE = MV_EXPOSURE_AUTO_MODE_CONTINUOUS); override;
+    procedure SetGain(const AValue: Double); override;
+    function SetAcquisitionLineRate(const AValue: Double): Integer; override;
+    function SetAutoExposureTimeUpperLimit(const AValue: Double): Integer; override;
+    function SetExposureTime(const AValue: Double): Integer; override;
 
-    function GetAcquisitionLineRate: Double; override;
-    function GetExposureTime: Double; override;
+    function GetAcquisitionLineRate: Integer; override;
+    function GetExposureTime: Integer; override;
+    function GetAutoExposureTimeUpperLimit: Integer; override;
 
   const
     VENDOR_NAME = 'Hikrobot';
@@ -38,14 +42,16 @@ const
 
   { TJdcMVSHik }
 
-constructor TJdcMVSHik.Create(AModel: string);
+constructor TJdcMVSHik.Create(const AModel: string; const AType: MV_SAVE_IMAGE_TYPE;
+  const AFlip: MV_IMG_FLIP_TYPE = MV_FLIP_NONE;
+  const ARotate: MV_IMG_ROTATION_ANGLE = MV_IMAGE_ROTATE_NONE);
 begin
   inherited;
 
   FCameraVendor := cvHik;
 end;
 
-function TJdcMVSHik.GetAcquisitionLineRate: Double;
+function TJdcMVSHik.GetAcquisitionLineRate: Integer;
 var
   IntValue: Cardinal;
 begin
@@ -53,12 +59,20 @@ begin
   result := IntValue;
 end;
 
-function TJdcMVSHik.GetExposureTime: Double;
+function TJdcMVSHik.GetAutoExposureTimeUpperLimit: Integer;
+var
+  IntValue: Cardinal;
+begin
+  GetIntValue(m_hDevHandle, AUTO_EXPOSURETIME_UPPER_LIMIT, @IntValue);
+  result := IntValue;
+end;
+
+function TJdcMVSHik.GetExposureTime: Integer;
 var
   FloatValue: Single;
 begin
   GetFloatValue(m_hDevHandle, EXPOSURE_TIME, @FloatValue);
-  result := FloatValue;
+  result := Trunc(FloatValue);
 end;
 
 function TJdcMVSHik.GetVendorName: string;
@@ -66,13 +80,13 @@ begin
   result := VENDOR_NAME;
 end;
 
-function TJdcMVSHik.SetAcquisitionLineRate(AValue: Double): Integer;
+function TJdcMVSHik.SetAcquisitionLineRate(const AValue: Double): Integer;
 begin
   result := _SetIntValue(ACQUISITION_LINERATE, Trunc(AValue));
 end;
 
-procedure TJdcMVSHik.SetAutoConfig(GainAuto: MV_CAM_GAIN_MODE;
-  ExposureAuto: MV_CAM_EXPOSURE_AUTO_MODE);
+procedure TJdcMVSHik.SetAutoConfig(const GainAuto: MV_CAM_GAIN_MODE;
+  const ExposureAuto: MV_CAM_EXPOSURE_AUTO_MODE);
 begin
   inherited;
 
@@ -83,12 +97,23 @@ begin
   end;
 end;
 
-function TJdcMVSHik.SetAutoExposureTimeUpperLimit(AValue: Double): Integer;
+function TJdcMVSHik.SetAutoExposureTimeUpperLimit(const AValue: Double): Integer;
 begin
-  result := _SetIntValue(AUTO_EXPOSURETIME_UPPER_LIMIT, Trunc(AValue));
+  if FExposureMode = MV_EXPOSURE_AUTO_MODE_CONTINUOUS then
+    result := _SetIntValue(AUTO_EXPOSURETIME_UPPER_LIMIT, Trunc(AValue))
+  else
+    result := MV_OK;
 end;
 
-procedure TJdcMVSHik.SetGain(AValue: Double);
+function TJdcMVSHik.SetExposureTime(const AValue: Double): Integer;
+begin
+  if FExposureMode = MV_EXPOSURE_AUTO_MODE_OFF then
+    result := _SetFloatValue(EXPOSURE_TIME, AValue)
+  else
+    result := MV_OK;
+end;
+
+procedure TJdcMVSHik.SetGain(const AValue: Double);
 var
   FloatValue: Single;
 begin

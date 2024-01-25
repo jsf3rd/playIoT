@@ -11,13 +11,17 @@ type
   protected
     function GetVendorName: string; override;
   public
-    constructor Create(AModel: string); override;
-    procedure SetGain(AValue: Double); override;
-    function SetAcquisitionLineRate(AValue: Double): Integer; override;
-    function SetAutoExposureTimeUpperLimit(AValue: Double): Integer; override;
+    constructor Create(const AModel: string; const AType: MV_SAVE_IMAGE_TYPE;
+      const AFlip: MV_IMG_FLIP_TYPE = MV_FLIP_NONE;
+      const ARotate: MV_IMG_ROTATION_ANGLE = MV_IMAGE_ROTATE_NONE); override;
+    procedure SetGain(const AValue: Double); override;
+    function SetAcquisitionLineRate(const AValue: Double): Integer; override;
+    function SetAutoExposureTimeUpperLimit(const AValue: Double): Integer; override;
+    function SetExposureTime(const AValue: Double): Integer; override;
 
-    function GetAcquisitionLineRate: Double; override;
-    function GetExposureTime: Double; override;
+    function GetAcquisitionLineRate: Integer; override;
+    function GetExposureTime: Integer; override;
+    function GetAutoExposureTimeUpperLimit: Integer; override;
 
   const
     VENDOR_NAME = 'Basler';
@@ -33,26 +37,36 @@ const
 
   { TJdcMVSBasler }
 
-constructor TJdcMVSBasler.Create(AModel: string);
+constructor TJdcMVSBasler.Create(const AModel: string; const AType: MV_SAVE_IMAGE_TYPE;
+  const AFlip: MV_IMG_FLIP_TYPE = MV_FLIP_NONE;
+  const ARotate: MV_IMG_ROTATION_ANGLE = MV_IMAGE_ROTATE_NONE);
 begin
   inherited;
   FCameraVendor := cvBasler;
 end;
 
-function TJdcMVSBasler.GetAcquisitionLineRate: Double;
+function TJdcMVSBasler.GetAcquisitionLineRate: Integer;
 var
   FloatValue: Single;
 begin
   GetFloatValue(m_hDevHandle, ACQUISITION_LINERATE, @FloatValue);
-  result := FloatValue;
+  result := Trunc(FloatValue);
 end;
 
-function TJdcMVSBasler.GetExposureTime: Double;
+function TJdcMVSBasler.GetAutoExposureTimeUpperLimit: Integer;
+var
+  FloatValue: Single;
+begin
+  GetFloatValue(m_hDevHandle, AUTO_EXPOSURETIME_UPPER_LIMIT, @FloatValue);
+  result := Trunc(FloatValue);
+end;
+
+function TJdcMVSBasler.GetExposureTime: Integer;
 var
   FloatValue: Single;
 begin
   GetFloatValue(m_hDevHandle, EXPOSURE_TIME, @FloatValue);
-  result := FloatValue;
+  result := Trunc(FloatValue);
 end;
 
 function TJdcMVSBasler.GetVendorName: string;
@@ -60,17 +74,28 @@ begin
   result := VENDOR_NAME;
 end;
 
-function TJdcMVSBasler.SetAcquisitionLineRate(AValue: Double): Integer;
+function TJdcMVSBasler.SetAcquisitionLineRate(const AValue: Double): Integer;
 begin
   result := _SetFloatValue(ACQUISITION_LINERATE, AValue);
 end;
 
-function TJdcMVSBasler.SetAutoExposureTimeUpperLimit(AValue: Double): Integer;
+function TJdcMVSBasler.SetAutoExposureTimeUpperLimit(const AValue: Double): Integer;
 begin
-  result := _SetFloatValue(AUTO_EXPOSURETIME_UPPER_LIMIT, AValue);
+  if FExposureMode = MV_EXPOSURE_AUTO_MODE_CONTINUOUS then
+    result := _SetFloatValue(AUTO_EXPOSURETIME_UPPER_LIMIT, AValue)
+  else
+    result := MV_OK;
 end;
 
-procedure TJdcMVSBasler.SetGain(AValue: Double);
+function TJdcMVSBasler.SetExposureTime(const AValue: Double): Integer;
+begin
+  if FExposureMode = MV_EXPOSURE_AUTO_MODE_OFF then
+    result := _SetFloatValue(EXPOSURE_TIME, AValue)
+  else
+    result := MV_OK;
+end;
+
+procedure TJdcMVSBasler.SetGain(const AValue: Double);
 var
   IntValue: Integer;
 begin
