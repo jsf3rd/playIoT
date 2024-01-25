@@ -26,6 +26,7 @@ type
     function mark_value: double;
     function GetRoadDirection: string;
     function GetMarkName: string;
+    function GetBranchCode: string;
 
     procedure NoRoadMark;
     function IsValid: Boolean;
@@ -357,6 +358,14 @@ begin
 end;
 
 { TRoadMark }
+
+function TRoadMark.GetBranchCode: string;
+begin
+  if Self.branch_code.IsEmpty then
+    result := 'N00000'
+  else
+    result := Self.branch_code
+end;
 
 function TRoadMark.GetMarkName: string;
 begin
