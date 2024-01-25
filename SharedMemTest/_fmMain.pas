@@ -52,15 +52,16 @@ type
     { Public declarations }
   end;
 
-  TItemDataFormatHeader = packed record
-    Version: Byte;
-    SensorItemID: Word;
-    SampleCount: Byte;
-    TimeStamp: double;
-    DataLength: Cardinal;
+  TDataHeader = packed record
+    FrameCount: Cardinal;
+    latitude: double;
+    longitude: double;
+    mark: double;
+    route: Array [0 .. 3] of AnsiChar;
+    way: AnsiChar;
   end;
 
-  TData = TArray<double>;
+  TData = Array [0 .. 99] of Integer;
 
 var
   Form2: TForm2;
@@ -82,30 +83,31 @@ end;
 
 procedure TForm2.btnPutClick(Sender: TObject);
 var
-  Header: TItemDataFormatHeader;
+  Header: TDataHeader;
   Data: TData;
 
   Value: double;
   I: Integer;
   Stream: TStream;
+  str: string;
 begin
-  Header.Version := 1;
-  Header.SensorItemID := 0;
-  Header.SampleCount := 100;
-  Header.TimeStamp := RecodeMilliSecond(now, 0);
-  Header.DataLength := 100 * SizeOf(double);
+  Header.FrameCount := 1;
+  Header.latitude := 37.567;
+  Header.longitude := 127.890;
+  Header.mark := 107.01;
 
-  SetLength(Data, 100);
+  str := '0010';
+  CopyMemory(@Header.route[0], PChar(str), str.Length);
 
-  Value := FMemWriter.Sequence * 10;
+  Value := FMemWriter.Sequence;
   for I := Low(Data) to High(Data) do
   begin
-    Data[I] := FMemWriter.Sequence * 10; // Random(1000) / 0.0001;
+    Data[I] := FMemWriter.Sequence * (I + 1); // Random(1000) / 0.0001;
   end;
 
   Stream := TMemoryStream.Create;
   Stream.Write(Header, SizeOf(Header));
-  Stream.Write(Data[0], Header.DataLength);
+  Stream.Write(Data[0], SizeOf(TData));
   FMemWriter.PutData(Stream);
   Stream.Free;
 
@@ -178,8 +180,8 @@ begin
   if Assigned(FMemWriter) then
     FreeAndNil(FMemWriter);
 
-  FMemWriter := TJdcSharedMemWriter.Create(edtCodeName.Text, SizeOf(TItemDataFormatHeader) + 100 *
-    SizeOf(double), dc16);
+  FMemWriter := TJdcSharedMemWriter.Create(edtCodeName.Text,
+    SizeOf(TDataHeader) + SizeOf(TData), dc16);
 end;
 
 procedure TForm2.btnAutoPutClick(Sender: TObject);
@@ -232,16 +234,15 @@ end;
 
 procedure TForm2.PrintData(p: Pointer);
 var
-  Header: TItemDataFormatHeader;
+  Header: TDataHeader;
   Data: TData;
   pdata: Pointer;
 begin
   CopyMemory(@Header, p, SizeOf(Header));
   pdata := Pointer(NativeUInt(p) + SizeOf(Header));
-  SetLength(Data, Header.SampleCount);
-  CopyMemory(@Data[0], pdata, Header.DataLength);
+  CopyMemory(@Data[0], pdata, SizeOf(TData));
 
-  PrintLog(Memo1, Format('Get Data: %s, Data[0]: %f, seq: %d', [edtCodeName.Text, Data[0],
+  PrintLog(Memo1, Format('Get Data: %s, Data[0]: %d, seq: %d', [edtCodeName.Text, Data[0],
     FMemReader.Sequence]));
 end;
 

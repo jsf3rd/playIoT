@@ -12,17 +12,23 @@ library MMFReader;
 
 uses
   System.SysUtils,
-  System.Classes, JdcSharedMem.Reader, JdcSharedMem.Writer,
-  JdcSharedMem.Common;
+  System.Classes, JdcSharedMem.Reader, JdcSharedMem.Common;
 
 {$R *.res}
 
-function OpenMMF(AValue: PAnsiChar): pointer; export; stdcall;
+function EchoStr(AValue: pointer; const str: PAnsiChar): PAnsiChar; export; stdcall;
+var
+  Reader: TJdcSharedMemReader absolute AValue;
 begin
-  result := TJdcSharedMemReader.Create(AValue);
+  result := PAnsiChar(AnsiString(Reader.EchoString(String(str))));
 end;
 
-procedure CloseMMF(AValue: PAnsiChar); export; stdcall;
+function OpenMMF(const AValue: PAnsiChar): pointer; export; stdcall;
+begin
+  result := TJdcSharedMemReader.Create(String(AValue));
+end;
+
+procedure CloseMMF(AValue: pointer); export; stdcall;
 var
   Reader: TJdcSharedMemReader absolute AValue;
 begin
@@ -50,7 +56,21 @@ begin
   result := Reader.GetLastPointer;
 end;
 
-exports OpenMMF, CloseMMF, GetFirst, GetNext, GetLast;
+function GetCurrentSequence(AValue: pointer): Int32; export; stdcall;
+var
+  Reader: TJdcSharedMemReader absolute AValue;
+begin
+  result := Reader.GetCurrentSequence;
+end;
+
+function GetLastSequence(AValue: pointer): Int32; export; stdcall;
+var
+  Reader: TJdcSharedMemReader absolute AValue;
+begin
+  result := Reader.GetLastSequence;
+end;
+
+exports EchoStr, OpenMMF, CloseMMF, GetFirst, GetNext, GetLast, GetCurrentSequence, GetLastSequence;
 
 begin
 
