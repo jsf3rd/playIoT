@@ -52,7 +52,7 @@ type
     FExeVersion: string;
 
     FLogTask: TThread;
-    FMsgQueue: TQueue<TJdcLog>;
+    FMsgQueue: TDictionary<string, TQueue<TJdcLog>>;
     FLogServer: TConnInfo;
     FProjectCode: string;
     FAppCode: String;
@@ -231,8 +231,19 @@ begin
 end;
 
 procedure TLogging.AppendLog(const AName, AMsg: string);
+var
+  Queue: TQueue<TJdcLog>;
 begin
-  FMsgQueue.Enqueue(TJdcLog.Create(AName, Now, AMsg));
+  if AName = '' then
+    raise Exception.Create('No log file name.');
+
+  if not FMsgQueue.ContainsKey(AName) then
+  begin
+    Queue := TQueue<TJdcLog>.Create;
+    Queue.Capacity := 1024;
+    FMsgQueue.Add(AName, Queue);
+  end;
+  FMsgQueue.Items[AName].Enqueue(TJdcLog.Create(AName, Now, AMsg));
 end;
 
 procedure TLogging.ApplicationMessage(const AType: TMessageType; const ATitle, AFormat: String;
@@ -246,8 +257,8 @@ end;
 
 constructor TLogging.Create;
 begin
-  FMsgQueue := TQueue<TJdcLog>.Create;
-  FMsgQueue.Capacity := 1024;
+  FMsgQueue := TDictionary < String, TQueue < TJdcLog >>.Create;
+  FMsgQueue.Capacity := 16;
 
   FProjectCode := 'MyProject';
   FAppCode := 'MyApp';
@@ -264,56 +275,56 @@ begin
 end;
 
 destructor TLogging.Destroy;
+var
+  MyElem: TQueue<TJdcLog>;
 begin
   StopLogging;
 
   if Assigned(FMsgQueue) then
+  begin
+    for MyElem in FMsgQueue.Values do
+      MyElem.Free;
     FreeAndNil(FMsgQueue);
+  end;
 end;
 
 procedure TLogging._PrintLog;
 var
   Stream: TStreamWriter;
-  PrevLog, NewLog: TJdcLog;
+  JdcLog: TJdcLog;
+  MyKey: string;
+  MsgQueue: TQueue<TJdcLog>;
 begin
-  Stream := nil;
-  NewLog := TJdcLog.Create('', Now, '');
-  try
-    while FMsgQueue.Count > 0 do
-    begin
-      Sleep(1);
-      PrevLog := NewLog;
-      NewLog := FMsgQueue.Dequeue;
-      if NewLog.LogName.IsEmpty then
-        Continue;
+  for MyKey in FMsgQueue.Keys do
+  begin
+    MsgQueue := FMsgQueue.Items[MyKey];
+    if MsgQueue.Count = 0 then
+      Continue;
 
-      if Stream = nil then
-        BackupLogFile(NewLog.LogName);
-
-      if PrevLog.LogName <> NewLog.LogName then
+    BackupLogFile(MyKey);
+    Stream := TFile.AppendText(MyKey);
+    try
+      while MsgQueue.Count > 0 do
       begin
-        if Assigned(Stream) then
-          FreeAndNil(Stream);
-        Stream := TFile.AppendText(NewLog.LogName);
-      end;
+        Sleep(1);
+        JdcLog := MsgQueue.Dequeue;
 
-      if NewLog.Msg.IsEmpty then
-        Stream.WriteLine
-      else
-      begin
-        try
-          Stream.WriteLine(NewLog.ToString);
-        except
-          on E: Exception do
-            _ApplicationMessage(MessageTypeToStr(msError), '_PrintLog',
-              NewLog.ToString + ',E=' + E.Message, [moCloudMessage]);
+        if JdcLog.Msg.IsEmpty then
+          Stream.WriteLine
+        else
+        begin
+          try
+            Stream.WriteLine(JdcLog.ToString);
+          except
+            on E: Exception do
+              _ApplicationMessage(MessageTypeToStr(msError), '_PrintLog',
+                JdcLog.ToString + ',E=' + E.Message, [moCloudMessage]);
+          end;
         end;
-
       end;
-    end;
-  finally
-    if Assigned(Stream) then
+    finally
       FreeAndNil(Stream);
+    end;
   end;
 end;
 
@@ -440,7 +451,7 @@ begin
     begin
       while not TThread.CurrentThread.CheckTerminated do
       begin
-        Sleep(101);
+        Sleep(1001);
         try
           FlushLog;
         except
