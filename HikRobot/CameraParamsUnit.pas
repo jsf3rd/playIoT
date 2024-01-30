@@ -118,12 +118,25 @@ const
   AREA_CAM = 'MV-CS';
 
 type
+  MV_DISPLAY_FRAME_INFO = record
+    hHandle: HWND;
+    pData: PAnsiChar;
+    nDataLen: Cardinal;
+    nWidth: Word;
+    nHeight: Word;
+    enPixelType: MvGvspPixelType;
+    nReserved: array [0 .. 3] of Cardinal;
+  end;
+
+type
   MV_IMG_PARAM_BASE = record
     pData: PAnsiChar; // [IN] ch:输入数据缓存 | en:Input Data Buffer
     nDataLen: Cardinal; // [IN] ch:输入数据大小 | en:Input Data Size
     enPixelType: MvGvspPixelType; // [IN] ch:输入数据的像素格式 | en:Input Data Pixel Format
     nWidth: Word; // [IN] ch:图像宽 | en:Image Width
     nHeight: Word; // [IN] ch:图像高 | en:Image Height
+
+    function ToDisplayInfo(const AHandle: HWND): MV_DISPLAY_FRAME_INFO;
   end;
 
   // device information
@@ -142,11 +155,6 @@ type
     chUserDefinedName: array [0 .. 15] of Byte;
     nNetExport: Cardinal;
     nReserved: array [0 .. 3] of Cardinal;
-  end;
-
-type
-  MV_DISPLAY_FRAME_INFO = record
-
   end;
 
 type
@@ -429,7 +437,7 @@ type
   end;
 
   TcbOutput = procedure(const pData: PAnsiChar; pFrameInfo: PMV_FRAME_OUT_INFO_EX;
-    Var pUser: Pointer)stdcall;
+    pUser: Pointer)stdcall;
 
 implementation
 
@@ -472,6 +480,18 @@ function MV_FRAME_OUT_INFO_EX.ToParamBase(const pData: PAnsiChar): MV_IMG_PARAM_
 begin
   result.pData := pData;
   result.nDataLen := Self.nFrameLen;
+  result.enPixelType := Self.enPixelType;
+  result.nWidth := Self.nWidth;
+  result.nHeight := Self.nHeight;
+end;
+
+{ MV_IMG_PARAM_BASE }
+
+function MV_IMG_PARAM_BASE.ToDisplayInfo(const AHandle: HWND): MV_DISPLAY_FRAME_INFO;
+begin
+  result.hHandle := AHandle;
+  result.pData := Self.pData;
+  result.nDataLen := Self.nDataLen;
   result.enPixelType := Self.enPixelType;
   result.nWidth := Self.nWidth;
   result.nHeight := Self.nHeight;

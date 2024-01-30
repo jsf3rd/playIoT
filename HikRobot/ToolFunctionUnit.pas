@@ -19,8 +19,10 @@ function MV_CC_OpenDevice(Var handle: Pointer; nAccessMode: DWORD = 1; nSwitchov
 function MV_CC_CloseDevice(Var handle: Pointer): Integer; stdcall; external 'MvCameraControl.dll';
 function MV_CC_DestroyHandle(Var handle: Pointer): Integer; stdcall; external 'MvCameraControl.dll';
 function MV_CC_StartGrabbing(Var handle: Pointer): Integer; stdcall; external 'MvCameraControl.dll';
-function MV_CC_Display(Var handle: Pointer; hWnd: Integer): Integer; stdcall;
+function MV_CC_Display(Var handle: Pointer; hWnd: NativeUInt): Integer; stdcall;
   external 'MvCameraControl.dll';
+function MV_CC_DisplayOneFrame(Var handle: Pointer; var pDisplayInfo: MV_DISPLAY_FRAME_INFO)
+  : Integer; stdcall; external 'MvCameraControl.dll';
 function MV_CC_StopGrabbing(Var handle: Pointer): Integer; stdcall; external 'MvCameraControl.dll';
 
 function MV_CC_GetOneFrameTimeout(Var handle: Pointer; pData: PAnsiChar; nDataSize: Cardinal;
@@ -61,7 +63,7 @@ function MV_CC_FlipImage(Var handle: Pointer; pstFlipParam: PMV_CC_FLIP_IMAGE_PA
   stdcall; external 'MvCameraControl.dll';
 
 function MV_CC_RegisterImageCallBackEx(Var handle: Pointer; fOutputCallBack: TcbOutput;
-  Var pUser: Pointer): Integer; stdcall; external 'MvCameraControl.dll';
+  pUser: Pointer): Integer; stdcall; external 'MvCameraControl.dll';
 
 // Support common operation
 function GigeDeviceInfoToShow(pDeviceInfo: MV_CC_DEVICE_INFO; Var pInfoToShow: string): Integer;
