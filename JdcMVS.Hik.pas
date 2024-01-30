@@ -10,6 +10,13 @@ type
   private
   protected
     function GetVendorName: string; override;
+
+    function GetAcquisitionLineRate: Integer; override;
+    function GetExposureTime: Integer; override;
+    function GetAutoExposureTimeUpperLimit: Integer; override;
+
+    function SetExposureTime(const AValue: Double): Integer; override;
+    function SetAcquisitionLineRate(const AValue: Double): Integer; override;
   public
     constructor Create(const AModel: string; const AType: MV_SAVE_IMAGE_TYPE;
       const AFlip: MV_IMG_FLIP_TYPE = MV_FLIP_NONE;
@@ -18,13 +25,7 @@ type
     procedure SetAutoConfig(const GainAuto: MV_CAM_GAIN_MODE = MV_GAIN_MODE_OFF;
       const ExposureAuto: MV_CAM_EXPOSURE_AUTO_MODE = MV_EXPOSURE_AUTO_MODE_CONTINUOUS); override;
     procedure SetGain(const AValue: Double); override;
-    function SetAcquisitionLineRate(const AValue: Double): Integer; override;
     function SetAutoExposureTimeUpperLimit(const AValue: Double): Integer; override;
-    function SetExposureTime(const AValue: Double): Integer; override;
-
-    function GetAcquisitionLineRate: Integer; override;
-    function GetExposureTime: Integer; override;
-    function GetAutoExposureTimeUpperLimit: Integer; override;
 
   const
     VENDOR_NAME = 'Hikrobot';
@@ -82,7 +83,11 @@ end;
 
 function TJdcMVSHik.SetAcquisitionLineRate(const AValue: Double): Integer;
 begin
-  result := _SetIntValue(ACQUISITION_LINERATE, Trunc(AValue));
+  if FCameraType = ctLinescan then
+    result := _SetIntValue(ACQUISITION_LINERATE, Trunc(AValue))
+  else
+    result := MV_E_SUPPORT;
+
 end;
 
 procedure TJdcMVSHik.SetAutoConfig(const GainAuto: MV_CAM_GAIN_MODE;
@@ -102,7 +107,7 @@ begin
   if FExposureMode = MV_EXPOSURE_AUTO_MODE_CONTINUOUS then
     result := _SetIntValue(AUTO_EXPOSURETIME_UPPER_LIMIT, Trunc(AValue))
   else
-    result := MV_OK;
+    result := MV_E_SUPPORT;
 end;
 
 function TJdcMVSHik.SetExposureTime(const AValue: Double): Integer;
@@ -110,7 +115,7 @@ begin
   if FExposureMode = MV_EXPOSURE_AUTO_MODE_OFF then
     result := _SetFloatValue(EXPOSURE_TIME, AValue)
   else
-    result := MV_OK;
+    result := MV_E_SUPPORT;
 end;
 
 procedure TJdcMVSHik.SetGain(const AValue: Double);

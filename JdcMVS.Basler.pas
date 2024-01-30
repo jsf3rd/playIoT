@@ -10,18 +10,19 @@ type
   private
   protected
     function GetVendorName: string; override;
+
+    function GetAcquisitionLineRate: Integer; override;
+    function GetExposureTime: Integer; override;
+    function GetAutoExposureTimeUpperLimit: Integer; override;
+
+    function SetExposureTime(const AValue: Double): Integer; override;
+    function SetAcquisitionLineRate(const AValue: Double): Integer; override;
   public
     constructor Create(const AModel: string; const AType: MV_SAVE_IMAGE_TYPE;
       const AFlip: MV_IMG_FLIP_TYPE = MV_FLIP_NONE;
       const ARotate: MV_IMG_ROTATION_ANGLE = MV_IMAGE_ROTATE_NONE); override;
     procedure SetGain(const AValue: Double); override;
-    function SetAcquisitionLineRate(const AValue: Double): Integer; override;
     function SetAutoExposureTimeUpperLimit(const AValue: Double): Integer; override;
-    function SetExposureTime(const AValue: Double): Integer; override;
-
-    function GetAcquisitionLineRate: Integer; override;
-    function GetExposureTime: Integer; override;
-    function GetAutoExposureTimeUpperLimit: Integer; override;
 
   const
     VENDOR_NAME = 'Basler';
@@ -76,7 +77,10 @@ end;
 
 function TJdcMVSBasler.SetAcquisitionLineRate(const AValue: Double): Integer;
 begin
-  result := _SetFloatValue(ACQUISITION_LINERATE, AValue);
+  if FCameraType = ctLinescan then
+    result := _SetFloatValue(ACQUISITION_LINERATE, AValue)
+  else
+    result := MV_E_SUPPORT;
 end;
 
 function TJdcMVSBasler.SetAutoExposureTimeUpperLimit(const AValue: Double): Integer;
@@ -84,7 +88,7 @@ begin
   if FExposureMode = MV_EXPOSURE_AUTO_MODE_CONTINUOUS then
     result := _SetFloatValue(AUTO_EXPOSURETIME_UPPER_LIMIT, AValue)
   else
-    result := MV_OK;
+    result := MV_E_SUPPORT;
 end;
 
 function TJdcMVSBasler.SetExposureTime(const AValue: Double): Integer;
@@ -92,7 +96,7 @@ begin
   if FExposureMode = MV_EXPOSURE_AUTO_MODE_OFF then
     result := _SetFloatValue(EXPOSURE_TIME, AValue)
   else
-    result := MV_OK;
+    result := MV_E_SUPPORT;
 end;
 
 procedure TJdcMVSBasler.SetGain(const AValue: Double);
