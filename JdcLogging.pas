@@ -167,15 +167,19 @@ begin
   if not Assigned(AMemo) then
     Exit;
 
-  if AMemo.Lines.Count > 5000 then
-    AMemo.Lines.Clear;
+  ThreadSafe(
+    procedure
+    begin
+      if AMemo.Lines.Count > 5000 then
+        AMemo.Lines.Clear;
 
-  if AMsg.IsEmpty then
-    AMemo.Lines.Add('')
-  else
-  begin
-    AMemo.Lines.Add(FormatDateTime('YYYY-MM-DD HH:NN:SS.zzz, ', Now) + AMsg);
-  end;
+      if AMsg.IsEmpty then
+        AMemo.Lines.Add('')
+      else
+      begin
+        AMemo.Lines.Add(FormatDateTime('YYYY-MM-DD HH:NN:SS.zzz, ', Now) + AMsg);
+      end;
+    end);
 end;
 {$ENDIF}
 
@@ -247,7 +251,7 @@ begin
 end;
 
 procedure TLogging.ApplicationMessage(const AType: TMessageType; const ATitle, AFormat: String;
-  const Args: array of const);
+const Args: array of const);
 var
   str: string;
 begin

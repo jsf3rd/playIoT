@@ -27,6 +27,7 @@ type
     function GetPCTime: TDateTime;
     function ToString(): string;
     function IsValid: Boolean;
+    function IsNoSignal: Boolean;
 
     function IsNorth: Boolean;
     function IsEast: Boolean;
@@ -57,7 +58,13 @@ type
     procedure ReadGPSMessage();
     procedure ParsePacket; overload;
     procedure ParsePacket(const AMsg: string); overload;
-  public
+  public const
+    GPS_NO_SIGNAL = 0;
+    GPS_NORMAL = 1;
+    GPS_DIFF = 2;
+    GPS_FIXED = 4;
+    GPS_FLOAT = 5;
+
     constructor Create(const AMode: TConnMode = cmUSB; AOnGPSData: TOnGPSData = nil);
     destructor Destroy; override;
 
@@ -82,18 +89,18 @@ implementation
 function QualityToStr(AValue: integer): string;
 begin
   case AValue of
-    0:
+    TGPS.GPS_NO_SIGNAL:
       result := 'GPS수신불가';
-    1:
+    TGPS.GPS_NORMAL:
       result := '일반GPS';
-    2:
+    TGPS.GPS_DIFF:
       result := 'DGPS';
-    4:
+    TGPS.GPS_FIXED:
       result := 'Fixed RTK';
-    5:
+    TGPS.GPS_FLOAT:
       result := 'Float RTK';
   else
-    result := 'Unknown ' + AValue.ToString;
+    result := 'Unknown(' + AValue.ToString + ')';
   end;
 end;
 
@@ -208,6 +215,11 @@ end;
 function TGPSData.IsEast: Boolean;
 begin
   result := UpperCase(Self.NS_Indicator) = 'E';
+end;
+
+function TGPSData.IsNoSignal: Boolean;
+begin
+  result := IsValid and (quality = TGPS.GPS_NO_SIGNAL)
 end;
 
 function TGPSData.IsNorth: Boolean;

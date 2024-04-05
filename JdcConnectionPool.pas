@@ -16,7 +16,7 @@ interface
 
 uses System.Classes, System.SysUtils, System.Generics.Collections,
   System.Generics.Defaults, System.SyncObjs, FireDAC.Comp.Client,
-  FireDAC.Stan.Consts;
+  FireDAC.Stan.Consts, JdcLogging, JdcGlobal;
 
 const
   DEFAULT_MAX_ITEMS = 50;
@@ -30,8 +30,9 @@ type
     FMaxItems: Integer;
     FDefName: string;
   public
-    constructor Create(CommaText, DefName, DriverID: String; MaximumItems: Integer = DEFAULT_MAX_ITEMS;
-      CleanupTimeout: Integer = DEFAULT_CLEANUP_TIMEOUT; ExpireTimeout: Integer = DEFAULT_EXPIRE_TIMEOUT);
+    constructor Create(CommaText, DefName, DriverID: String;
+      MaximumItems: Integer = DEFAULT_MAX_ITEMS; CleanupTimeout: Integer = DEFAULT_CLEANUP_TIMEOUT;
+      ExpireTimeout: Integer = DEFAULT_EXPIRE_TIMEOUT);
     destructor Destroy; override;
 
     function GetIdleConnection: TFDConnection;

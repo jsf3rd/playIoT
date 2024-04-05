@@ -50,6 +50,7 @@ type
     Id: UInt32;
     dlc: Byte;
     data: TCanData;
+    function ToHex: string;
   end;
 
   TMessageType = (msDebug, msInfo, msError, msWarning, msSystem);
@@ -156,7 +157,7 @@ function A94ToByte(const AValue: String; const AIndex: Integer = 1): Byte;
 function IdBytesToA94(const AValue: TIdBytes): string;
 function A94ToIdBytes(const str: string): TIdBytes;
 
-function StreamToA94(const AStream: TStream): string;
+function StreamToA94(AStream: TStream): string;
 function A94ToStream(const str: string): TStream;
 
 // Thread Safe
@@ -190,6 +191,8 @@ function IntToBin(Value: Cardinal; Digits: Integer): String;
 // JsonValue에서 JsonObject의 Value 값만 추출
 procedure ExtractValues(var AList: TStrings; const AValue: TJSONValue);
 
+function PChar2String(AValue: PAnsiChar): WideString;
+
 // JclDebug Rapper
 {
   function GetModuleByLevel(const Level: Integer = 0): string;
@@ -222,6 +225,11 @@ implementation
 
 uses JdcGlobal.ClassHelper, JdcLogging;
 
+function PChar2String(AValue: PAnsiChar): WideString;
+begin
+  result := WideString(AnsiString(AValue));
+end;
+
 function BoolToStr(AValue: Boolean; T: String = 'True'; F: String = 'False'): string;
 begin
   if AValue then
@@ -247,7 +255,7 @@ function CopyStream(const AStream: TStream): TMemoryStream;
 begin
   result := TMemoryStream.Create;
   AStream.Position := 0;
-  result.LoadFromStream(AStream);
+  result.CopyFrom(AStream, AStream.Size);
 end;
 
 procedure ExtractValues(var AList: TStrings; const AValue: TJSONValue);
@@ -1022,7 +1030,7 @@ begin
   end;
 end;
 
-function StreamToA94(const AStream: TStream): string;
+function StreamToA94(AStream: TStream): string;
 var
   buff: TIdBytes;
 begin
@@ -1046,6 +1054,19 @@ begin
   buff := A94ToIdBytes(str);
   result := TMemoryStream.Create;
   result.Write(buff[0], Length(buff));
+end;
+
+{ TeCanMessage }
+
+function TeCanMessage.ToHex: string;
+var
+  I: Integer;
+begin
+  result := '';
+  for I := Low(Self.data) to High(Self.data) do
+    result := result + ' ' + ByteToHex(Self.data[I]);
+
+  result := IntToHex(Self.Id) + ' ' + ByteToHex(Self.dlc) + result;
 end;
 
 end.
