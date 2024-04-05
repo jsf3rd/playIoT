@@ -8,6 +8,12 @@ uses System.SysUtils, System.Classes, System.DateUtils, JdcGlobal.DSCommon,
 type
   TRoadMarkJudge = class;
 
+  TLaneInfo = record
+    Lane: Integer; // 주행차로
+    Total: Integer; // 전체차로
+    function ToString: string;
+  end;
+
   TRoadMark = record
     dist: double;
     road_direction: string;
@@ -16,12 +22,11 @@ type
     mark_name: string;
     latitude: double;
     longitude: double;
-    utm_x: double;
-    utm_y: double;
     branch_name: string;
     branch_code: string;
-    lane_count: integer;
-    pavement: integer;
+    lane_count: Integer;
+    pavement: Integer;
+    road_no: Integer;
     function ToString: String;
     function mark_value: double;
     function GetRoadDirection: string;
@@ -69,11 +74,12 @@ type
     procedure UpdateRoadMark(const RoadMark: TRoadMark);
     function CalcDirection(const NewMark: TRoadMark): string;
     function DriveRoadDirection: string;
-    function DriveRoadCode: string;
+    function DriveRoadNo: Integer;
     function HasDirection: Boolean;
 
     function MarkCaption: String;
-    function FileName(const AIndex: integer; const AGPS: TGPSData; const ATime: TDateTime): string;
+    function FileName(const AIndex: Integer; const AGPS: TGPSData; const ATime: TDateTime;
+      const ALane: TLaneInfo): string;
 
     property State: TState read FState;
     property StateNoRoadMark: TState read FStateNoRoadMark;
@@ -92,10 +98,6 @@ type
     utm_x: double;
     utm_y: double;
     road_direction: string;
-    xmin: double;
-    xmax: double;
-    ymin: double;
-    ymax: double;
   end;
 
   TStateNoRoadMark = class(TState)
@@ -120,7 +122,7 @@ type
 
   TStateKeepDirection = class(TState)
   strict private
-    FCount: integer;
+    FCount: Integer;
   public
     procedure Init;
     procedure OnRoadMark(var RoadMark: TRoadMark; const ADirection: string); override;
@@ -252,9 +254,9 @@ begin
   inherited;
 end;
 
-function TRoadMarkJudge.DriveRoadCode: string;
+function TRoadMarkJudge.DriveRoadNo: Integer;
 begin
-  result := FDriveMark.road_code;
+  result := FDriveMark.road_no;
 end;
 
 function TRoadMarkJudge.DriveRoadDirection: string;
@@ -278,7 +280,7 @@ procedure TRoadMarkJudge.OnRoadMarks(const Marks: TArray<TRoadMark>);
 
   function GetRoadMark: TRoadMark;
   var
-    I: integer;
+    I: Integer;
   begin
     FAltMark := Marks[0];
     for I := Low(Marks) to High(Marks) do
@@ -323,13 +325,18 @@ begin
   FState := AState;
 end;
 
-function TRoadMarkJudge.FileName(const AIndex: integer; const AGPS: TGPSData;
-  const ATime: TDateTime): string;
+function TRoadMarkJudge.FileName(const AIndex: Integer; const AGPS: TGPSData;
+  const ATime: TDateTime; const ALane: TLaneInfo): string;
+var
+  lat, lon: string;
 begin
+  lat := FormatFloat('000.0000000', AGPS.latitude);
+  lon := FormatFloat('000.0000000', AGPS.longitude);
   result := FormatDateTime('YYYYMMDD_HHNNSS.ZZZ_', ATime) +
-    Format('%0.6d_%0.7f_%0.7f_%d_%s_%s_%s_%0.3d.jpg', [AIndex, AGPS.latitude, AGPS.longitude,
-    AGPS.quality, FDriveMark.road_code, FDriveMark.GetRoadDirection, FDriveMark.GetMarkName,
-    Trunc(AGPS.Speed)]);
+    Format('%0.6d_%s_%s_%d_%s_%s_%s_%0.2d_%0.2d_%0.3d.jpg', [AIndex, lat, lon, AGPS.quality,
+    FDriveMark.road_code, FDriveMark.GetRoadDirection, FDriveMark.GetMarkName, ALane.Lane,
+    ALane.Total, Trunc(AGPS.Speed)]);
+  // TLogging.Obj.ApplicationMessage(msDebug, 'FileName', result);
 end;
 
 function TRoadMarkJudge.MarkCaption: String;
@@ -402,12 +409,20 @@ begin
   Self.longitude := 0;
   Self.branch_code := '';
   Self.branch_name := '';
+  Self.road_no := 0;
 end;
 
 function TRoadMark.ToString: String;
 begin
   result := Format('%s %s %skm (%s)', [Self.road_name, Self.GetRoadDirection, Self.mark_name,
     Self.branch_name]);
+end;
+
+{ TLaneInfo }
+
+function TLaneInfo.ToString: string;
+begin
+  result := Format('%d (%d)', [Self.Lane, Self.Total]);
 end;
 
 end.
