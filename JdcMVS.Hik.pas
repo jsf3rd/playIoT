@@ -87,7 +87,6 @@ begin
     result := _SetIntValue(ACQUISITION_LINERATE, Trunc(AValue))
   else
     result := MV_E_SUPPORT;
-
 end;
 
 procedure TJdcMVSHik.SetAutoConfig(const GainAuto: MV_CAM_GAIN_MODE;
