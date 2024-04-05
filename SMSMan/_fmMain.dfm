@@ -10,21 +10,20 @@ object fmMain: TfmMain
   Font.Height = -11
   Font.Name = 'Tahoma'
   Font.Style = []
-  OldCreateOrder = False
   OnClose = FormClose
   OnCreate = FormCreate
-  PixelsPerInch = 96
   TextHeight = 13
   object RESTClient: TRESTClient
-    BaseURL = 'https://directsend.co.kr/'
+    BaseURL = 'https://directsend.co.kr'
     Params = <>
+    SynchronizedEvents = False
     Left = 56
     Top = 48
   end
   object RESTRequest: TRESTRequest
     Client = RESTClient
     Params = <>
-    Resource = 'index.php/api_v2/sms_change_word2'
+    Resource = 'index.php/api_v2/sms_change_word'
     Response = RESTResponse
     SynchronizedEvents = False
     Left = 136

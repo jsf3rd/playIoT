@@ -35,7 +35,6 @@ implementation
 procedure TfmMain.FormClose(Sender: TObject; var Action: TCloseAction);
 begin
   fmMain.Close;
-
 end;
 
 procedure TfmMain.FormCreate(Sender: TObject);
@@ -52,6 +51,7 @@ begin
       TOption.Obj.ReadID['CENTER'] := '';
       TOption.Obj.ReadPassword['CENTER'] := '';
     end;
+
     try
       for I := 1 to ParamCount do
       begin
