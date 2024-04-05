@@ -143,7 +143,10 @@ begin
   result := GetPointer;
 
   if not Assigned(result) then
+  begin
     FCurrentSequence := FDataInfo.LastSequence;
+    PrintDebug('[MoveLastSeq] CodeName=%s,CurSeq=%u', [FCodeName, FCurrentSequence]);
+  end;
 end;
 
 end.

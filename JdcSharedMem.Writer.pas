@@ -28,7 +28,8 @@ type
     destructor Destroy; override;
 
     function GetDataInfo: TDataInfo;
-    procedure PutData(AData: TStream);
+    procedure PutData(AData: TStream); overload;
+    procedure PutData(AData: Pointer; ALen: Integer); overload;
     function LastSequence: UInt64;
 
   end;
@@ -69,13 +70,33 @@ begin
   result := FDataInfo.LastSequence;
 end;
 
+procedure TJdcSharedMemWriter.PutData(AData: Pointer; ALen: Integer);
+var
+  PData: PByte;
+  Position: UInt64;
+begin
+  if FDataInfo.DataLength <> Cardinal(ALen + SizeOf(UInt64)) then
+    raise Exception.Create(Format('[MMF_DataSize] CodeName=%s,Size=%d,Expected=%d',
+      [FCodeName, ALen, FDataInfo.DataLength]));
+
+  Inc(FDataInfo.LastSequence);
+  Position := FDataInfo.LastSequence and FDataInfo.Mask;
+
+  PData := PByte(FDataList);
+  Inc(PData, Position * FDataInfo.DataLength);
+
+  Move(FDataInfo.LastSequence, PData^, SizeOf(UInt64));
+  Inc(PData, SizeOf(UInt64));
+  Move(AData^, PData^, ALen);
+end;
+
 procedure TJdcSharedMemWriter.PutData(AData: TStream);
 var
   PData: Pointer;
   Position: Cardinal;
 begin
   if FDataInfo.DataLength <> AData.Size + SizeOf(UInt64) then
-    raise Exception.Create(Format('[DataSize] CodeName=%s,Size=%d,Expected=%d',
+    raise Exception.Create(Format('[MMF_DataSize] CodeName=%s,Size=%d,Expected=%d',
       [FCodeName, AData.Size, FDataInfo.DataLength]));
 
   FDataInfo.LastSequence := FDataInfo.LastSequence + 1;
