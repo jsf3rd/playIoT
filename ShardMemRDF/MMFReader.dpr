@@ -56,14 +56,14 @@ begin
   result := Reader.GetLastPointer;
 end;
 
-function GetCurrentSequence(AValue: pointer): Int32; export; stdcall;
+function GetCurrentSequence(AValue: pointer): UInt64; export; stdcall;
 var
   Reader: TJdcSharedMemReader absolute AValue;
 begin
   result := Reader.GetCurrentSequence;
 end;
 
-function GetLastSequence(AValue: pointer): Int32; export; stdcall;
+function GetLastSequence(AValue: pointer): UInt64; export; stdcall;
 var
   Reader: TJdcSharedMemReader absolute AValue;
 begin
