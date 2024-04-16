@@ -14,19 +14,20 @@ type
   TGPSData = record
     Header: string;
     DateTime: TDateTime; // GPS Time
-    latitude: double;
+    latitude: Double;
     NS_Indicator: String;
-    longitude: double;
+    longitude: Double;
     EW_Indicator: string;
-    altitude: double;
-    Speed: double;
-    Cog: double;
-    quality: integer;
+    altitude: Double;
+    Speed: Double;
+    Cog: Double;
+    quality: Integer;
     PCTime: TDateTime;
     constructor Create(const AValue: string; const _PCTime: TDateTime);
     function GetPCTime: TDateTime;
     function ToString(): string;
-    function IsValid: Boolean;
+    function IsValid(ALimit: Integer = 200): Boolean;
+    function IsFixed: Boolean;
     function IsNoSignal: Boolean;
 
     function IsNorth: Boolean;
@@ -47,12 +48,12 @@ type
 
     FBuffer: TIdBytes;
     FGPSMsg: TStrings;
-    FSpeed: double;
+    FSpeed: Double;
 
     FConnMode: TConnMode;
     FOnGPSData: TOnGPSData;
 
-    procedure OnRxBuf(Sender: TObject; const Buffer; Count: integer);
+    procedure OnRxBuf(Sender: TObject; const Buffer; Count: Integer);
     procedure SetConnInfo(const Value: TConnInfo);
     function GetConnInfo: TConnInfo;
     procedure ReadGPSMessage();
@@ -64,6 +65,7 @@ type
     GPS_DIFF = 2;
     GPS_FIXED = 4;
     GPS_FLOAT = 5;
+    GPS_ASSISTED = 6;
 
     constructor Create(const AMode: TConnMode = cmUSB; AOnGPSData: TOnGPSData = nil);
     destructor Destroy; override;
@@ -78,7 +80,7 @@ type
     property OnGPSData: TOnGPSData read FOnGPSData write FOnGPSData;
   end;
 
-function QualityToStr(AValue: integer): string;
+function QualityToStr(AValue: Integer): string;
 
 const
   GPS_GGA = 'GGA';
@@ -86,7 +88,7 @@ const
 
 implementation
 
-function QualityToStr(AValue: integer): string;
+function QualityToStr(AValue: Integer): string;
 begin
   case AValue of
     TGPS.GPS_NO_SIGNAL:
@@ -100,7 +102,7 @@ begin
     TGPS.GPS_FLOAT:
       result := 'Float RTK';
   else
-    result := 'Unknown(' + AValue.ToString + ')';
+    result := 'ERROR(' + AValue.ToString + ')';
   end;
 end;
 
@@ -120,7 +122,7 @@ end;
 constructor TGPSData.Create(const AValue: string; const _PCTime: TDateTime);
 var
   Msg: TStringList;
-  Index: integer;
+  Index: Integer;
 begin
   Self.Header := '';
   Self.PCTime := _PCTime;
@@ -149,7 +151,7 @@ begin
         else
           Self.quality := 1;
 
-        Self.DateTime := StrToDateTimeDef(FormatDateTime('YYYY-MM-DD ', Now) + Format('%s:%s:%s%s',
+        Self.DateTime := StrToDateTimeDef(FormatDateTime('YYYY-MM-DD ', Now) + Format('%s:%s:%s%s0',
           [copy(Msg.Strings[Index], 1, 2), copy(Msg.Strings[Index], 3, 2), copy(Msg.Strings[Index],
           5, 2), copy(Msg.Strings[Index], 7, 3)]), _PCTime, DefaultFormatSettings);
         Self.latitude := ConvertDegree(Msg.Strings[Index + 2]);
@@ -175,8 +177,9 @@ begin
         // $GPGGA,092725.00,4717.11399,N,00833.91590,E,1,8,1.01,499.6,M,48.0,M,,0*5B
 
         // $GNGGA,090331.12,3651.27214,N,12637.43041,E,4,12,0.57,62.5,M,18.1,M,,4095*7C
+        // GNGGA,012952.85,3726.2240625,N,12707.3641959,E,4,09,1.4,34.6334,M,19.9003,M,0.9,0000*68
 
-        Self.DateTime := StrToDateTimeDef(FormatDateTime('YYYY-MM-DD ', Now) + Format('%s:%s:%s%s',
+        Self.DateTime := StrToDateTimeDef(FormatDateTime('YYYY-MM-DD ', Now) + Format('%s:%s:%s%s0',
           [copy(Msg.Strings[Index], 1, 2), copy(Msg.Strings[Index], 3, 2), copy(Msg.Strings[Index],
           5, 2), copy(Msg.Strings[Index], 7, 3)]), _PCTime, DefaultFormatSettings);
         Self.latitude := ConvertDegree(Msg.Strings[Index + 1]);
@@ -219,7 +222,12 @@ end;
 
 function TGPSData.IsNoSignal: Boolean;
 begin
-  result := IsValid and (quality = TGPS.GPS_NO_SIGNAL)
+  result := IsValid and ((quality = TGPS.GPS_NO_SIGNAL) or (quality = TGPS.GPS_ASSISTED))
+end;
+
+function TGPSData.IsFixed: Boolean;
+begin
+  result := quality = TGPS.GPS_FIXED;
 end;
 
 function TGPSData.IsNorth: Boolean;
@@ -227,9 +235,9 @@ begin
   result := UpperCase(Self.NS_Indicator) = 'N';
 end;
 
-function TGPSData.IsValid: Boolean;
+function TGPSData.IsValid(ALimit: Integer): Boolean;
 begin
-  result := MilliSecondsBetween(Now, PCTime) < 3000;
+  result := MilliSecondsBetween(Now, PCTime) < ALimit;
 end;
 
 function TGPSData.ToString: string;
@@ -329,7 +337,7 @@ begin
 
 end;
 
-procedure TGPS.OnRxBuf(Sender: TObject; const Buffer; Count: integer);
+procedure TGPS.OnRxBuf(Sender: TObject; const Buffer; Count: Integer);
 var
   buff: TIdBytes;
 begin
@@ -340,7 +348,7 @@ begin
     ParsePacket;
   except
     on E: Exception do
-      TLogging.Obj.ApplicationMessage(msError, 'ParsePacket', E.Message);
+      TLogging.Obj.ApplicationMessage(msError, 'ParsePacket', 'Count=%d,E=%d', [Count, E.Message]);
   end;
 end;
 
@@ -381,9 +389,9 @@ begin
   end;
 end;
 
-function ConvertDegree(Value: string): double;
+function ConvertDegree(Value: string): Double;
 var
-  frac: double;
+  frac: Double;
 begin
   result := StrToFloatDef(Value, 0);
   if result = 0 then
