@@ -28,7 +28,10 @@ type
     Bitmap: TBitmap; // 영상 처리용 Bitmap
     jpeg: TStream; // 이미지 저장용 MemoryStream
     RoadMark: TRoadMark;
+    LaneInfo: TLaneInfo;
+    AirTemp: Double; // 외기온도
     procedure ImageFree;
+    function GetFileName(VehicleCode, ImageType: string; AExt: string = '.jpg'): string;
   end;
 
   TJdcMVSAbstract = class
@@ -59,6 +62,8 @@ type
 
     FLiveWindow: HWND;
     FDisplayWindow: HWND;
+
+    FStopProcedure: Integer;
 
     procedure InitBuffer;
     function CalcResolution: Double;
@@ -164,6 +169,11 @@ const
   HIK_GAIN_MAX = 11.99;
   BASLER_GAIN_MAX = 2047;
   LOW_LIMIT_SPEED = 20;
+
+  CAMERA_NORMAL = 0;
+  CAMERA_ACTIVE = 1;
+  CAMERA_STOP_QUERY = 2;
+  CAMERA_STOP_OK = 3;
 
 implementation
 
@@ -319,6 +329,8 @@ begin
   OnMVImageCallback := ImageCallBack;
   FOnMV_Image := nil;
 
+  FStopProcedure := CAMERA_NORMAL;
+
   TLogging.Obj.ApplicationMessage(msInfo, 'SaveImageType', '[%s] %s',
     [FCameraModel, GetEnumName(TypeInfo(MV_SAVE_IMAGE_TYPE), Integer(AType))]);
   TLogging.Obj.ApplicationMessage(msInfo, 'ImageFlip', '[%s] %s',
@@ -399,12 +411,18 @@ begin
   if not Assigned(m_hDevHandle) then
     Exit;
 
+  // ImageCallBack이 설정된경우 StopGrab에서
+  // CAMERA_STOP_OK가 설정될때 까지 대기해야한다.
+  if FStopProcedure <> CAMERA_ACTIVE then
+  begin
+    FStopProcedure := CAMERA_STOP_OK;
+    Exit;
+  end;
+
   DateTime := Now;
   FImageCount := FImageCount + 1;
   try
     Image := BufToImage(pFrameInfo.ToParamBase(pData));
-    // TLogging.Obj.ApplicationMessage(msDebug, 'BufToImage', 'ExecTime=%d',
-    // [MilliSecondsBetween(Now, DateTime)]);
   except
     on E: Exception do
     begin
@@ -535,7 +553,7 @@ begin
   begin
     // en:BMP image size: width * height * 3 + 2048 (Reserved BMP header size)
     m_nBufSizeForSaveImage := AParam.nWidth * AParam.nHeight * 3 + 2048;
-    TLogging.Obj.ApplicationMessage(msDebug, 'SaveImageSize', '[%s] %d',
+    TLogging.Obj.ApplicationMessage(msInfo, 'SaveImageSize', '[%s] %d',
       [FCameraModel, m_nBufSizeForSaveImage]);
   end;
 
@@ -640,15 +658,35 @@ begin
   CheckSpeedChanged;
   m_nRet := MV_CC_StartGrabbing(m_hDevHandle^);
   if m_nRet = MV_OK then
-    TLogging.Obj.ApplicationMessage(msInfo, 'Grabbing', '[%s] Started!', [FCameraModel])
+  begin
+    FStopProcedure := CAMERA_ACTIVE;
+    TLogging.Obj.ApplicationMessage(msInfo, 'Grabbing', '[%s] Started!', [FCameraModel]);
+  end
   else
     raise Exception.Create(Format('StartGrabbingFail,[%s] Code=0x%x', [FCameraModel, m_nRet]))
 end;
 
 procedure TJdcMVSAbstract.StopGrab;
+var
+  counter: Integer;
 begin
   if not Assigned(m_hDevHandle) then
     Exit;
+
+  // ImageCallBack이 등록된경우
+  if Assigned(FOnMV_Image) then
+  begin
+    // CAMERA_STOP_QUERY를 설정하고
+    FStopProcedure := CAMERA_STOP_QUERY;
+    counter := 0;
+
+    // CAMERA_STOP_OK까지 대기, 최대 3초
+    while (FStopProcedure = CAMERA_STOP_QUERY) and (counter < 300) do
+    begin
+      sleep(10);
+      inc(counter);
+    end;
+  end;
 
   m_nRet := MV_CC_StopGrabbing(m_hDevHandle^);
   if m_nRet = MV_OK then
@@ -707,6 +745,29 @@ begin
 end;
 
 { TRawData }
+
+function TRawData.GetFileName(VehicleCode, ImageType: string; AExt: string): string;
+var
+  lat, lon: string;
+  AirTempName: string;
+begin
+  // 20230927_095317.857_002468_37.4728944_127.1259029_4_1000_S_009.42_02_03_075_21_095317.811_N00225_UD000_V.jpg
+  lat := FormatFloat('000.0000000', GPS.latitude);
+  lon := FormatFloat('000.0000000', GPS.longitude);
+
+  if AirTemp < 0 then
+    AirTempName := Format('%0.2d', [Round(AirTemp)])
+  else
+    AirTempName := Format('%0.3d', [Round(AirTemp)]);
+
+  result := FormatDateTime('YYYYMMDD_HHNNSS.ZZZ_', ImageTime) +
+    Format('%0.6d_%s_%s_%d_%s_%s_%s_%0.2d_%0.2d', [ImageCount, lat, lon, GPS.Quality,
+    RoadMark.road_code, RoadMark.GetRoadDirection, RoadMark.GetMarkName, LaneInfo.Lane,
+    LaneInfo.Total]);
+  result := result + Format('_%0.3d_%s_%s_%s_%s_%s.jpg', [Round(GPS.Speed), AirTempName,
+    FormatDateTime('HHNNSS.ZZZ', GPS.PCTime), RoadMark.GetBranchCode, VehicleCode,
+    ImageType, AExt]);
+end;
 
 procedure TRawData.ImageFree;
 begin
