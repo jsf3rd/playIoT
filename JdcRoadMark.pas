@@ -78,9 +78,6 @@ type
     function HasDirection: Boolean;
 
     function MarkCaption: String;
-    function FileName(const AIndex: Integer; const AGPS: TGPSData; const ATime: TDateTime;
-      const ALane: TLaneInfo): string;
-
     property State: TState read FState;
     property StateNoRoadMark: TState read FStateNoRoadMark;
     property StateUndirection: TState read FStateUndirection;
@@ -323,20 +320,6 @@ end;
 procedure TRoadMarkJudge.SetState(AState: TState);
 begin
   FState := AState;
-end;
-
-function TRoadMarkJudge.FileName(const AIndex: Integer; const AGPS: TGPSData;
-  const ATime: TDateTime; const ALane: TLaneInfo): string;
-var
-  lat, lon: string;
-begin
-  lat := FormatFloat('000.0000000', AGPS.latitude);
-  lon := FormatFloat('000.0000000', AGPS.longitude);
-  result := FormatDateTime('YYYYMMDD_HHNNSS.ZZZ_', ATime) +
-    Format('%0.6d_%s_%s_%d_%s_%s_%s_%0.2d_%0.2d_%0.3d.jpg', [AIndex, lat, lon, AGPS.quality,
-    FDriveMark.road_code, FDriveMark.GetRoadDirection, FDriveMark.GetMarkName, ALane.Lane,
-    ALane.Total, Trunc(AGPS.Speed)]);
-  // TLogging.Obj.ApplicationMessage(msDebug, 'FileName', result);
 end;
 
 function TRoadMarkJudge.MarkCaption: String;
