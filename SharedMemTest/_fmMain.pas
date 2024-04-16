@@ -99,10 +99,10 @@ begin
   str := '0010';
   CopyMemory(@Header.route[0], PChar(str), str.Length);
 
-  Value := FMemWriter.Sequence;
+  Value := FMemWriter.LastSequence;
   for I := Low(Data) to High(Data) do
   begin
-    Data[I] := FMemWriter.Sequence * (I + 1); // Random(1000) / 0.0001;
+    Data[I] := FMemWriter.LastSequence * (I + 1); // Random(1000) / 0.0001;
   end;
 
   Stream := TMemoryStream.Create;
@@ -112,7 +112,7 @@ begin
   Stream.Free;
 
   PrintLog(Memo1, 'Put Data : ' + edtCodeName.Text + ', Value :' + Value.ToString + ', Seq : ' +
-    FMemWriter.Sequence.ToString);
+    FMemWriter.LastSequence.ToString);
 end;
 
 procedure TForm2.btnGetFinalClick(Sender: TObject);
@@ -129,7 +129,7 @@ begin
 
   if not Assigned(p) then
   begin
-    PrintLog(Memo1, 'NoData, Seq : ' + FMemReader.Sequence.ToString);
+    PrintLog(Memo1, 'NoData, Seq : ' + FMemReader.GetCurrentSequence.ToString);
     exit;
   end;
 
@@ -150,7 +150,7 @@ begin
 
   if not Assigned(p) then
   begin
-    PrintLog(Memo1, 'NoData, Seq : ' + FMemReader.Sequence.ToString);
+    PrintLog(Memo1, 'NoData, Seq : ' + FMemReader.GetCurrentSequence.ToString);
     exit;
   end;
 
@@ -166,7 +166,7 @@ begin
 
   if not Assigned(p) then
   begin
-    PrintLog(Memo1, 'EOF, Seq : ' + FMemReader.Sequence.ToString);
+    PrintLog(Memo1, 'EOF, Seq : ' + FMemReader.GetCurrentSequence.ToString);
     exit;
   end;
 
@@ -243,7 +243,7 @@ begin
   CopyMemory(@Data[0], pdata, SizeOf(TData));
 
   PrintLog(Memo1, Format('Get Data: %s, Data[0]: %d, seq: %d', [edtCodeName.Text, Data[0],
-    FMemReader.Sequence]));
+    FMemReader.GetCurrentSequence]));
 end;
 
 procedure TForm2.GetTimerTimer(Sender: TObject);

@@ -14,7 +14,7 @@ unit JdcSharedMem.Reader;
 
 interface
 
-uses System.Classes, System.SysUtils, JdcSharedMem.Common, Winapi.Windows, JdcLogging;
+uses System.Classes, System.SysUtils, JdcSharedMem.Common, Winapi.Windows, JdcLogging, JdcGlobal;
 
 type
   TJdcSharedMemReader = class
@@ -52,6 +52,9 @@ begin
 
   if not SharedOpenMem(FDataList, FCodeName + DATA_LIST, FILE_MAP_READ) then
     raise Exception.Create('[OpenMemError] ' + FCodeName + DATA_LIST);
+
+  // TLogging.Obj.ApplicationMessage(msDebug, 'MemReader', 'DataInfo=%u,DataList=%u',
+  // [UIntPtr(FDataInfo), UIntPtr(FDataList)]);
 end;
 
 destructor TJdcSharedMemReader.Destroy;
@@ -68,7 +71,7 @@ end;
 function TJdcSharedMemReader.GetPointer: Pointer;
 var
   PData: Pointer;
-  ReadPosition: Cardinal;
+  ReadPosition: UInt64;
   Sequence: UInt64;
 begin
   PData := FDataList;
@@ -77,6 +80,8 @@ begin
 
   // PrintDebug('[GetData] CodeName=%s,Seq=%u,Pos=%u',
   // [FCodeName, FCurrentSequence, ReadPosition]);
+  // TLogging.Obj.ApplicationMessage(msDebug, 'GetData', 'CodeName=%s,Sequence=%u,Positon=%u,p=%u',
+  // [FCodeName, FCurrentSequence, ReadPosition, NativeUInt(PData)]);
 
   CopyMemory(@Sequence, PData, SizeOf(UInt64));
 

@@ -3,7 +3,7 @@
         <ProjectGuid>{488023BC-CCEA-4523-91EA-149C539E0C5B}</ProjectGuid>
         <MainSource>SharedMemTest.dpr</MainSource>
         <Base>True</Base>
-        <Config Condition="'$(Config)'==''">Release</Config>
+        <Config Condition="'$(Config)'==''">Debug</Config>
         <TargetedPlatforms>3</TargetedPlatforms>
         <AppType>Application</AppType>
         <FrameworkType>VCL</FrameworkType>

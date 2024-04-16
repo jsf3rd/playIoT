@@ -52,6 +52,10 @@ begin
   FDataInfo.DataLength := SizeOf(UInt64) + ADataSize;
 
   FDataList := SharedAllocMem(FCodeName + DATA_LIST, FDataInfo.DataLength * FDataInfo.MaxCount);
+
+  // TLogging.Obj.ApplicationMessage(msDebug, 'MemWriter', 'DataInfo=%u,DataList=%u',
+  // [UIntPtr(FDataInfo), UIntPtr(FDataList)]);
+
 end;
 
 destructor TJdcSharedMemWriter.Destroy;
@@ -93,7 +97,7 @@ end;
 procedure TJdcSharedMemWriter.PutData(AData: TStream);
 var
   PData: Pointer;
-  Position: Cardinal;
+  Position: UInt64;
 begin
   if FDataInfo.DataLength <> AData.Size + SizeOf(UInt64) then
     raise Exception.Create(Format('[MMF_DataSize] CodeName=%s,Size=%d,Expected=%d',
@@ -105,8 +109,10 @@ begin
   PData := FDataList;
   PData := Ptr(NativeUInt(PData) + (Position * FDataInfo.DataLength));
   // PrintDebug('[PutData] CodeName=%s,Sequence=%u,Positon=%u', [FCodeName, FDataInfo.LastSequence, Position]);
+  // TLogging.Obj.ApplicationMessage(msDebug, 'PutData', 'CodeName=%s,Sequence=%u,Positon=%u,p=%u',
+  // [FCodeName, FDataInfo.LastSequence, Position, NativeUInt(PData)]);
 
-  CopyMemory(PData, @FDataInfo.LastSequence, SizeOf(UInt64));
+  Move(FDataInfo.LastSequence, PData^, SizeOf(UInt64));
   PData := Ptr(NativeUInt(PData) + SizeOf(UInt64));
   AData.Position := 0;
   AData.Read(PData^, AData.Size);

@@ -54,13 +54,14 @@ function SharedFreeMem(var p { : Pointer } ): Boolean;
   SharedGetMem or SharedAllocMem. Otherwise it return False.
   Throws ESharedMemError if the Name is invalid. }
 
-function SharedOpenMem(var p { : Pointer }; const Name: string; DesiredAccess: Cardinal = FILE_MAP_ALL_ACCESS)
-  : Boolean; overload;
+function SharedOpenMem(var p { : Pointer }; const Name: string;
+  DesiredAccess: Cardinal = FILE_MAP_ALL_ACCESS): Boolean; overload;
 
 { SharedOpenMem return nil if the shared memory was not already allocated
   by SharedGetMem or SharedAllocMem.
   Throws ESharedMemError if the Name is invalid. }
-function SharedOpenMem(const Name: string; DesiredAccess: Cardinal = FILE_MAP_ALL_ACCESS): Pointer; overload;
+function SharedOpenMem(const Name: string; DesiredAccess: Cardinal = FILE_MAP_ALL_ACCESS)
+  : Pointer; overload;
 
 { SharedCloseMem releases the shared memory if it was the last reference. }
 function SharedCloseMem(var p { : Pointer } ): Boolean;
@@ -183,7 +184,8 @@ function SharedAllocMem(const Name: string; Size: Cardinal;
   DesiredAccess: Cardinal = FILE_MAP_ALL_ACCESS): Pointer;
 begin
   if SharedGetMem(Result, Name, Size, DesiredAccess) <> ERROR_ALREADY_EXISTS then
-    if ((DesiredAccess and (FILE_MAP_WRITE or FILE_MAP_COPY)) <> 0) and (Size > 0) and (Result <> nil) then
+    if ((DesiredAccess and (FILE_MAP_WRITE or FILE_MAP_COPY)) <> 0) and (Size > 0) and
+      (Result <> nil) then
       FillChar(Pointer(Result)^, Size, 0);
 end;
 
