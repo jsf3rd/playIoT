@@ -49,10 +49,8 @@ type
   public
     function IOHandler: TIdIOHandler;
     function ReadByte: Byte;
-    procedure ReadBytes(var VBuffer: TIdBytes; const AByteCount: Integer;
-      const AAppend: Boolean = True);
-    procedure Write(const ABuffer: TIdBytes; const ALength: Integer = -1;
-      const AOffset: Integer = 0);
+    procedure ReadBytes(var VBuffer: TIdBytes; const AByteCount: Integer; const AAppend: Boolean = True);
+    procedure Write(const ABuffer: TIdBytes; const ALength: Integer = -1; const AOffset: Integer = 0);
 
     function PeerIP: string;
     function PeerPort: word;
@@ -139,8 +137,7 @@ type
 
     class function RecordToJsonObject<T: record >(const ARecord: T): TJSONObject;
     class function RecordToJsonString<T: record >(const ARecord: T): String;
-    class procedure RecordToJsonFile<T: record >(const ARecord: T; AName: string;
-      const Encoding: TEncoding);
+    class procedure RecordToJsonFile<T: record >(const ARecord: T; AName: string; const Encoding: TEncoding);
     class function JsonToRecord<T: record >(const AJsonObject: TJSONObject): T; overload;
     class function JsonToRecord<T: record >(const AJson: String): T; overload;
     class function FileToRecord<T: record >(const FileName: String; const Encoding: TEncoding): T;
@@ -411,8 +408,7 @@ begin
     result := JSONValue as TJSONArray;
   except
     on E: Exception do
-      raise Exception.Create
-        (System.SysUtils.Format('JSON name [%s] can not cast to TJSONArray. \n %s',
+      raise Exception.Create(System.SysUtils.Format('JSON name [%s] can not cast to TJSONArray. \n %s',
         [Name, JSONValue.ToString]));
   end;
 end;
@@ -427,8 +423,7 @@ begin
     result := JSONValue as TJSONObject;
   except
     on E: Exception do
-      raise Exception.Create
-        (System.SysUtils.Format('JSON name [%s] can not cast to TJSONObject. \n %s',
+      raise Exception.Create(System.SysUtils.Format('JSON name [%s] can not cast to TJSONObject. \n %s',
         [Name, JSONValue.ToString]));
   end;
 end;
@@ -454,8 +449,7 @@ begin
     result := (JSONValue as TJSONNumber).AsDouble;
   except
     on E: Exception do
-      raise Exception.Create
-        (System.SysUtils.Format('JSON name [%s] can not cast to TJSONNumber. \n %s',
+      raise Exception.Create(System.SysUtils.Format('JSON name [%s] can not cast to TJSONNumber. \n %s',
         [Name, JSONValue.ToString]));
   end;
 end;
@@ -482,8 +476,7 @@ begin
     result := (JSONValue as TJSONNumber).AsInt;
   except
     on E: Exception do
-      raise Exception.Create
-        (System.SysUtils.Format('JSON name [%s] can not cast to TJSONNumber. \n %s',
+      raise Exception.Create(System.SysUtils.Format('JSON name [%s] can not cast to TJSONNumber. \n %s',
         [Name, JSONValue.ToString]));
   end;
 end;
@@ -641,8 +634,7 @@ begin
   end;
 end;
 
-class procedure TJSONHelper.RecordToJsonFile<T>(const ARecord: T; AName: string;
-  const Encoding: TEncoding);
+class procedure TJSONHelper.RecordToJsonFile<T>(const ARecord: T; AName: string; const Encoding: TEncoding);
 begin
   TFile.WriteAllText(AName, REST.JSON.TJSON.RecordToJsonString<T>(ARecord), Encoding);
 end;
