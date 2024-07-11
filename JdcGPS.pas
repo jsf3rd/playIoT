@@ -124,7 +124,7 @@ var
   Msg: TStringList;
   Index: Integer;
 begin
-  Self.Header := '';
+  Self.Clear;
   Self.PCTime := _PCTime;
 
   Msg := TStringList.Create;
@@ -152,8 +152,8 @@ begin
           Self.quality := 1;
 
         Self.DateTime := StrToDateTimeDef(FormatDateTime('YYYY-MM-DD ', Now) + Format('%s:%s:%s%s0',
-          [copy(Msg.Strings[Index], 1, 2), copy(Msg.Strings[Index], 3, 2), copy(Msg.Strings[Index],
-          5, 2), copy(Msg.Strings[Index], 7, 3)]), _PCTime, DefaultFormatSettings);
+          [copy(Msg.Strings[Index], 1, 2), copy(Msg.Strings[Index], 3, 2), copy(Msg.Strings[Index], 5, 2),
+          copy(Msg.Strings[Index], 7, 3)]), _PCTime, DefaultFormatSettings);
         Self.latitude := ConvertDegree(Msg.Strings[Index + 2]);
         Self.NS_Indicator := Msg.Strings[Index + 3];
         Self.longitude := ConvertDegree(Msg.Strings[Index + 4]);
@@ -180,8 +180,8 @@ begin
         // GNGGA,012952.85,3726.2240625,N,12707.3641959,E,4,09,1.4,34.6334,M,19.9003,M,0.9,0000*68
 
         Self.DateTime := StrToDateTimeDef(FormatDateTime('YYYY-MM-DD ', Now) + Format('%s:%s:%s%s0',
-          [copy(Msg.Strings[Index], 1, 2), copy(Msg.Strings[Index], 3, 2), copy(Msg.Strings[Index],
-          5, 2), copy(Msg.Strings[Index], 7, 3)]), _PCTime, DefaultFormatSettings);
+          [copy(Msg.Strings[Index], 1, 2), copy(Msg.Strings[Index], 3, 2), copy(Msg.Strings[Index], 5, 2),
+          copy(Msg.Strings[Index], 7, 3)]), _PCTime, DefaultFormatSettings);
         Self.latitude := ConvertDegree(Msg.Strings[Index + 1]);
         Self.NS_Indicator := Msg.Strings[Index + 2];
         Self.longitude := ConvertDegree(Msg.Strings[Index + 3]);
@@ -242,8 +242,8 @@ end;
 
 function TGPSData.ToString: string;
 begin
-  result := Format('%s,%s,%0.6f, %0.6f,%d, %0.2f', [Self.Header, Self.DateTime.FormatWithMSec,
-    Self.latitude, Self.longitude, Self.quality, Self.Speed]);
+  result := Format('%s,%s,%0.6f,%0.6f,%d,%0.2f', [Self.Header, Self.DateTime.FormatWithMSec, Self.latitude,
+    Self.longitude, Self.quality, Self.Speed]);
 end;
 
 { TGPS }

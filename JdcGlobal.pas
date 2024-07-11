@@ -58,6 +58,7 @@ type
   TConnInfo = record
     StringValue: string;
     IntegerValue: Integer;
+    Enable: Boolean;
     constructor Create(const AString: string; const AInteger: Integer); overload;
     constructor Create(const AHost: string); overload;
     function ToString: string;
@@ -90,8 +91,8 @@ type
 
     procedure ApplicationMessage(const AType: TMessageType; const ATitle: String;
       const AMessage: String = ''); overload; virtual;
-    procedure ApplicationMessage(const AType: TMessageType; const ATitle: String;
-      const AFormat: String; const Args: array of const); overload;
+    procedure ApplicationMessage(const AType: TMessageType; const ATitle: String; const AFormat: String;
+      const Args: array of const); overload;
 
     property ExeName: String read FExeName;
     property ProjectCode: string read FProjectCode write FProjectCode;
@@ -146,8 +147,7 @@ function IdBytesToHex(const AValue: TIdBytes; const ASpliter: String = ' '): Str
 function BytesToHex(const AValue: TBytes; const ASpliter: String = ' '): String;
 
 function IdBytesPos(const _SubIdBytes, IdBytes: TIdBytes; const AIndex: Integer = 0): Integer;
-function SubIdBytes(const Buffer: TIdBytes; const AIndex: Integer = 0; const ALength: Integer = 0)
-  : TIdBytes;
+function SubIdBytes(const Buffer: TIdBytes; const AIndex: Integer = 0; const ALength: Integer = 0): TIdBytes;
 
 function StrDefault(const str: string; const Default: string): string;
 
@@ -180,8 +180,8 @@ function IsFileInUse(const fName: string): Boolean;
 // 서비스 관리
 procedure StartService(const ServiceName: String; var OldStatus: TJclServiceState;
   const StartAction: TAction);
-procedure StopService(const ServiceName: String; var OldStatus: TJclServiceState;
-  const StopAction: TAction; hnd: HWND);
+procedure StopService(const ServiceName: String; var OldStatus: TJclServiceState; const StopAction: TAction;
+  hnd: HWND);
 procedure UpdateServiceStatus(const ServiceName: String; var OldStatus: TJclServiceState;
   const StartAction, StopAction: TAction; const StatusEdit: TLabeledEdit);
 {$ENDIF}
@@ -192,6 +192,7 @@ function IntToBin(Value: Cardinal; Digits: Integer): String;
 procedure ExtractValues(var AList: TStrings; const AValue: TJSONValue);
 
 function PChar2String(AValue: PAnsiChar): WideString;
+function String2PChar(AValue: WideString): PAnsiChar;
 
 // JclDebug Rapper
 {
@@ -228,6 +229,11 @@ uses JdcGlobal.ClassHelper, JdcLogging;
 function PChar2String(AValue: PAnsiChar): WideString;
 begin
   result := WideString(AnsiString(AValue));
+end;
+
+function String2PChar(AValue: WideString): PAnsiChar;
+begin
+  result := PAnsiChar(AnsiString(AValue));
 end;
 
 function BoolToStr(AValue: Boolean; T: String = 'True'; F: String = 'False'): string;
@@ -325,8 +331,7 @@ begin
   except
     on E: Exception do
     begin
-      TLogging.Obj.ApplicationMessage(msError, 'FreeAndNilEx - ' + TObject(Obj).ClassName,
-        E.Message);
+      TLogging.Obj.ApplicationMessage(msError, 'FreeAndNilEx - ' + TObject(Obj).ClassName, E.Message);
     end;
   end;
 end;
@@ -359,18 +364,17 @@ begin
   StartAction.Enabled := True;
 end;
 
-procedure StopService(const ServiceName: String; var OldStatus: TJclServiceState;
-  const StopAction: TAction; hnd: HWND);
+procedure StopService(const ServiceName: String; var OldStatus: TJclServiceState; const StopAction: TAction;
+  hnd: HWND);
 begin
   OldStatus := ssUnknown;
   StopAction.Enabled := False;
   if StopServiceByName(LOCAL_SERVER, ServiceName) then
     Exit;
 
-  if MessageDlg('알림 : 서비스를 중지하지 못했습니다.' + #13#10 + '강제로 중지하시겠습니까?', TMsgDlgType.mtConfirmation,
-    [mbYes, mbNo], 0) = mrYes then
-    ShellExecute(hnd, 'open', 'taskkill', PWideChar(' -f -im ' + ServiceName + '.exe'),
-      nil, SW_HIDE);
+  if MessageDlg('알림 : 서비스를 중지하지 못했습니다.' + #13#10 + '강제로 중지하시겠습니까?', TMsgDlgType.mtConfirmation, [mbYes, mbNo],
+    0) = mrYes then
+    ShellExecute(hnd, 'open', 'taskkill', PWideChar(' -f -im ' + ServiceName + '.exe'), nil, SW_HIDE);
 end;
 
 procedure UpdateServiceStatus(const ServiceName: String; var OldStatus: TJclServiceState;
@@ -551,8 +555,7 @@ begin
   result := Index;
 end;
 
-function SubIdBytes(const Buffer: TIdBytes; const AIndex: Integer = 0; const ALength: Integer = 0)
-  : TIdBytes;
+function SubIdBytes(const Buffer: TIdBytes; const AIndex: Integer = 0; const ALength: Integer = 0): TIdBytes;
 var
   _Length: Integer;
 begin
@@ -611,8 +614,7 @@ begin
     [GetOSVersionString, CurrentProcessMemory / MBFactor, GetTotalPhysicalMemory / GBFactor,
     GetFreePhysicalMemory / GBFactor, GetIPAddress(GetLocalComputerName), AServer.StringValue]);
   DiskInfo := Format('C_Free=%.2fGB,C_Size=%.2fGB,D_Free=%.2fGB,D_Size=%.2fGB',
-    [DiskFree(3) / GBFactor, DiskSize(3) / GBFactor, DiskFree(4) / GBFactor,
-    DiskSize(4) / GBFactor]);
+    [DiskFree(3) / GBFactor, DiskSize(3) / GBFactor, DiskFree(4) / GBFactor, DiskSize(4) / GBFactor]);
   ComName := GetLocalComputerName;
 {$ELSE}
   SysInfo := Format('Server=%S ', [AServer.StringValue]);
@@ -874,8 +876,8 @@ end;
 
 { TGlobalAbstract }
 
-procedure TGlobalAbstract.ApplicationMessage(const AType: TMessageType;
-  const ATitle, AFormat: String; const Args: array of const);
+procedure TGlobalAbstract.ApplicationMessage(const AType: TMessageType; const ATitle, AFormat: String;
+  const Args: array of const);
 var
   str: string;
 begin
@@ -883,8 +885,7 @@ begin
   ApplicationMessage(AType, ATitle, str);
 end;
 
-procedure TGlobalAbstract.ApplicationMessage(const AType: TMessageType;
-  const ATitle, AMessage: String);
+procedure TGlobalAbstract.ApplicationMessage(const AType: TMessageType; const ATitle, AMessage: String);
 begin
   TLogging.Obj.ApplicationMessage(AType, ATitle, AMessage);
 end;
@@ -921,8 +922,7 @@ begin
   TLogging.Obj.PrintUseCloudLog;
 end;
 
-procedure TGlobalAbstract.OnAfterLoggingEvent(const AType: TMessageType;
-  const ATitle, AMessage: String);
+procedure TGlobalAbstract.OnAfterLoggingEvent(const AType: TMessageType; const ATitle, AMessage: String);
 begin
   // null method;
 end;
@@ -933,18 +933,17 @@ constructor TConnInfo.Create(const AString: string; const AInteger: Integer);
 begin
   Self.StringValue := AString;
   Self.IntegerValue := AInteger;
+  Self.Enable := True;
 end;
 
 constructor TConnInfo.Create(const AHost: string);
 begin
-  Self.StringValue := AHost.Split([':'])[0];
-  Self.IntegerValue := AHost.Split([':'])[1].ToInteger;
+  Self := TConnInfo.Create(AHost.Split([':'])[0], AHost.Split([':'])[1].ToInteger);
 end;
 
 function TConnInfo.Equals(const ConnInfo: TConnInfo): Boolean;
 begin
-  result := Self.StringValue.Equals(ConnInfo.StringValue) and
-    (Self.IntegerValue = ConnInfo.IntegerValue);
+  result := Self.StringValue.Equals(ConnInfo.StringValue) and (Self.IntegerValue = ConnInfo.IntegerValue);
 end;
 
 function TConnInfo.ToString: string;

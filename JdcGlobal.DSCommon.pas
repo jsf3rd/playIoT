@@ -26,8 +26,7 @@ uses
 type
   TOpenToFunc<T> = reference to function(const AQuery: TFDQuery): T;
   TDSOpenProc = function(const ARequestFilter: string = ''): TStream of object;
-  TDSOpenParamProc = function(AParams: TJSONObject; const ARequestFilter: string = '')
-    : TStream of object;
+  TDSOpenParamProc = function(AParams: TJSONObject; const ARequestFilter: string = ''): TStream of object;
 
   TDSCommon = class
   private
@@ -63,12 +62,12 @@ type
     class procedure AddJSONArray<T: record >(var AObject: TJSONObject; const ARecord: T);
 
     class function DSProcToRecord<T: record >(const AProc: TDSOpenProc): T; overload;
-    class function DSProcToRecord<T: record >(const AProc: TDSOpenParamProc;
-      const AParam: TJSONObject): T; overload;
+    class function DSProcToRecord<T: record >(const AProc: TDSOpenParamProc; const AParam: TJSONObject)
+      : T; overload;
 
     class function DSProcToRecordArray<T: record >(const AProc: TDSOpenProc): TArray<T>; overload;
-    class function DSProcToRecordArray<T: record >(const AProc: TDSOpenParamProc;
-      const AParam: TJSONObject): TArray<T>; overload;
+    class function DSProcToRecordArray<T: record >(const AProc: TDSOpenParamProc; const AParam: TJSONObject)
+      : TArray<T>; overload;
 
     // Init TFDQuery Parameter DataType
     class procedure InitDataType(const ASender: TComponent; const AConn: TFDConnection);
@@ -103,13 +102,13 @@ type
     procedure ParamByJsonValue(const AValue: TJSONValue; const AName: String); overload;
     procedure ParamByJSONArray(const AValue: TJSONArray; const AName: String);
 
-    function OpenTo<T>(const AConn: TFDConnection; const AParams: TJSONObject;
-      const AType: TMessageType; const AProc: TOpenToFunc<T>): T;
+    function OpenTo<T>(const AConn: TFDConnection; const AParams: TJSONObject; const AType: TMessageType;
+      const AProc: TOpenToFunc<T>): T;
 
-    function ExecQuery(const AConn: TFDConnection; const AParams: TJSONObject;
-      const AType: TMessageType): Boolean; overload;
-    function ExecQuery(const AConn: TFDConnection; const AParams: TJSONArray;
-      const AType: TMessageType; const CommitAnyway: Boolean = False): Boolean; overload;
+    function ExecQuery(const AConn: TFDConnection; const AParams: TJSONObject; const AType: TMessageType)
+      : Boolean; overload;
+    function ExecQuery(const AConn: TFDConnection; const AParams: TJSONArray; const AType: TMessageType;
+      const CommitAnyway: Boolean = False): Boolean; overload;
     function ApplyUpdate(const AConn: TFDConnection; const AStream: TStream;
       const AType: TMessageType): Boolean;
   public
@@ -129,8 +128,8 @@ type
     // OpenQuery
     function OpenQuery(const AConn: TFDConnection; const AParams: TJSONObject;
       const AType: TMessageType): TStream;
-    function OpenToMemTab(const AConn: TFDConnection; const AParams: TJSONObject;
-      const AType: TMessageType): TFDMemTable;
+    function OpenToMemTab(const AConn: TFDConnection; const AParams: TJSONObject; const AType: TMessageType)
+      : TFDMemTable;
 
     function OpenInstantQuery(const AConn: TFDConnection; const AParams: TJSONObject;
       const AType: TMessageType = msInfo): TStream; overload;
@@ -223,11 +222,10 @@ begin
   tmp.Free;
 end;
 
-class procedure TDSCommon.AddJSONValue<T>(var AObject: TJSONObject; const ARecord: T;
-  const APreFix: string);
+class procedure TDSCommon.AddJSONValue<T>(var AObject: TJSONObject; const ARecord: T; const APreFix: string);
 var
   tmp: TJSONObject;
-  MyPair, NewPair: TJSONPair;
+  MyPair: TJSONPair;
   NewKey: string;
 begin
   tmp := REST.JSON.TJson.RecordToJsonObject<T>(ARecord);
@@ -242,8 +240,7 @@ begin
   end;
 end;
 
-class function TDSCommon.CalcExecTime(const ABegin: TDateTime;
-  const ALimitSec: Integer = 5): Double;
+class function TDSCommon.CalcExecTime(const ABegin: TDateTime; const ALimitSec: Integer = 5): Double;
 begin
   Result := MilliSecondsBetween(Now, ABegin) / 1000;
   if Result > ALimitSec then
@@ -292,8 +289,7 @@ begin
   end;
 end;
 
-class function TDSCommon.DSProcToRecord<T>(const AProc: TDSOpenParamProc;
-  const AParam: TJSONObject): T;
+class function TDSCommon.DSProcToRecord<T>(const AProc: TDSOpenParamProc; const AParam: TJSONObject): T;
 var
   MemTab: TFDMemTable;
 begin
@@ -302,8 +298,7 @@ begin
     MemTab.Name := 'mt' + GetRecordName<T>.Substring(1);
     MemTab.LoadFromDSStream(AProc(AParam));
     if MemTab.RecordCount > 1 then
-      raise Exception.Create('query did not return a unique result : ' +
-        MemTab.RecordCount.ToString);
+      raise Exception.Create('query did not return a unique result : ' + MemTab.RecordCount.ToString);
 
     Result := MemTab.ToRecord<T>;
   finally
@@ -320,8 +315,7 @@ begin
     MemTab.Name := 'mt' + GetRecordName<T>.Substring(1);
     MemTab.LoadFromDSStream(AProc);
     if MemTab.RecordCount > 1 then
-      raise Exception.Create('query did not return a unique result : ' +
-        MemTab.RecordCount.ToString);
+      raise Exception.Create('query did not return a unique result : ' + MemTab.RecordCount.ToString);
 
     Result := MemTab.ToRecord<T>;
   finally
@@ -329,8 +323,8 @@ begin
   end;
 end;
 
-class function TDSCommon.DSProcToRecordArray<T>(const AProc: TDSOpenParamProc;
-  const AParam: TJSONObject): TArray<T>;
+class function TDSCommon.DSProcToRecordArray<T>(const AProc: TDSOpenParamProc; const AParam: TJSONObject)
+  : TArray<T>;
 var
   MemTab: TFDMemTable;
 begin
@@ -495,15 +489,14 @@ begin
       Errors := Self.ApplyUpdates;
 
       TLogging.Obj.ApplicationMessage(AType, 'ApplyUpdate',
-        Format('Query=%s,ChangeCount=%d,Errors=%d,ExecSec=%0.2f', [Self.Name, Self.ChangeCount,
-        Errors, TDSCommon.CalcExecTime(ExecTime)]));
+        Format('Query=%s,ChangeCount=%d,Errors=%d,ExecSec=%0.2f', [Self.Name, Self.ChangeCount, Errors,
+        TDSCommon.CalcExecTime(ExecTime)]));
 
       Result := Errors = 0;
     except
       on E: Exception do
       begin
-        TLogging.Obj.ApplicationMessage(msError, 'ApplyUpdate', 'Query=%s,E=%s',
-          [Self.Name, E.Message]);
+        TLogging.Obj.ApplicationMessage(msError, 'ApplyUpdate', 'Query=%s,E=%s', [Self.Name, E.Message]);
       end;
     end;
   finally
@@ -603,8 +596,7 @@ begin
       on E: Exception do
       begin
         AConn.Rollback;
-        TLogging.Obj.ApplicationMessage(msError, 'ExecQuery', 'Query=%s,E=%s',
-          [Self.Name, E.Message]);
+        TLogging.Obj.ApplicationMessage(msError, 'ExecQuery', 'Query=%s,E=%s', [Self.Name, E.Message]);
       end;
     end;
   finally
@@ -627,14 +619,12 @@ begin
 
       ExecTime := Now;
       Self.ExecSQL;
-      TLogging.Obj.ApplicationMessage(AType, 'ExecQuery',
-        Format('Query=%s,RowsAffected=%d,ExecSec=%0.2f', [Self.Name, Self.RowsAffected,
-        TDSCommon.CalcExecTime(ExecTime)]));
+      TLogging.Obj.ApplicationMessage(AType, 'ExecQuery', Format('Query=%s,RowsAffected=%d,ExecSec=%0.2f',
+        [Self.Name, Self.RowsAffected, TDSCommon.CalcExecTime(ExecTime)]));
       Result := True;
     except
       on E: Exception do
-        TLogging.Obj.ApplicationMessage(msError, 'ExecQuery', 'Query=%s,E=%s',
-          [Self.Name, E.Message]);
+        TLogging.Obj.ApplicationMessage(msError, 'ExecQuery', 'Query=%s,E=%s', [Self.Name, E.Message]);
     end;
   finally
     AConn.Free;
@@ -708,9 +698,8 @@ begin
       end;
 
       try
-        TLogging.Obj.ApplicationMessage(AType, 'OpenTo',
-          Format('Query=%s,RecordCount=%d,ExecSec=%0.2f', [Self.Name, Self.RecordCount,
-          TDSCommon.CalcExecTime(ExecTime)]));
+        TLogging.Obj.ApplicationMessage(AType, 'OpenTo', Format('Query=%s,RecordCount=%d,ExecSec=%0.2f',
+          [Self.Name, Self.RecordCount, TDSCommon.CalcExecTime(ExecTime)]));
       except
         on E: Exception do
           raise Exception.Create(Format('RecordCount,E=%s', [E.Message]));
@@ -748,8 +737,7 @@ begin
   // TLogging.Obj.ApplicationMessage(msSystem, 'SQLParameter', Msg);
   case AParam.DataType of
     ftUnknown:
-      raise Exception.Create(Format('DataSet=%s,ParamName=%s,Unknown DataType',
-        [Self.Name, AParam.Name]));
+      raise Exception.Create(Format('DataSet=%s,ParamName=%s,Unknown DataType', [Self.Name, AParam.Name]));
 
     ftString, ftWideString:
       if Self.Params.ArraySize = 1 then
@@ -790,8 +778,7 @@ begin
 
     ftTimeStamp:
       if Self.Params.ArraySize = 1 then
-        AParam.AsSQLTimeStamp := DateTimeToSQLTimeStamp
-          (ISO8601ToDate((AValue as TJSONString).Value))
+        AParam.AsSQLTimeStamp := DateTimeToSQLTimeStamp(ISO8601ToDate((AValue as TJSONString).Value))
       else
         AParam.AsSQLTimeStamps[Self.Tag] :=
           DateTimeToSQLTimeStamp(ISO8601ToDate((AValue as TJSONString).Value));
@@ -1014,8 +1001,7 @@ begin
   // TLogging.Obj.ApplicationMessage(msSystem, 'SQLParameter', Msg);
   case AField.DataType of
     ftUnknown:
-      raise Exception.Create(Format('DataSet=%s,ParamName=%s,Unknown DataType',
-        [Self.Name, AField.Name]));
+      raise Exception.Create(Format('DataSet=%s,ParamName=%s,Unknown DataType', [Self.Name, AField.Name]));
 
     ftString, ftWideString:
       AField.AsString := (AValue as TJSONString).Value;
@@ -1193,8 +1179,7 @@ begin
 {$ENDIF}
 end;
 
-function TFDDataSetHelper.GetJSONObject(const AValue: TJSONObject; const AName: String)
-  : TJSONObject;
+function TFDDataSetHelper.GetJSONObject(const AValue: TJSONObject; const AName: String): TJSONObject;
 var
   MyElem: TJSONPair;
   Key: string;

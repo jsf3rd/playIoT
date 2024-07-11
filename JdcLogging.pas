@@ -69,8 +69,7 @@ type
     procedure FlushLog;
 
     procedure _ApplicationMessage(const AType: string; const ATitle: string; const AMessage: String;
-      const ATime: TDateTime = 0; const AOutputs: TMsgOutputs = [moDebugView, moLogFile,
-      moCloudMessage]);
+      const ATime: TDateTime = 0; const AOutputs: TMsgOutputs = [moDebugView, moLogFile, moCloudMessage]);
 
     function GetLogName: String;
     procedure _PrintLog;
@@ -87,10 +86,10 @@ type
 
     function GetLogNameEx(const ATag: string): string;
 
-    procedure ApplicationMessage(const AType: TMessageType; const ATitle: String;
-      const AMessage: String = ''; const ATime: TDateTime = 0); overload;
-    procedure ApplicationMessage(const AType: TMessageType; const ATitle: String;
-      const AFormat: String; const Args: array of const; const ATime: TDateTime = 0); overload;
+    procedure ApplicationMessage(const AType: TMessageType; const ATitle: String; const AMessage: String = '';
+      const ATime: TDateTime = 0); overload;
+    procedure ApplicationMessage(const AType: TMessageType; const ATitle: String; const AFormat: String;
+      const Args: array of const; const ATime: TDateTime = 0); overload;
 
     procedure AppendLog(const AName: string; const AMsg: string; const ATime: TDateTime = 0);
     procedure PrintUseDebug;
@@ -109,8 +108,7 @@ type
   end;
 
   // ·Î±× Âï±â..
-procedure PrintLog(const AFile: string; const AMessage: String;
-  const ATime: TDateTime = 0); overload;
+procedure PrintLog(const AFile: string; const AMessage: String; const ATime: TDateTime = 0); overload;
 procedure PrintDebug(const Format: string; const Args: array of const); overload;
 procedure PrintDebug(const str: string); overload;
 
@@ -221,15 +219,13 @@ const ATime: TDateTime);
 begin
   case AType of
     msDebug:
-      _ApplicationMessage(MessageTypeToStr(AType), ATitle, AMessage, ATime,
-        [moDebugView, moLogFile]);
+      _ApplicationMessage(MessageTypeToStr(AType), ATitle, AMessage, ATime, [moDebugView, moLogFile]);
     msInfo, msError, msWarning:
       _ApplicationMessage(MessageTypeToStr(AType), ATitle, AMessage, ATime);
     msSystem:
       begin
         if FUseDebug then
-          _ApplicationMessage(MessageTypeToStr(AType), ATitle, AMessage, ATime,
-            [moDebugView, moLogFile])
+          _ApplicationMessage(MessageTypeToStr(AType), ATitle, AMessage, ATime, [moDebugView, moLogFile])
         else
           _ApplicationMessage(MessageTypeToStr(AType), ATitle, AMessage, ATime, [moDebugView])
       end;
@@ -333,8 +329,8 @@ begin
             Stream.WriteLine(JdcLog.ToString);
           except
             on E: Exception do
-              _ApplicationMessage(MessageTypeToStr(msError), '_PrintLog',
-                JdcLog.ToString + ',E=' + E.Message, Now, [moCloudMessage]);
+              _ApplicationMessage(MessageTypeToStr(msError), '_PrintLog', JdcLog.ToString + ',E=' + E.Message,
+                Now, [moCloudMessage]);
           end;
         end;
       end;
@@ -361,8 +357,7 @@ begin
   except
     on E: Exception do
     begin
-      _ApplicationMessage(MessageTypeToStr(msError), 'PrintLog', 'E=' + E.Message, Now,
-        [moCloudMessage]);
+      _ApplicationMessage(MessageTypeToStr(msError), 'PrintLog', 'E=' + E.Message, Now, [moCloudMessage]);
     end;
   end;
 end;
@@ -407,8 +402,8 @@ begin
   else
     FLogName := TPath.Combine(APath, ChangeFileExt(ExtractFileName(ExeName), '.log'));
 {$IFDEF LOCALAPPDATA}
-  FLogName := GetEnvironmentVariable('LOCALAPPDATA') + '\' + FPublisher + '\' + FAppCode + '\logs\'
-    + ExtractFileName(FLogName);
+  FLogName := GetEnvironmentVariable('LOCALAPPDATA') + '\' + FPublisher + '\' + FAppCode + '\logs\' +
+    ExtractFileName(FLogName);
 {$ENDIF}
   if not TDirectory.Exists(ExtractFilePath(FLogName)) then
     TDirectory.CreateDirectory(ExtractFilePath(FLogName));
@@ -483,8 +478,7 @@ begin
   FLogTask.Start;
   ApplicationMessage(msDebug, 'Logging',
     'Project=%s,AppCode=%s,UseDebug=%s,UseCloudLog=%s,LogServer=%s,File=%s',
-    [FProjectCode, FAppCode, BoolToStr(FUseDebug), BoolToStr(FUseCloudLog), FLogServer.ToString,
-    FLogName]);
+    [FProjectCode, FAppCode, BoolToStr(FUseDebug), BoolToStr(FUseCloudLog), FLogServer.ToString, FLogName]);
 end;
 
 procedure TLogging.StopLogging;
@@ -499,8 +493,8 @@ begin
   PrintDebug('[%s] StopLogging', [FAppCode]);
 end;
 
-procedure TLogging._ApplicationMessage(const AType, ATitle, AMessage: String;
-const ATime: TDateTime; const AOutputs: TMsgOutputs);
+procedure TLogging._ApplicationMessage(const AType, ATitle, AMessage: String; const ATime: TDateTime;
+const AOutputs: TMsgOutputs);
 var
   splitter: string;
   MyType: string;
@@ -514,11 +508,13 @@ begin
   if (moCloudMessage in AOutputs) and FUseCloudLog then
     CloudMessage(FProjectCode, FAppCode, AType, ATitle, AMessage, FExeVersion, FLogServer);
 
+{$IFDEF MSWindows}
   if moLogFile in AOutputs then
     AppendLog(GetLogName, Format('%-9s %s%s%s', [MyType, ATitle, splitter, AMessage]), ATime);
 
   if moDebugView in AOutputs then
     PrintDebug('%-9s [%s] %s%s%s', [MyType, FAppCode, ATitle, splitter, AMessage]);
+{$ENDIF}
 end;
 
 { TJdcLog }

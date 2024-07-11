@@ -103,11 +103,7 @@ procedure TJdcMVSBasler.SetGain(const AValue: Double);
 var
   IntValue: Integer;
 begin
-  if AValue = 0 then
-    IntValue := BASLER_GAIN_MAX
-  else
-    IntValue := Min(Trunc(AValue), BASLER_GAIN_MAX);
-
+  IntValue := Min(Trunc(AValue), BASLER_GAIN_MAX);
   _SetIntValue(GAIN_RAW, IntValue);
   m_nRet := GetIntValue(m_hDevHandle, GAIN_RAW, @IntValue);
   if m_nRet = MV_OK then

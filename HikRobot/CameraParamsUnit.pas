@@ -117,6 +117,10 @@ const
   LINE_SCAN = 'MV-CL';
   AREA_CAM = 'MV-CS';
 
+  LINE_SCAN_2K_1PX = 'MV-CL021-40GM';
+  LINE_SCAN_2K_2PX = 'MV-CL024-91GM';
+  LINE_SCAN_4K_2PX = 'MV-CL042-91GM';
+
 type
   MV_DISPLAY_FRAME_INFO = record
     hHandle: HWND;
@@ -394,7 +398,8 @@ type
   PMV_CC_ROTATE_IMAGE_PARAM = ^MV_CC_ROTATE_IMAGE_PARAM;
 
   MV_CC_ROTATE_IMAGE_PARAM = record
-    enPixelType: MvGvspPixelType; // [IN] ch:输入数据的像素格式 | en:Input Data Pixel Format
+    enPixelType: MvGvspPixelType;
+    // [IN] ch:输入数据的像素格式 | en:Input Data Pixel Format
     nWidth: Cardinal; // [IN] ch:图像宽 | en:Image Width
     nHeight: Cardinal; // [IN] ch:图像高 | en:Image Height
 
@@ -414,6 +419,10 @@ type
 type
   MV_IMG_FLIP_TYPE = (MV_FLIP_NONE = 0, MV_FLIP_VERTICAL = 1, MV_FLIP_HORIZONTAL = 2,
     MV_FLIP_BOTH = 3);
+
+type
+  MV_PREAMP_GAIN = (MV_PREAMP_GAIN_1000X = 0, MV_PREAMP_GAIN_1400X = 1, MV_PREAMP_GAIN_1600X = 2,
+    MV_PREAMP_GAIN_2400X = 3, MV_PREAMP_GAIN_3200X = 4);
 
 type
   PMV_CC_FLIP_IMAGE_PARAM = ^MV_CC_FLIP_IMAGE_PARAM;

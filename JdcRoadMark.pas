@@ -8,6 +8,25 @@ uses System.SysUtils, System.Classes, System.DateUtils, JdcGlobal.DSCommon,
 type
   TRoadMarkJudge = class;
 
+  TRoadLink = record
+    a2_link_id: Integer;
+    id: string;
+    dist: double; // 차량과의 거리
+    raodrank: Integer; // 1:고속국도, 2:일반국도
+    roadtype: Integer; // 1:일반도로, 2:터널, 3:교량, 4:지하차도, 5:고가차도
+    roadno: Integer; // 노선번호
+    linktype: Integer; // 차로유형
+    laneno: Integer; // 차로번호
+    r_linkid: string; // 우측링크ID
+    l_linkid: string; // 좌측링크ID
+    fromnodeid: string; // 시점노드ID
+    tonodeid: string; // 정점노드ID
+    sectionid: string; // 영역ID
+    length: double; // 길이
+    function Init: TRoadLink;
+    function GetLaneNo: Integer;
+  end;
+
   TLaneInfo = record
     Lane: Integer; // 주행차로
     Total: Integer; // 전체차로
@@ -63,6 +82,9 @@ type
     FAltMark: TRoadMark; // 2nd
 
     FMarkTick: UInt64;
+
+    FLastDebugMsg: string;
+    function GetRoadMark(const Marks: TArray<TRoadMark>): TRoadMark;
   public
     procedure SetState(AState: TState);
     constructor Create;
@@ -89,6 +111,7 @@ type
     property AltMArk: TRoadMark read FAltMark;
 
     property MarkTick: UInt64 read FMarkTick;
+    property LastDebugMsg: string read FLastDebugMsg;
   end;
 
   TMarkParam = record
@@ -273,48 +296,57 @@ begin
   FAltMark.NoRoadMark;
 end;
 
-procedure TRoadMarkJudge.OnRoadMarks(const Marks: TArray<TRoadMark>);
-
-  function GetRoadMark: TRoadMark;
-  var
-    I: Integer;
+function TRoadMarkJudge.GetRoadMark(const Marks: TArray<TRoadMark>): TRoadMark;
+var
+  I: Integer;
+begin
+  FAltMark := Marks[0];
+  for I := Low(Marks) to High(Marks) do
   begin
-    FAltMark := Marks[0];
-    for I := Low(Marks) to High(Marks) do
-    begin
-      // 기존 주행 노선을 우선으로 매칭
-      // JC구간에서 노선이 중복되는 경우에 대한 예외처리
-      if FDriveMark.road_code = Marks[I].road_code then
-        Exit(Marks[I]);
-    end;
-    if Length(Marks) > 1 then
-      FAltMark := Marks[1];
-    result := Marks[0];
+    // 기존 주행 노선을 우선으로 매칭
+    // JC구간에서 노선이 중복되는 경우에 대한 예외처리
+    if FDriveMark.road_code = Marks[I].road_code then
+      Exit(Marks[I]);
   end;
+  if length(Marks) > 1 then
+    FAltMark := Marks[1];
+  result := Marks[0];
+end;
 
+procedure TRoadMarkJudge.OnRoadMarks(const Marks: TArray<TRoadMark>);
 var
   NewMark: TRoadMark;
 begin
-  FMarkTick := GetTickCount64;
+  FLastDebugMsg := 'OnRoadMarksBegin';
 
-  if Length(Marks) = 0 then
-    FState.NoRoadMark
+  FMarkTick := GetTickCount64;
+  FLastDebugMsg := 'GetTickCount64';
+
+  if length(Marks) = 0 then
+  begin
+    FLastDebugMsg := 'NoRoadMark';
+    FState.NoRoadMark;
+  end
   else if Marks[0].dist > ROADMARK_DIST then
   begin
+    FLastDebugMsg := 'Nearby';
     FState.Nearby(Marks[0]);
-    if Length(Marks) > 1 then
+    if length(Marks) > 1 then
       FAltMark := Marks[1]
     else
       FAltMark := Marks[0];
   end
   else
   begin
-    NewMark := GetRoadMark;
+    FLastDebugMsg := 'NewMark';
+    NewMark := GetRoadMark(Marks);
     if NewMark.road_code <> FDriveMark.road_code then
       FState.Undirection(NewMark) // 노선 변경
     else
       FState.OnRoadMark(NewMark, CalcDirection(NewMark));
   end;
+
+  FLastDebugMsg := 'OnRoadMarksEnd';
 end;
 
 procedure TRoadMarkJudge.SetState(AState: TState);
@@ -343,8 +375,8 @@ end;
 
 function TStateNearby.MarkCaption: string;
 begin
-  result := Format('%s %skm 근방(%s)', [FRoadMarkJudge.DriveMark.road_name,
-    FRoadMarkJudge.DriveMark.mark_name, FRoadMarkJudge.DriveMark.branch_name])
+  result := Format('%s %skm 근방(%s)', [FRoadMarkJudge.DriveMark.road_name, FRoadMarkJudge.DriveMark.mark_name,
+    FRoadMarkJudge.DriveMark.branch_name])
 end;
 
 { TRoadMark }
@@ -406,6 +438,35 @@ end;
 function TLaneInfo.ToString: string;
 begin
   result := Format('%d (%d)', [Self.Lane, Self.Total]);
+end;
+
+{ TRoadLink }
+
+function TRoadLink.GetLaneNo: Integer;
+begin
+  // 좌회전 포켓링크는 91부터 시작
+  if Self.laneno > 90 then
+    result := Self.laneno - 90
+  else
+    result := Self.laneno;
+end;
+
+function TRoadLink.Init: TRoadLink;
+begin
+  Self.a2_link_id := 0;
+  Self.id := '';
+  Self.dist := 0;
+  Self.raodrank := 0;
+  Self.roadtype := 0;
+  Self.roadno := 0;
+  Self.linktype := 0;
+  Self.laneno := 0;
+  Self.r_linkid := '';
+  Self.l_linkid := '';
+  Self.fromnodeid := '';
+  Self.tonodeid := '';
+  Self.length := 0;
+  result := Self;
 end;
 
 end.

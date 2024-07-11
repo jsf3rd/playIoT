@@ -63,8 +63,7 @@ type
 
     procedure DeleteStation(AID: Integer);
     function GetAWS2(const ADateTime: string; const AID: Integer): TWeatherInfo;
-    function FindStation(const ALat: double; const ALon: double; MemTab: TFDDataSet)
-      : TStationInfo; overload;
+    function FindStation(const ALat: double; const ALon: double; MemTab: TFDDataSet): TStationInfo; overload;
     function FindStation(const ALat: double; const ALon: double): TStationInfo; overload;
     function StationCount: Integer;
 
@@ -159,8 +158,8 @@ begin
     MemTab.First;
     while not MemTab.Eof do
     begin
-      tmp := Sqrt(Power(ALat - MemTab.FieldByName('lat').AsFloat, 2) +
-        Power(ALon - MemTab.FieldByName('lon').AsFloat, 2));
+      tmp := Sqrt(Power(ALat - MemTab.FieldByName('lat').AsFloat, 2) + Power(ALon - MemTab.FieldByName('lon')
+        .AsFloat, 2));
 
       if tmp < dist then
       begin
@@ -189,8 +188,8 @@ begin
     FRestReqeust.Params.AddItem('disp', '1');
     FRestReqeust.Params.AddItem('help', '0');
     FRestReqeust.Params.AddItem('authKey', FAPIKey);
-
     FRestReqeust.Execute;
+
     if FRestResponse.StatusCode = 200 then
       result := ParseWeatherInfo(FRestResponse.content)
     else
@@ -217,6 +216,8 @@ begin
     FRestReqeust.Params.AddItem('authKey', FAPIKey);
     FRestReqeust.Params.AddItem('help', '0');
     FRestReqeust.Params.AddItem('tm', Trim(ADateTime));
+    FRestReqeust.Client.FallbackCharsetEncoding := 'raw';
+
     FRestReqeust.Execute;
     if FRestResponse.StatusCode = 200 then
     begin

@@ -7,14 +7,15 @@ uses System.SysUtils, System.Classes, CameraParamsUnit, ToolFunctionUnit, JdcGlo
   System.Math, Vcl.Imaging.jpeg, JdcView, JdcRoadMark, DateUtils, JdcMvImage;
 
 type
+  EMV_E_NETER = class(Exception);
+
   TCameraVendor = (cvHik, cvBasler);
   TCameraType = (ctLinescan, ctArea);
 
-  TOnMV_Image = procedure(const ACount: Integer; const AImage: TJdcMvImage; const ATime: TDateTime)
-    of object;
+  TOnMV_Image = procedure(const ACount: Integer; const AImage: TJdcMvImage; const ATime: TDateTime) of object;
 
-  TOnMV_ImageCallback = procedure(const pData: PAnsiChar; pFrameInfo: PMV_FRAME_OUT_INFO_EX;
-    pUser: Pointer) of object;
+  TOnMV_ImageCallback = procedure(const pData: PAnsiChar; pFrameInfo: PMV_FRAME_OUT_INFO_EX; pUser: Pointer)
+    of object;
 
   TNameImage = record
     Name: string;
@@ -29,13 +30,16 @@ type
     jpeg: TStream; // 이미지 저장용 MemoryStream
     RoadMark: TRoadMark;
     LaneInfo: TLaneInfo;
+    RoadLink: TRoadLink;
     AirTemp: Double; // 외기온도
+
     procedure ImageFree;
-    function GetFileName(VehicleCode, ImageType: string; AExt: string = '.jpg'): string;
+    function GetFileName(const VehicleCode: string; const ImageType: string; const ARoadMark: TRoadMark;
+      AExt: string = '.jpg'): string;
   end;
 
   TJdcMVSAbstract = class
-  private
+  strict private
     FImageCount: UInt32;
 
     FSensorSize: Double;
@@ -67,8 +71,6 @@ type
 
     procedure InitBuffer;
     function CalcResolution: Double;
-    procedure ImageCallBack(const pData: PAnsiChar; pFrameInfo: PMV_FRAME_OUT_INFO_EX;
-      pUser: Pointer);
   protected
     FCameraVendor: TCameraVendor;
     FCameraType: TCameraType;
@@ -106,18 +108,16 @@ type
       : MV_CC_FLIP_IMAGE_PARAM;
     function RotateImage(const AParam: MV_IMG_PARAM_BASE; const RotateAngle: MV_IMG_ROTATION_ANGLE)
       : MV_CC_ROTATE_IMAGE_PARAM;
-
     function SaveImageEx2(const AParam: MV_IMG_PARAM_BASE; const AImageType: MV_SAVE_IMAGE_TYPE)
       : MV_SAVE_IMAGE_PARAM_EX;
 
+    function BufToImage(const AParam: MV_IMG_PARAM_BASE): TJdcMvImage;
+
     function GetCameraName: string;
     function GetVendorName: string; virtual; abstract;
-
-    function BufToImage(const AParam: MV_IMG_PARAM_BASE): TJdcMvImage;
   public
-    class function CreateCamera(const AVendor: string; const AModel: string;
-      const ACamType: TCameraType; const AImageType: MV_SAVE_IMAGE_TYPE = MV_Image_Jpeg;
-      const AFlip: MV_IMG_FLIP_TYPE = MV_FLIP_NONE;
+    class function CreateCamera(const AVendor: string; const AModel: string; const ACamType: TCameraType;
+      const AImageType: MV_SAVE_IMAGE_TYPE = MV_Image_Jpeg; const AFlip: MV_IMG_FLIP_TYPE = MV_FLIP_NONE;
       const ARotate: MV_IMG_ROTATION_ANGLE = MV_IMAGE_ROTATE_NONE): TJdcMVSAbstract;
 
     constructor Create(const AModel: string; const AType: MV_SAVE_IMAGE_TYPE;
@@ -134,6 +134,8 @@ type
     procedure SetAutoConfig(const GainAuto: MV_CAM_GAIN_MODE = MV_GAIN_MODE_OFF;
       const ExposureAuto: MV_CAM_EXPOSURE_AUTO_MODE = MV_EXPOSURE_AUTO_MODE_CONTINUOUS); virtual;
     procedure SetGain(const AValue: Double); virtual; abstract;
+    procedure SetDigitalShift(const AValue: Double); virtual;
+    procedure SetPreAMPGain(const AValue: MV_PREAMP_GAIN = MV_PREAMP_GAIN_1000X); virtual;
 
     procedure SetImageFormat(const AHeight: Integer; const AWidth: Integer; const AOffsetX: Integer;
       const AReverseX: Boolean);
@@ -146,8 +148,9 @@ type
     procedure SetDisplayWindow(AHandle: HWND);
     procedure SetLiveWindow(AHandle: HWND);
 
-    function GetOneFrame(out ATime: TDateTime; const TimeOut: Integer = 1000): TJdcMvImage;
-      overload;
+    function GetOneFrame(out ATime: TDateTime; const TimeOut: Integer = 1000): TJdcMvImage; overload;
+
+    procedure ImageCallBack(const pData: PAnsiChar; pFrameInfo: PMV_FRAME_OUT_INFO_EX);
 
     property SensorSize: Double read FSensorSize write FSensorSize;
     property FocalLength: Integer read FFocalLength write FFocalLength;
@@ -163,12 +166,16 @@ type
     property ImageRotate: MV_IMG_ROTATION_ANGLE read FImageRotate;
     property Resolution: Double read FResolution;
     property OnMV_Image: TOnMV_Image read FOnMV_Image write FOnMV_Image;
+    property CameraModel: String read FCameraModel;
   end;
 
 const
-  HIK_GAIN_MAX = 11.99;
-  BASLER_GAIN_MAX = 2047;
+  HIK_GAIN_MAX = 11;
+  BASLER_GAIN_MAX = 2000;
   LOW_LIMIT_SPEED = 20;
+
+  HIK_DIGITAL_SHIFT_MAX_AREA = 6;
+  HIK_DIGITAL_SHIFT_MAX_LINESCAN = 23;
 
   CAMERA_NORMAL = 0;
   CAMERA_ACTIVE = 1;
@@ -190,9 +197,6 @@ const
   GEV_SCPD = 'GevSCPD';
   { TJdcMVSAbstract }
 
-var
-  OnMVImageCallback: TOnMV_ImageCallback;
-
 function TJdcMVSAbstract.BufToImage(const AParam: MV_IMG_PARAM_BASE): TJdcMvImage;
 var
   MyParam: MV_IMG_PARAM_BASE;
@@ -201,7 +205,9 @@ var
 begin
   MyParam := AParam;
   if (FImageFlip = MV_FLIP_VERTICAL) or (FImageFlip = MV_FLIP_BOTH) then
+  begin
     MyParam := FlipImage(MyParam, MV_FLIP_VERTICAL).ToParamBase;
+  end;
 
   if (FImageFlip = MV_FLIP_HORIZONTAL) or (FImageFlip = MV_FLIP_BOTH) then
     MyParam := FlipImage(MyParam, MV_FLIP_HORIZONTAL).ToParamBase;
@@ -284,8 +290,10 @@ begin
   if FCameraType = ctLinescan then
   begin
     rlt := SetAcquisitionLineRate(LineRate);
-    if rlt <> MV_OK then
-      Exit;
+    if rlt = Integer(MV_E_NETER) then
+      raise EMV_E_NETER.Create('Network error')
+    else if rlt <> MV_OK then
+      Exit
   end;
 
   ExpTime := Trunc(1 / LineRate * Power(10, 6) - EXPTIME_OFFSET);
@@ -307,8 +315,7 @@ begin
 end;
 
 constructor TJdcMVSAbstract.Create(const AModel: string; const AType: MV_SAVE_IMAGE_TYPE;
-  const AFlip: MV_IMG_FLIP_TYPE = MV_FLIP_NONE;
-  const ARotate: MV_IMG_ROTATION_ANGLE = MV_IMAGE_ROTATE_NONE);
+  const AFlip: MV_IMG_FLIP_TYPE = MV_FLIP_NONE; const ARotate: MV_IMG_ROTATION_ANGLE = MV_IMAGE_ROTATE_NONE);
 begin
   FLiveWindow := 0;
   FDisplayWindow := 0;
@@ -326,7 +333,6 @@ begin
   FSaveImageType := AType;
   FImageFlip := AFlip;
   FImageRotate := ARotate;
-  OnMVImageCallback := ImageCallBack;
   FOnMV_Image := nil;
 
   FStopProcedure := CAMERA_NORMAL;
@@ -341,8 +347,8 @@ end;
 
 class function TJdcMVSAbstract.CreateCamera(const AVendor: string; const AModel: string;
   const ACamType: TCameraType; const AImageType: MV_SAVE_IMAGE_TYPE = MV_Image_Jpeg;
-  const AFlip: MV_IMG_FLIP_TYPE = MV_FLIP_NONE;
-  const ARotate: MV_IMG_ROTATION_ANGLE = MV_IMAGE_ROTATE_NONE): TJdcMVSAbstract;
+  const AFlip: MV_IMG_FLIP_TYPE = MV_FLIP_NONE; const ARotate: MV_IMG_ROTATION_ANGLE = MV_IMAGE_ROTATE_NONE)
+  : TJdcMVSAbstract;
 begin
   if AVendor = TJdcMVSHik.VENDOR_NAME then
     result := TJdcMVSHik.Create(AModel, AImageType, AFlip, ARotate)
@@ -365,8 +371,8 @@ begin
     System.AnsiStrings.StrDispose(m_pBufForDriver);
 end;
 
-function TJdcMVSAbstract.FlipImage(const AParam: MV_IMG_PARAM_BASE;
-  const FlipType: MV_IMG_FLIP_TYPE): MV_CC_FLIP_IMAGE_PARAM;
+function TJdcMVSAbstract.FlipImage(const AParam: MV_IMG_PARAM_BASE; const FlipType: MV_IMG_FLIP_TYPE)
+  : MV_CC_FLIP_IMAGE_PARAM;
 begin
   if nil = m_pBufForFlip then
   begin
@@ -394,7 +400,8 @@ begin
 
   m_nRet := MV_CC_FlipImage(m_hDevHandle^, @result);
   if m_nRet <> MV_OK then
-    raise Exception.Create(Format('MV_CC_FlipImage - 0x%x', [m_nRet]));
+    raise Exception.Create(Format('MV_CC_FlipImage - 0x%x, %s',
+      [m_nRet, GetEnumName(TypeInfo(MV_IMG_FLIP_TYPE), Integer(FlipType))]));
 end;
 
 function TJdcMVSAbstract.GetCameraName: string;
@@ -402,8 +409,7 @@ begin
   result := GetVendorName + ' ' + FCameraModel;
 end;
 
-procedure TJdcMVSAbstract.ImageCallBack(const pData: PAnsiChar; pFrameInfo: PMV_FRAME_OUT_INFO_EX;
-  pUser: Pointer);
+procedure TJdcMVSAbstract.ImageCallBack(const pData: PAnsiChar; pFrameInfo: PMV_FRAME_OUT_INFO_EX);
 Var
   Image: TJdcMvImage;
   DateTime: TDateTime;
@@ -426,8 +432,7 @@ begin
   except
     on E: Exception do
     begin
-      TLogging.Obj.ApplicationMessage(msError, 'BufToImage', '[%s] %s',
-        [TJdcMVSAbstract(pUser).GetCameraName, E.Message]);
+      TLogging.Obj.ApplicationMessage(msError, 'BufToImage', '[%s] %s', [Self.GetCameraName, E.Message]);
       Exit;
     end;
   end;
@@ -437,8 +442,7 @@ begin
       FOnMV_Image(FImageCount, Image, DateTime);
   except
     on E: Exception do
-      TLogging.Obj.ApplicationMessage(msError, 'OnImageCallBack', '[%s] %s',
-        [TJdcMVSAbstract(pUser).GetCameraName, E.Message]);
+      TLogging.Obj.ApplicationMessage(msError, 'OnImageCallBack', '[%s] %s', [Self.GetCameraName, E.Message]);
   end;
 
   Image.Free;
@@ -452,8 +456,7 @@ begin
   m_nRet := GetIntValue(m_hDevHandle, 'PayloadSize', @nRecvBufSize);
   if m_nRet <> MV_OK then
   begin
-    TLogging.Obj.ApplicationMessage(msWarning, 'GetPayloadSizeFail', '[%s] 0x%x',
-      [FCameraModel, m_nRet]);
+    TLogging.Obj.ApplicationMessage(msWarning, 'GetPayloadSizeFail', '[%s] 0x%x', [FCameraModel, m_nRet]);
     Exit
   end;
   m_nBufSizeForDriver := nRecvBufSize + 2048;
@@ -467,8 +470,7 @@ begin
     raise Exception.Create('MallocDriverFail');
   end
   else
-    TLogging.Obj.ApplicationMessage(msInfo, 'PayloadSize', '[%s] %d',
-      [FCameraModel, m_nBufSizeForDriver]);
+    TLogging.Obj.ApplicationMessage(msInfo, 'PayloadSize', '[%s] %d', [FCameraModel, m_nBufSizeForDriver]);
 end;
 
 procedure TJdcMVSAbstract.Open(AHandle: PPointer);
@@ -517,7 +519,8 @@ begin
 
   m_nRet := MV_CC_RotateImage(m_hDevHandle^, @result);
   if m_nRet <> MV_OK then
-    raise Exception.Create(Format('MV_CC_RotateImage - 0x%x', [m_nRet]));
+    raise Exception.Create(Format('MV_CC_RotateImage - 0x%x, %s',
+      [m_nRet, GetEnumName(TypeInfo(MV_IMG_ROTATION_ANGLE), Integer(RotateAngle))]));
 end;
 
 function TJdcMVSAbstract.GetOneFrame(out ATime: TDateTime; const TimeOut: Integer): TJdcMvImage;
@@ -544,8 +547,8 @@ begin
   result := BufToImage(stOutFrame.ToParamBase(m_pBufForDriver));
 end;
 
-function TJdcMVSAbstract.SaveImageEx2(const AParam: MV_IMG_PARAM_BASE;
-  const AImageType: MV_SAVE_IMAGE_TYPE): MV_SAVE_IMAGE_PARAM_EX;
+function TJdcMVSAbstract.SaveImageEx2(const AParam: MV_IMG_PARAM_BASE; const AImageType: MV_SAVE_IMAGE_TYPE)
+  : MV_SAVE_IMAGE_PARAM_EX;
 var
   pBufForSaveImage: PAnsiChar;
 begin
@@ -585,8 +588,25 @@ procedure TJdcMVSAbstract.SetAutoConfig(const GainAuto: MV_CAM_GAIN_MODE;
   const ExposureAuto: MV_CAM_EXPOSURE_AUTO_MODE);
 begin
   FExposureMode := ExposureAuto;
-  _SetEnumValue(GAIN_AUTO, Integer(GainAuto), TypeInfo(MV_CAM_GAIN_MODE), msInfo);
   _SetEnumValue(EXPOSURE_AUTO, Integer(FExposureMode), TypeInfo(MV_CAM_EXPOSURE_AUTO_MODE), msInfo);
+
+  // Hik중에서는 MV-CL021-40GM 모델만
+  if ((FCameraModel = LINE_SCAN_2K_1PX)) or (FCameraVendor = cvBasler) then
+    _SetEnumValue(GAIN_AUTO, Integer(GainAuto), TypeInfo(MV_CAM_GAIN_MODE), msInfo);
+end;
+
+procedure TJdcMVSAbstract.SetDigitalShift(const AValue: Double);
+var
+  FloatValue: Single;
+begin
+  _SetBoolValue(TJdcMVSHik.DIGITAL_SHIFT_ENABLE, True, msInfo);
+
+  FloatValue := AValue;
+  _SetFloatValue(TJdcMVSHik.DIGITAL_SHIFT, FloatValue);
+  m_nRet := GetFloatValue(m_hDevHandle, TJdcMVSHik.DIGITAL_SHIFT, @FloatValue);
+  if m_nRet = MV_OK then
+    TLogging.Obj.ApplicationMessage(msInfo, TJdcMVSHik.DIGITAL_SHIFT, '[%s] %0.2f',
+      [GetCameraName, FloatValue]);
 end;
 
 procedure TJdcMVSAbstract.SetDisplayWindow(AHandle: HWND);
@@ -604,10 +624,10 @@ procedure TJdcMVSAbstract.SetImageFormat(const AHeight: Integer; const AWidth: I
   const AOffsetX: Integer; const AReverseX: Boolean);
 begin
   _SetBoolValue(REVERSE_X, AReverseX, msInfo);
-  _SetIntValue(IMAGE_HEIGHT, AHeight);
+  _SetIntValue(IMAGE_HEIGHT, AHeight, msInfo);
   _SetIntValue(OFFSET_X, 0); // Offset 초기화
-  _SetIntValue(IMAGE_WIDTH, AWidth);
-  _SetIntValue(OFFSET_X, AOffsetX);
+  _SetIntValue(IMAGE_WIDTH, AWidth, msInfo);
+  _SetIntValue(OFFSET_X, AOffsetX, msInfo);
 end;
 
 procedure TJdcMVSAbstract.SetLiveWindow(AHandle: HWND);
@@ -627,11 +647,42 @@ begin
   _SetIntValue(GEV_SCPD, InterPacketDelay, msInfo);
 end;
 
-procedure ProcImageCallBack(const pData: PAnsiChar; pFrameInfo: PMV_FRAME_OUT_INFO_EX;
-  pUser: Pointer)stdcall;
+procedure TJdcMVSAbstract.SetPreAMPGain(const AValue: MV_PREAMP_GAIN);
+var
+  Value: Integer;
+begin
+  case AValue of
+    MV_PREAMP_GAIN_1000X:
+      Value := 1000;
+    MV_PREAMP_GAIN_1400X:
+      Value := 1400;
+    MV_PREAMP_GAIN_1600X:
+      Value := 1600;
+    MV_PREAMP_GAIN_2400X:
+      Value := 2400;
+    MV_PREAMP_GAIN_3200X:
+      Value := 3200;
+  else
+    Value := 2400;
+  end;
+
+  m_nRet := SetEnumValue(m_hDevHandle, TJdcMVSHik.PREAMP_GAIN, Value);
+  if m_nRet = MV_OK then
+  begin
+    TLogging.Obj.ApplicationMessage(msInfo, TJdcMVSHik.PREAMP_GAIN, '[%s] %s',
+      [FCameraModel, GetEnumName(TypeInfo(MV_PREAMP_GAIN), Integer(AValue))])
+  end
+  else
+    TLogging.Obj.ApplicationMessage(msWarning, 'Set_' + TJdcMVSHik.PREAMP_GAIN,
+      '[%s] ErrorCode=0x%x,Value=%s', [FCameraModel, m_nRet, GetEnumName(TypeInfo(MV_PREAMP_GAIN),
+      Integer(AValue))])
+
+end;
+
+procedure ProcImageCallBack(const pData: PAnsiChar; pFrameInfo: PMV_FRAME_OUT_INFO_EX; pUser: Pointer)stdcall;
 begin
   try
-    OnMVImageCallback(pData, pFrameInfo, pUser);
+    TJdcMVSAbstract(pUser).ImageCallBack(pData, pFrameInfo);
   except
     on E: Exception do
       TLogging.Obj.ApplicationMessage(msError, 'OnMVImageCallback', '[%s] %s',
@@ -690,63 +741,60 @@ begin
 
   m_nRet := MV_CC_StopGrabbing(m_hDevHandle^);
   if m_nRet = MV_OK then
-    TLogging.Obj.ApplicationMessage(msInfo, 'StopGrbbing', '[%s] ImageCount=%d',
-      [FCameraModel, FImageCount])
+    TLogging.Obj.ApplicationMessage(msInfo, 'StopGrbbing', '[%s] ImageCount=%d', [FCameraModel, FImageCount])
   else
-    TLogging.Obj.ApplicationMessage(msError, 'StopGrabbingFail', '[%s] Code=0x%x',
-      [FCameraModel, m_nRet]);
+    TLogging.Obj.ApplicationMessage(msError, 'StopGrabbingFail', '[%s] Code=0x%x', [FCameraModel, m_nRet]);
 end;
 
 function TJdcMVSAbstract._SetBoolValue(const Name: string; const Value: Bool;
   const MsgType: TMessageType): Integer;
 begin
   result := SetBoolValue(m_hDevHandle, Name, Value);
-  if result = MV_OK then
-    TLogging.Obj.ApplicationMessage(MsgType, Name, '[%s] %s', [FCameraModel, BoolToStr(Value)])
-  else
+  if result <> MV_OK then
     TLogging.Obj.ApplicationMessage(msWarning, 'Set_' + Name, '[%s] ErrorCode=0x%x,Value=%s',
       [FCameraModel, result, BoolToStr(Value)])
+  else if MsgType <> msSystem then
+    TLogging.Obj.ApplicationMessage(MsgType, Name, '[%s] %s', [FCameraModel, BoolToStr(Value)])
+
 end;
 
-function TJdcMVSAbstract._SetEnumValue(const Name: string; const Value: Cardinal;
-  const TypeInfo: PTypeInfo; const MsgType: TMessageType): Integer;
+function TJdcMVSAbstract._SetEnumValue(const Name: string; const Value: Cardinal; const TypeInfo: PTypeInfo;
+  const MsgType: TMessageType): Integer;
 begin
   result := SetEnumValue(m_hDevHandle, Name, Value);
-  if result = MV_OK then
-  begin
-    TLogging.Obj.ApplicationMessage(MsgType, Name, '[%s] %s',
-      [FCameraModel, GetEnumName(TypeInfo, Value)])
-  end
-  else
-    TLogging.Obj.ApplicationMessage(msWarning, 'Set_' + Name, '[%s] ErrorCode=0x%x,Value=%d',
-      [FCameraModel, result, Value])
+  if result <> MV_OK then
+    TLogging.Obj.ApplicationMessage(msWarning, 'Set_' + Name, '[%s] ErrorCode=0x%x,Value=%s',
+      [FCameraModel, result, GetEnumName(TypeInfo, Value)])
+  else if MsgType <> msSystem then
+    TLogging.Obj.ApplicationMessage(MsgType, Name, '[%s] %s', [FCameraModel, GetEnumName(TypeInfo, Value)])
 end;
 
 function TJdcMVSAbstract._SetFloatValue(const Name: string; const Value: Single;
   const MsgType: TMessageType): Integer;
 begin
   result := SetFloatValue(m_hDevHandle, Name, Value);
-  if result = MV_OK then
-    TLogging.Obj.ApplicationMessage(MsgType, Name, '[%s] %0.2f', [FCameraModel, Value])
-  else
+  if result <> MV_OK then
     TLogging.Obj.ApplicationMessage(msWarning, 'Set_' + Name, '[%s] ErrorCode=0x%x,Value=%0.2f',
       [FCameraModel, result, Value])
+  else if MsgType <> msSystem then
+    TLogging.Obj.ApplicationMessage(MsgType, Name, '[%s] %0.2f', [FCameraModel, Value])
 end;
 
 function TJdcMVSAbstract._SetIntValue(const Name: string; const Value: Cardinal;
   const MsgType: TMessageType): Integer;
 begin
   result := SetIntValue(m_hDevHandle, Name, Value);
-  if result = MV_OK then
-    TLogging.Obj.ApplicationMessage(MsgType, Name, '[%s] %d', [FCameraModel, Value])
-  else
+  if result <> MV_OK then
     TLogging.Obj.ApplicationMessage(msWarning, 'Set_' + Name, '[%s] ErrorCode=0x%x,Value=%d',
       [FCameraModel, result, Value])
+  else if MsgType <> msSystem then
+    TLogging.Obj.ApplicationMessage(MsgType, Name, '[%s] %d', [FCameraModel, Value])
 end;
 
 { TRawData }
 
-function TRawData.GetFileName(VehicleCode, ImageType: string; AExt: string): string;
+function TRawData.GetFileName(const VehicleCode: string; const ImageType: string; const ARoadMark: TRoadMark;
+  AExt: string): string;
 var
   lat, lon: string;
   AirTempName: string;
@@ -760,13 +808,11 @@ begin
   else
     AirTempName := Format('%0.3d', [Round(AirTemp)]);
 
-  result := FormatDateTime('YYYYMMDD_HHNNSS.ZZZ_', ImageTime) +
-    Format('%0.6d_%s_%s_%d_%s_%s_%s_%0.2d_%0.2d', [ImageCount, lat, lon, GPS.Quality,
-    RoadMark.road_code, RoadMark.GetRoadDirection, RoadMark.GetMarkName, LaneInfo.Lane,
-    LaneInfo.Total]);
+  result := FormatDateTime('YYYYMMDD_HHNNSS.ZZZ_', ImageTime) + Format('%0.6d_%s_%s_%d_%s_%s_%s_%0.2d_%0.2d',
+    [ImageCount, lat, lon, GPS.Quality, ARoadMark.road_code, ARoadMark.GetRoadDirection,
+    ARoadMark.GetMarkName, LaneInfo.Lane, LaneInfo.Total]);
   result := result + Format('_%0.3d_%s_%s_%s_%s_%s.jpg', [Round(GPS.Speed), AirTempName,
-    FormatDateTime('HHNNSS.ZZZ', GPS.PCTime), RoadMark.GetBranchCode, VehicleCode,
-    ImageType, AExt]);
+    FormatDateTime('HHNNSS.ZZZ', GPS.PCTime), ARoadMark.GetBranchCode, VehicleCode, ImageType, AExt]);
 end;
 
 procedure TRawData.ImageFree;

@@ -40,8 +40,7 @@ uses SharedMMFMem, JdcGlobal;
 
 { TJdcSharedMemWriter }
 
-constructor TJdcSharedMemWriter.Create(ACodeName: String; ADataSize: Cardinal;
-  AMaxCount: TDataCount);
+constructor TJdcSharedMemWriter.Create(ACodeName: String; ADataSize: Cardinal; AMaxCount: TDataCount);
 begin
   FCodeName := ACodeName;
   FDataInfo := SharedAllocMem(FCodeName + DATA_INFO, SizeOf(TDataInfo));
@@ -52,16 +51,14 @@ begin
   FDataInfo.DataLength := SizeOf(UInt64) + ADataSize;
 
   FDataList := SharedAllocMem(FCodeName + DATA_LIST, FDataInfo.DataLength * FDataInfo.MaxCount);
-
   // TLogging.Obj.ApplicationMessage(msDebug, 'MemWriter', 'DataInfo=%u,DataList=%u',
   // [UIntPtr(FDataInfo), UIntPtr(FDataList)]);
-
 end;
 
 destructor TJdcSharedMemWriter.Destroy;
 begin
-  SharedFreeMem(FDataInfo);
   SharedFreeMem(FDataList);
+  SharedFreeMem(FDataInfo);
 end;
 
 function TJdcSharedMemWriter.GetDataInfo: TDataInfo;

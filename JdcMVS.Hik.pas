@@ -29,6 +29,10 @@ type
 
   const
     VENDOR_NAME = 'Hikrobot';
+
+    DIGITAL_SHIFT = 'DigitalShift';
+    DIGITAL_SHIFT_ENABLE = 'DigitalShiftEnable';
+    PREAMP_GAIN = 'PreampGain';
   end;
 
 implementation
@@ -48,7 +52,6 @@ constructor TJdcMVSHik.Create(const AModel: string; const AType: MV_SAVE_IMAGE_T
   const ARotate: MV_IMG_ROTATION_ANGLE = MV_IMAGE_ROTATE_NONE);
 begin
   inherited;
-
   FCameraVendor := cvHik;
 end;
 
@@ -96,7 +99,9 @@ begin
 
   if FCameraType = ctLinescan then
   begin
-    _SetBoolValue(ADC_GAIN_ENABLE, True);
+    // MV-CL021-40GM 모델만 ADC_GAIN_ENABLE 적용
+    if FCameraModel = LINE_SCAN_2K_1PX then
+      _SetBoolValue(ADC_GAIN_ENABLE, True);
     _SetBoolValue(ACQUISITION_LINERATE_ENABLE, True, msInfo);
   end;
 end;
@@ -121,11 +126,11 @@ procedure TJdcMVSHik.SetGain(const AValue: Double);
 var
   FloatValue: Single;
 begin
-  if AValue = 0 then
-    FloatValue := HIK_GAIN_MAX
-  else
-    FloatValue := Min(AValue, HIK_GAIN_MAX);
+  // 라인스캔 중에는 MV-CL021-40GM 모델만 SetGain가능
+  if (FCameraType = ctLinescan) and (FCameraModel <> LINE_SCAN_2K_1PX) then
+    Exit;
 
+  FloatValue := Min(AValue, HIK_GAIN_MAX);
   _SetFloatValue(GAIN_RAW, FloatValue);
   m_nRet := GetFloatValue(m_hDevHandle, GAIN_RAW, @FloatValue);
   if m_nRet = MV_OK then

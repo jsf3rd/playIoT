@@ -59,8 +59,8 @@ begin
       TOption.Obj.FTPServer := TOption.Obj.FTPServer;
       TOption.Obj.DeleteExtension := TOption.Obj.DeleteExtension;
 
-      if (TOption.Obj.Year + TOption.Obj.Month + TOption.Obj.Day + TOption.Obj.Hour +
-        TOption.Obj.Minute + TOption.Obj.Second) = 0 then
+      if (TOption.Obj.Year + TOption.Obj.Month + TOption.Obj.Day + TOption.Obj.Hour + TOption.Obj.Minute +
+        TOption.Obj.Second) = 0 then
         Exit;
 
       DateTime := now;
@@ -99,14 +99,13 @@ end;
 
 procedure TfmMain.PrintLog(AValue: string);
 begin
-  JdcLogging.PrintLog(ChangeFileExt(TGlobal.Obj.ExeName, '.log'), now, AValue);
+  JdcLogging.PrintLog(ChangeFileExt(TGlobal.Obj.ExeName, '.log'), AValue);
 end;
 
 procedure TfmMain.CheckDir(APath: string; ADateTime: TDateTime);
 var
   Files: TStringDynArray;
   MyDir, MyFile: String;
-  tmp: string;
   WriteTime: TDateTime;
   count: Integer;
 begin
@@ -119,56 +118,60 @@ begin
       CheckDir(MyDir, ADateTime);
     end;
 
-  // File Copy  FTPServer
-  tmp := ChangeFileExt(ExtractFileName(TGlobal.Obj.ExeName), '');
-  count := 0;
-  for MyFile in TDirectory.GetFiles(APath, TOption.Obj.SearchPattern) do
+  if TOption.Obj.SearchPattern <> '' then
   begin
-    try
-      CheckFile(MyFile, ADateTime);
-      inc(count);
+    // Copy File to FTPServer
+    count := 0;
+    for MyFile in TDirectory.GetFiles(APath, TOption.Obj.SearchPattern) do
+    begin
+      try
+        CheckFile(MyFile, ADateTime);
+        inc(count);
 
-      // 1000俺究 贸府
-      if count > 1000 then
-        Break;
-    except
-      on E: Exception do
-        PrintLog('Error on CheckFile, ' + MyFile);
+        // 1000俺究 贸府
+        if count > 1000 then
+          Break;
+      except
+        on E: Exception do
+          PrintLog('Error on CheckFile, ' + MyFile);
+      end;
+      Sleep(1);
     end;
-    Sleep(1);
   end;
 
-  // File Delete - .tdms_index
-  for MyFile in TDirectory.GetFiles(APath, TOption.Obj.DeleteExtension) do
+  if TOption.Obj.DeleteExtension <> '' then
   begin
-    try
-      WriteTime := TFile.GetLastWriteTime(MyFile);
+    // File Delete - .tdms_index
+    for MyFile in TDirectory.GetFiles(APath, TOption.Obj.DeleteExtension) do
+    begin
+      try
+        WriteTime := TFile.GetLastWriteTime(MyFile);
 
-      if WriteTime < ADateTime then
-      begin
-
-        if TFile.Exists(MyFile) then
+        if WriteTime < ADateTime then
         begin
-          try
-            TFile.Delete(MyFile);
-          except
-            on E: Exception do
-              PrintLog('Error on tfile.Delete, ' + MyFile);
-          end;
 
-          if FDebug then
-            PrintLog('DeleteExtension file - ' + MyFile);
+          if TFile.Exists(MyFile) then
+          begin
+            try
+              TFile.Delete(MyFile);
+            except
+              on E: Exception do
+                PrintLog('Error on tfile.Delete, ' + MyFile);
+            end;
+
+            if FDebug then
+              PrintLog('DeleteExtension file - ' + MyFile);
+          end;
+        end;
+
+        Sleep(1);
+      except
+        on E: Exception do
+        begin
+          PrintLog('deleteindex, ' + MyFile + ':' + E.Message);
         end;
       end;
-
-      Sleep(1);
-    except
-      on E: Exception do
-      begin
-        PrintLog('deleteindex, ' + MyFile + ':' + E.Message);
-      end;
     end;
-
   end;
 
   Files := TDirectory.GetFiles(APath, '*', TSearchOption.soAllDirectories);
@@ -179,31 +182,24 @@ end;
 procedure TfmMain.CheckFile(MyFile: string; ADateTime: TDateTime);
 var
   WriteTime: TDateTime;
-  Way: string;
-  Lane: string;
   TargetFolder: string;
   Destination: string;
   Source: string;
   SEInfo: TShellExecuteInfo;
+
+  Item: TArray<String>;
 begin
   WriteTime := TFile.GetLastWriteTime(MyFile);
 
   if WriteTime < ADateTime then
   begin
     try
-      if MyFile.Contains(UpperCase('UP')) then
-        Way := 'UP'
-      else
-        Way := 'DN';
-      if MyFile.Contains('_1_') or MyFile.Contains('1瞒急') then
-        Lane := '_Lane1'
-      else
-        Lane := '_Lane2';
+      // BD01_UP_3_240516_170349.794_175
+      Item := ExtractFileName(MyFile).Split(['_']);
 
-      TargetFolder := Way + Lane;
-
-      Destination := '\' + FormatDateTime('YYYY-MM', WriteTime) + '\' +
-        FormatDateTime('DD', WriteTime) + '\' + TargetFolder;
+      TargetFolder := Format('%s_Lane%s', [Item[1], Item[2]]);
+      Destination := '\' + FormatDateTime('YYYY-MM', WriteTime) + '\' + FormatDateTime('DD', WriteTime) + '\'
+        + TargetFolder;
       Source := MyFile;
 
       FillChar(SEInfo, SizeOf(SEInfo), 0);
