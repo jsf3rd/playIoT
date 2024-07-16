@@ -97,6 +97,7 @@ type
 
     property ProjectCode: String read FProjectCode write FProjectCode;
     property AppCode: String read FAppCode write FAppCode;
+    property ExeVersion: string read FExeVersion write FExeVersion;
 
     property UseDebug: Boolean read FUseDebug write FUseDebug;
     property UseCloudLog: Boolean read FUseCloudLog write FUseCloudLog;
@@ -216,18 +217,21 @@ end;
 
 procedure TLogging.ApplicationMessage(const AType: TMessageType; const ATitle, AMessage: String;
 const ATime: TDateTime);
+var
+  TypeName: string;
 begin
+  TypeName := MessageTypeToStr(AType);
   case AType of
     msDebug:
-      _ApplicationMessage(MessageTypeToStr(AType), ATitle, AMessage, ATime, [moDebugView, moLogFile]);
+      _ApplicationMessage(TypeName, ATitle, AMessage, ATime, [moDebugView, moLogFile]);
     msInfo, msError, msWarning:
-      _ApplicationMessage(MessageTypeToStr(AType), ATitle, AMessage, ATime);
+      _ApplicationMessage(TypeName, ATitle, AMessage, ATime);
     msSystem:
       begin
         if FUseDebug then
-          _ApplicationMessage(MessageTypeToStr(AType), ATitle, AMessage, ATime, [moDebugView, moLogFile])
+          _ApplicationMessage(TypeName, ATitle, AMessage, ATime, [moDebugView, moLogFile])
         else
-          _ApplicationMessage(MessageTypeToStr(AType), ATitle, AMessage, ATime, [moDebugView])
+          _ApplicationMessage(TypeName, ATitle, AMessage, ATime, [moDebugView])
       end;
   else
     _ApplicationMessage('UNKNOWN', ATitle, AMessage, ATime);
@@ -512,7 +516,7 @@ begin
   if moLogFile in AOutputs then
     AppendLog(GetLogName, Format('%-9s %s%s%s', [MyType, ATitle, splitter, AMessage]), ATime);
 
-  if moDebugView in AOutputs then
+  if (moDebugView in AOutputs) and FUseDebug then
     PrintDebug('%-9s [%s] %s%s%s', [MyType, FAppCode, ATitle, splitter, AMessage]);
 {$ENDIF}
 end;
