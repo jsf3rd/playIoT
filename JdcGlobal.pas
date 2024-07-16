@@ -154,11 +154,14 @@ function StrDefault(const str: string; const Default: string): string;
 function ByteToA94(const AByte: Byte): String;
 function A94ToByte(const AValue: String; const AIndex: Integer = 1): Byte;
 
-function IdBytesToA94(const AValue: TIdBytes): string;
-function A94ToIdBytes(const str: string): TIdBytes;
-
 function StreamToA94(AStream: TStream): string;
 function A94ToStream(const str: string): TStream;
+
+function ByteToA188(const AByte: Byte): String;
+function A188ToByte(const AValue: String; const AIndex: Integer = 1): Byte;
+
+function StreamToA188(AStream: TStream): string;
+function A188ToStream(const str: string): TStream;
 
 // Thread Safe
 procedure ThreadSafe(const AMethod: TThreadMethod); overload;
@@ -1051,6 +1054,109 @@ begin
     Exit(nil);
 
   buff := A94ToIdBytes(str);
+  result := TMemoryStream.Create;
+  result.Write(buff[0], Length(buff));
+end;
+
+const
+  SINGLE_BYTE_LIMIT = $5F; // 95
+  SINGLE_BYTE_BASE1 = $20; // 32
+  SINGLE_BYTE_BASE2 = $A1; // 161
+  DOUBLE_BYTE_FLAG = $FF; // 255
+  DOUBLE_BYTE_BASE = $BD; // 189
+
+function ByteToA188(const AByte: Byte): String;
+begin
+  if AByte < SINGLE_BYTE_LIMIT then
+    result := Chr(SINGLE_BYTE_BASE1 + AByte)
+  else if AByte < DOUBLE_BYTE_BASE then
+    result := Chr(SINGLE_BYTE_BASE2 + AByte - SINGLE_BYTE_LIMIT)
+  else
+    result := Chr(DOUBLE_BYTE_FLAG) + Char(SINGLE_BYTE_BASE1 + AByte - DOUBLE_BYTE_BASE)
+end;
+
+function A188ToByte(const AValue: String; const AIndex: Integer = 1): Byte;
+var
+  c: Char;
+  b: Byte;
+  calc: Integer;
+begin
+  if AIndex > Length(AValue) then
+    raise Exception.Create('Invalid A188 Format. (' + AValue + ')');
+
+  c := AValue[AIndex];
+  b := ord(c);
+
+  if b < SINGLE_BYTE_LIMIT + SINGLE_BYTE_BASE1 then
+    calc := b - SINGLE_BYTE_BASE1
+  else if b < DOUBLE_BYTE_FLAG then
+    calc := b - SINGLE_BYTE_BASE2 + SINGLE_BYTE_LIMIT
+  else if b = DOUBLE_BYTE_FLAG then
+  begin
+    if Length(AValue) >= AIndex + 1 then
+      calc := DOUBLE_BYTE_BASE + A188ToByte(AValue, AIndex + 1)
+    else
+      raise Exception.Create('Invalid A188 Format. (' + AValue + ')')
+  end
+  else
+    raise Exception.Create('This is not A188 Format.(' + AValue + ')');
+
+  result := Byte(calc);
+end;
+
+function IdBytesToA188(const AValue: TIdBytes): string;
+var
+  I: Integer;
+begin
+  result := '';
+  for I := 0 to Length(AValue) - 1 do
+  begin
+    result := result + ByteToA188(AValue[I]);
+  end;
+end;
+
+function A188ToIdBytes(const str: string): TIdBytes;
+var
+  Index: Integer;
+  b: Byte;
+begin
+  SetLength(result, 0);
+
+  Index := 1;
+  while Index <= Length(str) do
+  begin
+    b := A188ToByte(str, Index);
+    AppendByte(result, b);
+
+    if b >= DOUBLE_BYTE_BASE then
+      Index := Index + 2
+    else
+      Index := Index + 1
+  end;
+end;
+
+function StreamToA188(AStream: TStream): string;
+var
+  buff: TIdBytes;
+begin
+  if AStream = nil then
+    Exit('');
+
+  SetLength(buff, AStream.Size);
+  AStream.Position := 0;
+  AStream.Read(buff[0], AStream.Size);
+  result := IdBytesToA188(buff);
+  SetLength(buff, 0);
+end;
+
+function A188ToStream(const str: string): TStream;
+var
+  buff: TIdBytes;
+begin
+  if str = '' then
+    Exit(nil);
+
+  buff := A188ToIdBytes(str);
   result := TMemoryStream.Create;
   result.Write(buff[0], Length(buff));
 end;
