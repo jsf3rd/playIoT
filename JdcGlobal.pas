@@ -151,17 +151,17 @@ function SubIdBytes(const Buffer: TIdBytes; const AIndex: Integer = 0; const ALe
 
 function StrDefault(const str: string; const Default: string): string;
 
-function ByteToA94(const AByte: Byte): String;
-function A94ToByte(const AValue: String; const AIndex: Integer = 1): Byte;
-
 function StreamToA94(AStream: TStream): string;
 function A94ToStream(const str: string): TStream;
 
-function ByteToA188(const AByte: Byte): String;
-function A188ToByte(const AValue: String; const AIndex: Integer = 1): Byte;
+function ByteToJdcStr(const AValue: Byte): String;
+function JdcStrToByte(const AValue: String; const AIndex: Integer = 1): Byte;
 
-function StreamToA188(AStream: TStream): string;
-function A188ToStream(const str: string): TStream;
+function IdBytesToJdcStr(const AValue: TIdBytes): string;
+function JdcStrToIdBytes(const AStr: String): TIdBytes;
+
+function StreamToJdcStr(AStream: TStream): string;
+function JdcStrToStream(const str: string): TStream;
 
 // Thread Safe
 procedure ThreadSafe(const AMethod: TThreadMethod); overload;
@@ -1004,11 +1004,17 @@ end;
 function IdBytesToA94(const AValue: TIdBytes): string;
 var
   I: Integer;
+  str: TStringBuilder;
 begin
-  result := '';
-  for I := 0 to Length(AValue) - 1 do
-  begin
-    result := result + ByteToA94(AValue[I]);
+  str := TStringBuilder.Create;
+  try
+    for I := 0 to Length(AValue) - 1 do
+    begin
+      str.Append(ByteToA94(AValue[I]));
+    end;
+    result := str.ToString;
+  finally
+    str.Free;
   end;
 end;
 
@@ -1059,63 +1065,56 @@ begin
 end;
 
 const
-  SINGLE_BYTE_LIMIT = $5F; // 95
-  SINGLE_BYTE_BASE1 = $20; // 32
-  SINGLE_BYTE_BASE2 = $A1; // 161
-  DOUBLE_BYTE_FLAG = $FF; // 255
-  DOUBLE_BYTE_BASE = $BD; // 189
+  ESCAPE_CHAR = $5C; // '\'
 
-function ByteToA188(const AByte: Byte): String;
+function ByteToJdcStr(const AValue: Byte): String;
 begin
-  if AByte < SINGLE_BYTE_LIMIT then
-    result := Chr(SINGLE_BYTE_BASE1 + AByte)
-  else if AByte < DOUBLE_BYTE_BASE then
-    result := Chr(SINGLE_BYTE_BASE2 + AByte - SINGLE_BYTE_LIMIT)
-  else
-    result := Chr(DOUBLE_BYTE_FLAG) + Char(SINGLE_BYTE_BASE1 + AByte - DOUBLE_BYTE_BASE)
-end;
-
-function A188ToByte(const AValue: String; const AIndex: Integer = 1): Byte;
-var
-  c: Char;
-  b: Byte;
-  calc: Integer;
-begin
-  if AIndex > Length(AValue) then
-    raise Exception.Create('Invalid A188 Format. (' + AValue + ')');
-
-  c := AValue[AIndex];
-  b := ord(c);
-
-  if b < SINGLE_BYTE_LIMIT + SINGLE_BYTE_BASE1 then
-    calc := b - SINGLE_BYTE_BASE1
-  else if b < DOUBLE_BYTE_FLAG then
-    calc := b - SINGLE_BYTE_BASE2 + SINGLE_BYTE_LIMIT
-  else if b = DOUBLE_BYTE_FLAG then
+  if (AValue = 0) or (AValue = ESCAPE_CHAR) then
   begin
-    if Length(AValue) >= AIndex + 1 then
-      calc := DOUBLE_BYTE_BASE + A188ToByte(AValue, AIndex + 1)
-    else
-      raise Exception.Create('Invalid A188 Format. (' + AValue + ')')
+    result := Chr(ESCAPE_CHAR) + Chr(AValue + 1);
   end
   else
-    raise Exception.Create('This is not A188 Format.(' + AValue + ')');
-
-  result := Byte(calc);
+    result := Chr(AValue);
 end;
 
-function IdBytesToA188(const AValue: TIdBytes): string;
+function JdcStrToByte(const AValue: String; const AIndex: Integer): Byte;
+var
+  tmp: Byte;
+begin
+  tmp := ord(AValue[AIndex]);
+  if tmp = ESCAPE_CHAR then
+  begin
+    if Length(AValue) < AIndex + 1 then
+      raise Exception.Create('JdcStrToByte Length Error');
+
+    tmp := ord(AValue[AIndex + 1]);
+    if (tmp = 1) or (tmp = ESCAPE_CHAR + 1) then
+      result := tmp - 1
+    else
+      raise Exception.Create('Decode Error ' + tmp.ToString);
+  end
+  else
+    result := tmp;
+end;
+
+function IdBytesToJdcStr(const AValue: TIdBytes): string;
 var
   I: Integer;
+  str: TStringBuilder;
 begin
-  result := '';
-  for I := 0 to Length(AValue) - 1 do
-  begin
-    result := result + ByteToA188(AValue[I]);
+  str := TStringBuilder.Create;
+  try
+    for I := 0 to Length(AValue) - 1 do
+    begin
+      str.Append(ByteToJdcStr(AValue[I]));
+    end;
+    result := str.ToString;
+  finally
+    str.Free;
   end;
 end;
 
-function A188ToIdBytes(const str: string): TIdBytes;
+function JdcStrToIdBytes(const AStr: String): TIdBytes;
 var
   Index: Integer;
   b: Byte;
@@ -1123,42 +1122,65 @@ begin
   SetLength(result, 0);
 
   Index := 1;
-  while Index <= Length(str) do
+  while Index <= Length(AStr) do
   begin
-    b := A188ToByte(str, Index);
+    b := JdcStrToByte(AStr, Index);
     AppendByte(result, b);
 
-    if b >= DOUBLE_BYTE_BASE then
-      Index := Index + 2
+    if (b = 0) or (b = ESCAPE_CHAR) then
+      Inc(Index, 2)
     else
-      Index := Index + 1
+      Inc(Index)
   end;
 end;
 
-function StreamToA188(AStream: TStream): string;
+function StreamToJdcStr(AStream: TStream): string;
 var
   buff: TIdBytes;
+  b: Byte;
+  str: TStringBuilder;
+  count: Integer;
 begin
   if AStream = nil then
     Exit('');
 
-  SetLength(buff, AStream.Size);
   AStream.Position := 0;
-  AStream.Read(buff[0], AStream.Size);
-  result := IdBytesToA188(buff);
-  SetLength(buff, 0);
+  str := TStringBuilder.Create;
+  try
+    while True do
+    begin
+      count := AStream.Read(b, 1);
+      if count = 0 then
+        Break;
+      str.Append(ByteToJdcStr(b));
+    end;
+    result := str.ToString;
+  finally
+    str.Free;
+  end;
 end;
 
-function A188ToStream(const str: string): TStream;
+function JdcStrToStream(const str: string): TStream;
 var
+  b: Byte;
+  Index: Integer;
   buff: TIdBytes;
 begin
   if str = '' then
     Exit(nil);
 
-  buff := A188ToIdBytes(str);
   result := TMemoryStream.Create;
-  result.Write(buff[0], Length(buff));
+  Index := 1;
+  while Index <= Length(str) do
+  begin
+    b := JdcStrToByte(str, Index);
+    result.Write(b, 1);
+
+    if (b = 0) or (b = ESCAPE_CHAR) then
+      Inc(Index, 2)
+    else
+      Inc(Index)
+  end;
 end;
 
 { TeCanMessage }
