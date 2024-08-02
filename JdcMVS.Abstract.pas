@@ -30,7 +30,6 @@ type
     jpeg: TStream; // 이미지 저장용 MemoryStream
     RoadMark: TRoadMark;
     LaneInfo: TLaneInfo;
-    RoadLink: TRoadLink;
     AirTemp: Double; // 외기온도
 
     procedure ImageFree;
