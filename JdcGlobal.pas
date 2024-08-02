@@ -17,7 +17,7 @@ uses
   Classes, SysUtils, ZLib, IdGlobal, IOUtils,
   System.StrUtils, IdUDPClient, IdContext, IdExceptionCore,
   UITypes, System.Generics.Collections,
-  System.Json, REST.Json
+  System.Json, REST.Json, System.DateUtils
 
 {$IFDEF MSWINDOWS}
     , Winapi.Windows, JclFileUtils, Vcl.ExtCtrls, JclSysInfo, Winapi.psAPI, Vcl.StdCtrls,
@@ -211,6 +211,8 @@ function ConvertDegree(Value: string): double;
 
 function BoolToStr(AValue: Boolean; T: String = 'True'; F: String = 'False'): string;
 
+function GetMondayOfCurrentWeek: TDate;
+
 const
   LOG_PORT = 8094;
   LOCAL_SERVER = '\\localhost';
@@ -229,42 +231,52 @@ implementation
 
 uses JdcGlobal.ClassHelper, JdcLogging;
 
+function GetMondayOfCurrentWeek: TDate;
+var
+  Today: TDate;
+  DayOfWeek: Integer;
+begin
+  Today := Date;
+  DayOfWeek := DayOfTheWeek(Today);
+  Result := IncDay(Today, (1 - DayOfWeek));
+end;
+
 function PChar2String(AValue: PAnsiChar): WideString;
 begin
-  result := WideString(AnsiString(AValue));
+  Result := WideString(AnsiString(AValue));
 end;
 
 function String2PChar(AValue: WideString): PAnsiChar;
 begin
-  result := PAnsiChar(AnsiString(AValue));
+  Result := PAnsiChar(AnsiString(AValue));
 end;
 
 function BoolToStr(AValue: Boolean; T: String = 'True'; F: String = 'False'): string;
 begin
   if AValue then
-    result := T
+    Result := T
   else
-    result := F;
+    Result := F;
 end;
 
 function ConvertDegree(Value: string): double;
 var
   frac: double;
 begin
-  result := StrToFloatDef(Value, 0);
-  if result = 0 then
+  Result := StrToFloatDef(Value, 0);
+  if Result = 0 then
     Exit;
 
-  frac := result - Trunc(result / 100) * 100;
-  result := Trunc(result / 100);
-  result := result + frac / 60;
+  frac := Result - Trunc(Result / 100) * 100;
+  Result := Trunc(Result / 100);
+  Result := Result + frac / 60;
 end;
 
 function CopyStream(const AStream: TStream): TMemoryStream;
 begin
-  result := TMemoryStream.Create;
+  Result := TMemoryStream.Create;
   AStream.Position := 0;
-  result.CopyFrom(AStream, AStream.Size);
+  Result.CopyFrom(AStream, AStream.Size);
 end;
 
 procedure ExtractValues(var AList: TStrings; const AValue: TJSONValue);
@@ -323,7 +335,7 @@ begin
     Value := Value shr 1;
     Digits := Digits - 1;
   end;
-  result := S;
+  Result := S;
 end;
 
 procedure FreeAndNilEx(var Obj);
@@ -349,8 +361,8 @@ var
 begin
   HFileRes := CreateFile(PChar(fName), GENERIC_READ or GENERIC_WRITE, 0, nil, OPEN_EXISTING,
     FILE_ATTRIBUTE_NORMAL, 0);
-  result := (HFileRes = INVALID_HANDLE_VALUE);
-  if not result then
+  Result := (HFileRes = INVALID_HANDLE_VALUE);
+  if not Result then
     CloseHandle(HFileRes);
 end;
 
@@ -427,11 +439,11 @@ var
   MemCounters: TProcessMemoryCounters;
 {$ENDIF}
 begin
-  result := 0;
+  Result := 0;
 {$IFDEF MSWINDOWS}
   MemCounters.cb := SizeOf(MemCounters);
   if GetProcessMemoryInfo(GetCurrentProcess, @MemCounters, SizeOf(MemCounters)) then
-    result := MemCounters.WorkingSetSize
+    Result := MemCounters.WorkingSetSize
 {$ENDIF}
 end;
 
@@ -446,7 +458,7 @@ var
   iLastError: DWORD;
 {$ENDIF}
 begin
-  result := 'v0.1';
+  Result := 'v0.1';
 
 {$IFDEF MSWINDOWS}
   if not TFile.Exists(FileName) then
@@ -466,7 +478,7 @@ begin
     begin
       if VerQueryValue(PVerInfo, '\', Pointer(PVerValue), VerValueSize) then
         with PVerValue^ do
-          result := Format('v%d.%d.%d', [HiWord(dwFileVersionMS),
+          Result := Format('v%d.%d.%d', [HiWord(dwFileVersionMS),
             // Major
             LoWord(dwFileVersionMS), // Minor
             HiWord(dwFileVersionLS) // Release
@@ -487,17 +499,17 @@ function DefaultFormatSettings: TFormatSettings;
 begin
 {$WARN SYMBOL_PLATFORM OFF}
 {$IFDEF MSWINDOWS}
-  result := TFormatSettings.Create(GetThreadLocale);
+  Result := TFormatSettings.Create(GetThreadLocale);
 {$ELSE}
-  result := TFormatSettings.Create(SysLocale.DefaultLCID);
+  Result := TFormatSettings.Create(SysLocale.DefaultLCID);
 {$ENDIF}
 {$WARN SYMBOL_PLATFORM ON}
-  result.ShortDateFormat := 'YYYY-MM-DD';
-  result.LongDateFormat := 'YYYY-MM-DD';
-  result.ShortTimeFormat := 'hh:mm:ss';
-  result.LongTimeFormat := 'hh:mm:ss';
-  result.DateSeparator := '-';
-  result.TimeSeparator := ':';
+  Result.ShortDateFormat := 'YYYY-MM-DD';
+  Result.LongDateFormat := 'YYYY-MM-DD';
+  Result.ShortTimeFormat := 'hh:mm:ss';
+  Result.LongTimeFormat := 'hh:mm:ss';
+  Result.DateSeparator := '-';
+  Result.TimeSeparator := ':';
 end;
 
 procedure ThreadSafe(const AMethod: TThreadMethod); overload;
@@ -541,7 +553,7 @@ var
   Index: Integer;
   I: Integer;
 begin
-  result := -1;
+  Result := -1;
   if Length(_SubIdBytes) = 0 then
     Exit;
 
@@ -555,7 +567,7 @@ begin
       Exit(IdBytesPos(_SubIdBytes, IdBytes, Index + I));
   end;
 
-  result := Index;
+  Result := Index;
 end;
 
 function SubIdBytes(const Buffer: TIdBytes; const AIndex: Integer = 0; const ALength: Integer = 0): TIdBytes;
@@ -564,21 +576,21 @@ var
 begin
   _Length := Length(Buffer);
   if ALength = 0 then
-    SetLength(result, _Length - AIndex)
+    SetLength(Result, _Length - AIndex)
   else
-    SetLength(result, ALength);
+    SetLength(Result, ALength);
 
-  CopyTIdBytes(Buffer, AIndex, result, 0, Length(result));
+  CopyTIdBytes(Buffer, AIndex, Result, 0, Length(Result));
 end;
 
 function IdBytesToHex(const AValue: TIdBytes; const ASpliter: String): String;
 var
   I: Integer;
 begin
-  result := '';
+  Result := '';
   for I := 0 to Length(AValue) - 1 do
   begin
-    result := result + ByteToHex(AValue[I]) + ASpliter;
+    Result := Result + ByteToHex(AValue[I]) + ASpliter;
   end;
 end;
 
@@ -586,17 +598,17 @@ function BytesToHex(const AValue: TBytes; const ASpliter: String): String;
 var
   I: Integer;
 begin
-  result := '';
+  Result := '';
   for I := 0 to Length(AValue) - 1 do
   begin
-    result := result + ByteToHex(AValue[I]) + ASpliter;
+    Result := Result + ByteToHex(AValue[I]) + ASpliter;
   end;
 end;
 
 function TruncInt(Value: Integer; Digit: Integer): Integer;
 begin
-  result := Trunc(Value / Digit);
-  result := Trunc(result * Digit);
+  Result := Trunc(Value / Digit);
+  Result := Trunc(Result * Digit);
 end;
 
 procedure CloudMessage(const ProjectCode, AppCode, TypeCode, ATitle, AMessage, AVersion: String;
@@ -668,7 +680,7 @@ begin
     // 완료시 한번 더 이벤트를 불러준다.
     if Assigned(OnProgress) then
       OnProgress(CS);
-    result := True;
+    Result := True;
   finally
     CS.Free;
   end;
@@ -678,7 +690,7 @@ function Contains(const Contents: string; const str: array of const): Boolean;
 var
   I: Integer;
 begin
-  result := False;
+  Result := False;
 
   for I := 0 to High(str) do
   begin
@@ -686,7 +698,7 @@ begin
       Exit;
   end;
 
-  result := True;
+  Result := True;
 end;
 
 function IsGoodResponse(const Text, Command: string; const Response: array of const): Boolean;
@@ -697,7 +709,7 @@ begin
   try
     SL.Text := Text;
 
-    result := (SL.Strings[0] = Command) and (Contains(Text, Response));
+    Result := (SL.Strings[0] = Command) and (Contains(Text, Response));
   finally
     SL.Free;
   end;
@@ -733,7 +745,7 @@ begin
       if Assigned(OnProgress) then
         OnProgress(DS);
       // Compress와 같은이유
-      result := True;
+      Result := True;
     finally
       FreeMem(buff)
     end;
@@ -763,17 +775,17 @@ begin
   tmp1 := @Value;
   tmp1^ := Rev4Bytes(tmp1^);
   tmp2 := @tmp1^;
-  result := tmp2^;
+  Result := tmp2^;
 end;
 
 function WordToBytes(const AValue: WORD): TIdBytes;
 begin
-  result := ToBytes(Rev2Bytes(AValue));
+  Result := ToBytes(Rev2Bytes(AValue));
 end;
 
 function DWordToBytes(const AValue: UInt32): TIdBytes;
 begin
-  result := ToBytes(Rev4Bytes(AValue));
+  Result := ToBytes(Rev4Bytes(AValue));
 end;
 
 {$ENDIF}
@@ -781,9 +793,9 @@ end;
 function CheckHexStr(ASource: String): String;
 begin
   if (Length(ASource) mod 2) = 0 then
-    result := ASource
+    Result := ASource
   else
-    result := '0' + ASource;
+    Result := '0' + ASource;
 end;
 
 function HexStrToByte(const ASource: String; const AIndex: Integer): Byte;
@@ -795,14 +807,14 @@ begin
 
   if Length(str) < AIndex + 1 then
   begin
-    result := $00;
+    Result := $00;
     Exit;
   end;
 
   str := Copy(str, AIndex, 2);
   tmp := HexStrToBytes(str);
   // CopyMemory(@Result, tmp, 1);
-  Move(result, tmp, 1);
+  Move(Result, tmp, 1);
 end;
 
 function HexStrToWord(const ASource: string; const AIndex: Integer): WORD;
@@ -816,16 +828,16 @@ begin
 
   if Length(str) < AIndex + 3 then
   begin
-    result := $00;
+    Result := $00;
     Exit;
   end;
 
   str := Copy(str, AIndex, 4);
 
 {$IF CompilerVersion  > 28} // Ver28 = XE7
-  result := BytesToUInt16(HexStrToBytes(str));
+  Result := BytesToUInt16(HexStrToBytes(str));
 {$ELSE}
-  result := BytesToWord(HexStrToBytes(str));
+  Result := BytesToWord(HexStrToBytes(str));
 {$ENDIF}
 end;
 
@@ -838,7 +850,7 @@ var
 begin
   str := CheckHexStr(ASource);
 
-  SetLength(result, 0);
+  SetLength(Result, 0);
 
   j := 0;
   b := 0;
@@ -868,7 +880,7 @@ begin
       b := (b shl 4) + n;
       j := 0;
 
-      AppendBytes(result, ToBytes(b));
+      AppendBytes(Result, ToBytes(b));
     end
   end;
 
@@ -946,30 +958,30 @@ end;
 
 function TConnInfo.Equals(const ConnInfo: TConnInfo): Boolean;
 begin
-  result := Self.StringValue.Equals(ConnInfo.StringValue) and (Self.IntegerValue = ConnInfo.IntegerValue);
+  Result := Self.StringValue.Equals(ConnInfo.StringValue) and (Self.IntegerValue = ConnInfo.IntegerValue);
 end;
 
 function TConnInfo.ToString: string;
 begin
-  result := Self.StringValue + ':' + Self.IntegerValue.ToString;
+  Result := Self.StringValue + ':' + Self.IntegerValue.ToString;
 end;
 
 function StrDefault(const str: string; const Default: string): string;
 begin
   if str.IsEmpty then
-    result := Default
+    Result := Default
   else
-    result := str;
+    Result := str;
 end;
 
 function ByteToA94(const AByte: Byte): String;
 begin
   if AByte < 93 then
-    result := Chr(32 + AByte)
+    Result := Chr(32 + AByte)
   else if AByte < 175 then
-    result := Chr(125) + Char(32 + AByte - 92)
+    Result := Chr(125) + Char(32 + AByte - 92)
   else
-    result := Chr(126) + Char(32 + AByte - 174)
+    Result := Chr(126) + Char(32 + AByte - 174)
 end;
 
 function A94ToByte(const AValue: String; const AIndex: Integer = 1): Byte;
@@ -998,7 +1010,7 @@ begin
   if calc > 255 then
     raise Exception.Create('This is not A94 Format.(' + AValue + ')');
 
-  result := calc;
+  Result := calc;
 end;
 
 function IdBytesToA94(const AValue: TIdBytes): string;
@@ -1012,7 +1024,7 @@ begin
     begin
       str.Append(ByteToA94(AValue[I]));
     end;
-    result := str.ToString;
+    Result := str.ToString;
   finally
     str.Free;
   end;
@@ -1023,13 +1035,13 @@ var
   Index: Integer;
   b: Byte;
 begin
-  SetLength(result, 0);
+  SetLength(Result, 0);
 
   Index := 1;
   while Index <= Length(str) do
   begin
     b := A94ToByte(str, Index);
-    AppendByte(result, b);
+    AppendByte(Result, b);
 
     if b > 92 then
       Index := Index + 2
@@ -1048,7 +1060,7 @@ begin
   SetLength(buff, AStream.Size);
   AStream.Position := 0;
   AStream.Read(buff[0], AStream.Size);
-  result := IdBytesToA94(buff);
+  Result := IdBytesToA94(buff);
   SetLength(buff, 0);
 end;
 
@@ -1060,8 +1072,8 @@ begin
     Exit(nil);
 
   buff := A94ToIdBytes(str);
-  result := TMemoryStream.Create;
-  result.Write(buff[0], Length(buff));
+  Result := TMemoryStream.Create;
+  Result.Write(buff[0], Length(buff));
 end;
 
 const
@@ -1071,10 +1083,10 @@ function ByteToJdcStr(const AValue: Byte): String;
 begin
   if (AValue = 0) or (AValue = ESCAPE_CHAR) then
   begin
-    result := Chr(ESCAPE_CHAR) + Chr(AValue + 1);
+    Result := Chr(ESCAPE_CHAR) + Chr(AValue + 1);
   end
   else
-    result := Chr(AValue);
+    Result := Chr(AValue);
 end;
 
 function JdcStrToByte(const AValue: String; const AIndex: Integer): Byte;
@@ -1089,12 +1101,12 @@ begin
 
     tmp := ord(AValue[AIndex + 1]);
     if (tmp = 1) or (tmp = ESCAPE_CHAR + 1) then
-      result := tmp - 1
+      Result := tmp - 1
     else
       raise Exception.Create('Decode Error ' + tmp.ToString);
   end
   else
-    result := tmp;
+    Result := tmp;
 end;
 
 function IdBytesToJdcStr(const AValue: TIdBytes): string;
@@ -1108,7 +1120,7 @@ begin
     begin
       str.Append(ByteToJdcStr(AValue[I]));
     end;
-    result := str.ToString;
+    Result := str.ToString;
   finally
     str.Free;
   end;
@@ -1119,13 +1131,13 @@ var
   Index: Integer;
   b: Byte;
 begin
-  SetLength(result, 0);
+  SetLength(Result, 0);
 
   Index := 1;
   while Index <= Length(AStr) do
   begin
     b := JdcStrToByte(AStr, Index);
-    AppendByte(result, b);
+    AppendByte(Result, b);
 
     if (b = 0) or (b = ESCAPE_CHAR) then
       Inc(Index, 2)
@@ -1136,7 +1148,6 @@ end;
 
 function StreamToJdcStr(AStream: TStream): string;
 var
-  buff: TIdBytes;
   b: Byte;
   str: TStringBuilder;
   count: Integer;
@@ -1154,7 +1165,7 @@ begin
         Break;
       str.Append(ByteToJdcStr(b));
     end;
-    result := str.ToString;
+    Result := str.ToString;
   finally
     str.Free;
   end;
@@ -1164,17 +1175,16 @@ function JdcStrToStream(const str: string): TStream;
 var
   b: Byte;
   Index: Integer;
-  buff: TIdBytes;
 begin
   if str = '' then
     Exit(nil);
 
-  result := TMemoryStream.Create;
+  Result := TMemoryStream.Create;
   Index := 1;
   while Index <= Length(str) do
   begin
     b := JdcStrToByte(str, Index);
-    result.Write(b, 1);
+    Result.Write(b, 1);
 
     if (b = 0) or (b = ESCAPE_CHAR) then
       Inc(Index, 2)
@@ -1189,11 +1199,11 @@ function TeCanMessage.ToHex: string;
 var
   I: Integer;
 begin
-  result := '';
+  Result := '';
   for I := Low(Self.data) to High(Self.data) do
-    result := result + ' ' + ByteToHex(Self.data[I]);
+    Result := Result + ' ' + ByteToHex(Self.data[I]);
 
-  result := IntToHex(Self.Id) + ' ' + ByteToHex(Self.dlc) + result;
+  Result := IntToHex(Self.Id) + ' ' + ByteToHex(Self.dlc) + Result;
 end;
 
 end.
