@@ -15,7 +15,7 @@ interface
 uses
   Classes, SysUtils, FireDAC.Comp.Client, FireDAC.Stan.Intf, Data.DBXPlatform,
   FireDAC.Comp.DataSet, FireDAC.Stan.Param, REST.JSON, JdcGlobal,
-  System.Generics.Collections, System.DateUtils, Data.DB, Data.SqlTimSt, JdcLogging, Rtti
+  System.Generics.Collections, System.DateUtils, Data.DB, Data.SqlTimSt, JdcLogging, Rtti, System.Variants
 {$IF CompilerVersion  > 26} // upper XE5
     , System.JSON
 {$ELSE}
@@ -94,6 +94,8 @@ type
 
     procedure FieldByJSONObject(const AObject: TJSONObject); overload;
     procedure FieldByJSONObject(const AJSON: String); overload;
+
+    function GetModifyLog(): string;
   end;
 
   TFDQueryHelper = class helper for TFDQuery
@@ -147,6 +149,8 @@ type
     // ApplyUpdate
     function ApplyInstantUpdate(const AConn: TFDConnection; const AStream: TStream;
       const AType: TMessageType = msInfo): Boolean;
+
+    function GetModifyLog(): string;
   end;
 
   TFDMemTableHelper = class helper for TFDMemTable
@@ -160,6 +164,7 @@ type
     function ToRecordArray<T: Record >(const AName: String = ''): TArray<T>;
     procedure FieldByJSONObject(const AObject: TJSONObject); overload;
     procedure FieldByJSONObject(const AJSON: String); overload;
+    function GetModifyLog(): string;
   end;
 
 function GetFieldTypeName(const AType: TFieldType): string;
@@ -513,11 +518,18 @@ begin
   Result.Connection := Self.Connection;
   Result.OnExecuteError := Self.OnExecuteError;
   Result.OnReconcileError := Self.OnReconcileError;
+  Result.AfterApplyUpdates := Self.AfterApplyUpdates;
+  Result.BeforeApplyUpdates := Self.BeforeApplyUpdates;
   Result.CachedUpdates := Self.CachedUpdates;
   Result.UpdateOptions.KeyFields := Self.UpdateOptions.KeyFields;
   Result.UpdateOptions.UpdateTableName := Self.UpdateOptions.UpdateTableName;
   Result.SQL.Text := Self.SQL.Text;
-  Result.Name := Self.Name + '_' + Format('%0.5d', [Random(100000)]);
+
+  Self.Tag := Self.Tag + 1;
+  if Self.Tag >= 100000 then
+    Self.Tag := 1;
+
+  Result.Name := Self.Name + '_' + Format('%0.5d', [Self.Tag]);
 
   for I := 0 to Self.ParamCount - 1 do
     Result.Params.Items[I].DataType := Self.Params.Items[I].DataType;
@@ -634,6 +646,11 @@ end;
 procedure TFDQueryHelper.FieldByJSONObject(const AJSON: String);
 begin
   TFDDataSet(Self).FieldByJSONObject(AJSON);
+end;
+
+function TFDQueryHelper.GetModifyLog: string;
+begin
+  Result := TFDDataSet(Self).GetModifyLog;
 end;
 
 procedure TFDQueryHelper.LoadFromDSStream(const AStream: TStream);
@@ -959,6 +976,11 @@ begin
   TFDDataSet(Self).FieldByJSONObject(AJSON);
 end;
 
+function TFDMemTableHelper.GetModifyLog: string;
+begin
+  Result := TFDDataSet(Self).GetModifyLog;
+end;
+
 procedure TFDMemTableHelper.LoadFromDSStream(const AStream: TStream);
 begin
   TFDDataSet(Self).LoadFromDSStream(AStream);
@@ -1193,6 +1215,25 @@ begin
 
     Key := Key + MyElem.JsonString.Value;
     Result.AddPair(MyElem.JsonString.Value, GetNameValue(MyElem.JsonValue, Key));
+  end;
+end;
+
+function TFDDataSetHelper.GetModifyLog: string;
+var
+  I: Integer;
+  OldValue, NewValue: string;
+begin
+  Result := '';
+
+  for I := 0 to Self.FieldCount - 1 do
+  begin
+    OldValue := VarToStrDef(Self.Fields[I].OldValue, '');
+    NewValue := Self.Fields[I].AsString;
+
+    if OldValue = NewValue then
+      Continue;
+
+    Result := Result + Format('%s:%s->%s,', [Self.Fields[I].FieldName, OldValue, NewValue]);
   end;
 end;
 
