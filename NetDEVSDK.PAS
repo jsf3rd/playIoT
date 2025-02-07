@@ -3,11 +3,13 @@ unit NetDEVSDK;
 interface
 
 uses System.Classes, System.SysUtils, Winapi.Windows, System.IOUtils, System.Generics.Collections,
-  JdcLogging, JdcGlobal, System.DateUtils, Vcl.ExtCtrls, Vcl.Forms, Vcl.Controls, System.Threading;
+  JdcLogging, JdcGlobal, System.DateUtils, Vcl.ExtCtrls, Vcl.Forms, Vcl.Controls, System.Threading, JdcNetSDK;
 
 const
   NETDEVSDK_DLL = 'NetDEVSDK.DLL';
-  DEFAULT_CHANNEL = 1;
+
+  NETDEV_PICTURE_BMP = 0;
+  NETDEV_PICTURE_JPG = 1;
 
   NETDEV_LEN_64 = 63;
   NETDEV_LEN_128 = 127;
@@ -20,8 +22,10 @@ const
   NETDEV_DTYPE_IPC = 1;
   NETDEV_DTYPE_NVR = 101;
 
-  ERROR_CODE: array [0 .. 513, 0 .. 1] of string = //
+  ERROR_CODE: array [0 .. 514, 0 .. 1] of string = //
     (
+    // UDNS
+    ('3387', 'No Data'), //
     // Exception callback message types Enumeration definition
     ('300', 'Playback ended'), //
     ('301', 'Playback exception occured'), //
@@ -609,7 +613,7 @@ const
     );
 
 type
-  TPlayerInfo = class;
+  TPlayerNetDEV = class;
 
   TNETDEVAlarmInfo = record
     tAlarmTime: Int64;
@@ -629,27 +633,23 @@ type
   TNETDEV_ExceptionCallBack_PF = procedure(plUserID: IntPtr; dwType: Int32; plExpHandle: IntPtr;
     plUserData: IntPtr)stdcall;
 
-  TNetDEVLiveStreamIndex = ( //
-    NETDEV_LIVE_STREAM_INDEX_MAIN = 0, //
-    NETDEV_LIVE_STREAM_INDEX_AUX = 1, //
-    NETDEV_LIVE_STREAM_INDEX_THIRD = 2, //
-    NETDEV_LIVE_STREAM_INDEX_INVALID = $FF //
-    );
-  TNetDEVProtocol = (NETDEV_TRANSPROTOCOL_RTPUDP = 0, NETDEV_TRANSPROTOCOL_RTPTCP = 1);
   TNetDEVPictureFluency = ( //
     NETDEV_PICTURE_REAL = 0, //
     NETDEV_PICTURE_FLUENCY = 1, //
     NETDEV_PICTURE_BALANCE_NEW = 3, //
     NETDEV_PICTURE_RTMP_FLUENCY = 4, //
     NETDEV_PICTURE_FLUENCY_INVALID = $FF);
+
   TNetDEVStreamMode = ( //
     NETDEV_STREAM_MODE_ALL = 0, //
     NETDEV_STREAM_MODE_VIDEO = $8000 //
     );
+
   TNetDEVPullStreamMode = ( //
     NETDEV_STREAM_MODE_SERVER_DISTRIBUTE = 0, //
     NETDEV_STREAM_MODE_FORCE_CDN = 1 //
     );
+
   TNetDEVDistributeCloudSrv = ( //
     NETDEV_DISTRIBUTE_CLOUD_NONE = 0, //
     NETDEV_DISTRIBUTE_CLOUD_KS = 1, //
@@ -658,15 +658,10 @@ type
     );
   TNetDEVTransType = (NETDEV_TRANS_TYPE_FORWORD = 0, NETDEV_TRANS_TYPE_STRAIGHT = 1);
 
-  TNetDEVPictureFormat = (NETDEV_PICTURE_BMP = 0, NETDEV_PICTURE_JPG = 1, NETDEV_PICTURE_INVALID);
-
-  TNETDEVException = (NETDEV_EXCEPTION_REPORT_VOD_END = 300,
-    NETDEV_EXCEPTION_REPORT_VOD_ABEND = 301, NETDEV_EXCEPTION_REPORT_BACKUP_END = 302,
-    NETDEV_EXCEPTION_REPORT_BACKUP_DISC_OUT = 303, NETDEV_EXCEPTION_REPORT_BACKUP_DISC_FULL = 304,
-    NETDEV_EXCEPTION_REPORT_BACKUP_ABEND = 305, NETDEV_EXCEPTION_EXCHANGE = $8000,
-    NETDEV_EXCEPTION_REPORT_INVALID = $FFFF);
-
-  TOnException = procedure(AInfo: TPlayerInfo; AType: Int32) of object;
+  TNETDEVException = (NETDEV_EXCEPTION_REPORT_VOD_END = 300, NETDEV_EXCEPTION_REPORT_VOD_ABEND = 301,
+    NETDEV_EXCEPTION_REPORT_BACKUP_END = 302, NETDEV_EXCEPTION_REPORT_BACKUP_DISC_OUT = 303,
+    NETDEV_EXCEPTION_REPORT_BACKUP_DISC_FULL = 304, NETDEV_EXCEPTION_REPORT_BACKUP_ABEND = 305,
+    NETDEV_EXCEPTION_EXCHANGE = $8000, NETDEV_EXCEPTION_REPORT_INVALID = $FFFF);
 
   TNetDEVDeviceInfo = record
     dwDevType: Int32;
@@ -691,8 +686,7 @@ type
     byRes: array [0 .. NETDEV_LEN_235] of BYTE;
 
     constructor Create(AHandle: HWND; AChannel: Int32 = DEFAULT_CHANNEL;
-      AType: TNetDEVLiveStreamIndex = NETDEV_LIVE_STREAM_INDEX_MAIN;
-      AMode: TNetDEVProtocol = NETDEV_TRANSPROTOCOL_RTPTCP;
+      AType: Int32 = NETSDK_LIVE_STREAM_INDEX_MAIN; AMode: Int32 = NETSDK_TRANSPROTOCOL_RTPTCP;
       AFluncy: TNetDEVPictureFluency = NETDEV_PICTURE_REAL);
   end;
 
@@ -735,6 +729,8 @@ type
     dwLoginProto: Int32;
     dwDeviceType: Int32;
     byRest: Array [0 .. NETDEV_LEN_256] of AnsiChar;
+
+    constructor Create(AInfo: TCCTVInfo);
   end;
 
   {
@@ -775,8 +771,8 @@ type
   TNETDEV_Init = function: Boolean stdcall;
   TNETDEV_Login = function(pszDevIP: PAnsiChar; wDevPort: Int16; pszUserName: PAnsiChar;
     pszPassword: PAnsiChar; var pstDevInfo: TNetDEVDeviceInfo): IntPtr stdcall;
-  TNETDEV_Login_V30 = function(var pstDevLoginInfo: TNETDEVLoginInfo;
-    var pstSELogInfo: TNETDEVSelogInfo): IntPtr stdcall;
+  TNETDEV_Login_V30 = function(var pstDevLoginInfo: TNETDEVLoginInfo; var pstSELogInfo: TNETDEVSelogInfo)
+    : IntPtr stdcall;
   TNETDEV_QueryVideoChlDetailList = function(lpUserID: IntPtr; var pdwChlCount: IntPtr;
     var pstVideoChlList: TNETDEVVideoCHLDetailInfo): IntPtr stdcall;
 
@@ -790,8 +786,8 @@ type
     lpStreamDataCB: TNETDEVStreamDataCB): IntPtr stdcall;
 
   TNETDEV_StopRealPlay = function(lpRealHandle: IntPtr): Boolean stdcall;
-  TNETDEV_CapturePicture = function(lpRealHandle: IntPtr; szFileName: PAnsiChar;
-    dwCaptureMode: Int32): Boolean stdcall;
+  TNETDEV_CapturePicture = function(lpRealHandle: IntPtr; szFileName: PAnsiChar; dwCaptureMode: Int32)
+    : Boolean stdcall;
   TNETDEV_GetLastError = function(): Int32 stdcall;
   TNETDEV_SetExceptionCallBack = function(cbExceptionCallBack: TNETDEV_ExceptionCallBack_PF;
     lpUserData: IntPtr): Boolean stdcall;
@@ -800,144 +796,54 @@ type
 
   TNETDEV_GetStreamUrl = function(lpUserID: IntPtr; dwChannelID: Int32; dwStreamType: Int32;
     pszStreamUrl: PAnsiChar): Boolean stdcall;
-  TNETDEV_FastRealPlayByUrl = function(lpUserID: IntPtr; pszUrl: PAnsiChar;
-    var pstPreviewInfo: TPreviewInfo; cbDataCallBack: TSourceDataCallBack; lpUserData: IntPtr)
-    : IntPtr stdcall;
-  TNETDEV_FastRealPlayByUrl_V30 = function(lpUserID: IntPtr; pszUrl: PAnsiChar;
-    pszUserName: PAnsiChar; pszPassword: PAnsiChar; var pstPreviewInfo: TPreviewInfo;
+  TNETDEV_FastRealPlayByUrl = function(lpUserID: IntPtr; pszUrl: PAnsiChar; var pstPreviewInfo: TPreviewInfo;
     cbDataCallBack: TSourceDataCallBack; lpUserData: IntPtr): IntPtr stdcall;
+  TNETDEV_FastRealPlayByUrl_V30 = function(lpUserID: IntPtr; pszUrl: PAnsiChar; pszUserName: PAnsiChar;
+    pszPassword: PAnsiChar; var pstPreviewInfo: TPreviewInfo; cbDataCallBack: TSourceDataCallBack;
+    lpUserData: IntPtr): IntPtr stdcall;
   TNETDEV_SetConnectTime = function(dwWaitTime: Int32; dwTrytimes: Int32): Boolean stdcall;
-
-  TNETDEV_SetPlayDataCallBack = function(lpRealHandle: IntPtr; cbPlayDataCallBack: IntPtr;
-    bContinue: Int32; lpUserData: IntPtr): Boolean stdcall;
-
+  TNETDEV_SetPlayDataCallBack = function(lpRealHandle: IntPtr; cbPlayDataCallBack: IntPtr; bContinue: Int32;
+    lpUserData: IntPtr): Boolean stdcall;
   TNETDEV_SetRevTimeOut = function(var pstRevTimeout: TNETDEV_REV_TIMEOUT): Boolean stdcall;
 
-  TSnapConfig = record
-    IP: string;
-    Port: Int32;
-    ID: string;
-    PW: string;
-    CutNum: string;
-    StreamType: Int32;
-  end;
-
-  TCCTVInfo = record
-    Enable: Boolean;
-    IP: AnsiString;
-    Port: Int32;
-    ID: AnsiString;
-    Password: AnsiString;
-
-    constructor Create(AConfig: TSnapConfig);
-    function Equals(AInfo: TCCTVInfo): Boolean;
-    function ToNetNETDEVDeviceLoginInfo: TNETDEVLoginInfo;
-  end;
-
-  TPlayerInfo = class
-  strict private
-    FID: string;
-    FLoggingIn: Boolean;
-    FUserID: IntPtr;
-    FRealHandle: IntPtr;
-    FCCTVInfo: TCCTVInfo;
-    FRetryCount: Int32;
-
-    FTick: Cardinal;
-
-    FData: TStream;
-    FLastCapture: Cardinal;
-
-    FPlayControl: TWinControl;
-    FChannel: Int32;
-    FStreamType: TNetDEVLiveStreamIndex;
-
-    FAliveTask: TThread;
-    procedure CheckAlive;
-    procedure SetData(const Value: TStream);
+  TPlayerNetDEV = class(TPlayerAbstract)
+  protected
+    function _StopRealPlay: Boolean; override;
+    function _Logout: Boolean; override;
+    function _RealPlay: IntPtr; override;
   public
-    constructor Create(AID: String);
-    destructor Destroy; override;
-    procedure Reset;
-
-    function Played: Boolean;
-    function Logined: Boolean;
-
-    function Login(AInfo: TCCTVInfo): Boolean;
-    function Login_V30: Boolean;
-    function Logout: Boolean;
+    function Login: Boolean; override;
+    function CapturePicture(const szFileName: String): Boolean; override;
+  public
     function GetStreamInfo(const dwChannelID: Int32; var lpOutBuffer: TNETDEVVideoStreamInfo;
       const dwOutBufferSize: Int32; var pdwBytesReturned: Int32): Boolean;
-    function RealPlay: Boolean; overload;
-    function RealPlay(AControl: TWinControl; AChannel: Int32 = DEFAULT_CHANNEL;
-      AStreamType: TNetDEVLiveStreamIndex = NETDEV_LIVE_STREAM_INDEX_MAIN): Boolean; overload;
-    function RealPlay_V30(AControl: TWinControl; AChannel: Int32 = DEFAULT_CHANNEL;
-      AStreamType: TNetDEVLiveStreamIndex = NETDEV_LIVE_STREAM_INDEX_MAIN): Boolean; overload;
-    function StopRealPlay: Boolean;
-    function CapturePicture(const szFileName: String;
-      const dwCaptureMode: TNetDEVPictureFormat = NETDEV_PICTURE_JPG): Boolean;
+    function GetStreamUrl(AChannel: Int32 = DEFAULT_CHANNEL; AType: Int32 = NETSDK_LIVE_STREAM_INDEX_MAIN)
+      : PAnsiChar;
+    function RealPlayByUrl(_url: PAnsiChar; AControl: TWinControl; AChannel: Int32 = DEFAULT_CHANNEL;
+      AStreamType: Int32 = NETSDK_LIVE_STREAM_INDEX_MAIN): Boolean;
+    function RealPlayByUrl_V30(_url: PAnsiChar; _id: PAnsiChar; _pwd: PAnsiChar; AControl: TWinControl;
+      AChannel: Int32 = DEFAULT_CHANNEL; AStreamType: Int32 = NETSDK_LIVE_STREAM_INDEX_MAIN): Boolean;
 
-    function GetStreamUrl(AChannel: Int32 = DEFAULT_CHANNEL;
-      AType: TNetDEVLiveStreamIndex = NETDEV_LIVE_STREAM_INDEX_MAIN): PAnsiChar;
-    function RealPlayByUrl(_url: PAnsiChar; AControl: TWinControl;
-      AChannel: Int32 = DEFAULT_CHANNEL;
-      AStreamType: TNetDEVLiveStreamIndex = NETDEV_LIVE_STREAM_INDEX_MAIN): Boolean;
-    function RealPlayByUrl_V30(_url: PAnsiChar; _id: PAnsiChar; _pwd: PAnsiChar;
-      AControl: TWinControl; AChannel: Int32 = DEFAULT_CHANNEL;
-      AStreamType: TNetDEVLiveStreamIndex = NETDEV_LIVE_STREAM_INDEX_MAIN): Boolean;
-
-    function ToString: string; override;
-
-    property UserID: IntPtr read FUserID write FUserID;
-    property CCTVInfo: TCCTVInfo read FCCTVInfo write FCCTVInfo;
-    property ID: string read FID;
-    property Retry: Int32 read FRetryCount write FRetryCount;
-    property Tick: Cardinal read FTick write FTick;
-    property LastCapture: Cardinal read FLastCapture write FLastCapture;
-    property Data: TStream read FData write SetData;
-    property LoggingIn: Boolean read FLoggingIn write FLoggingIn;
+    function GetLastError: String; override;
   end;
 
-  TNetDEV = class
-  private
-    FInited: Boolean;
-    FDLLHandle: THandle;
-    FPlayerDic: TDictionary<String, TPlayerInfo>;
-
-    procedure FreeDLL;
-    procedure LoadDLL(APath: string);
-    procedure SetOnException(const Value: TOnException);
-
+  TNetDEV = class(TNetAbstract)
+  protected
+    procedure LoadDLL(const APath: string); override;
+    function InitLib: Boolean; override;
+    function SetLogPath(const szPath: string): Boolean; override;
+    function CreatePlayer(const AID: string): TPlayerAbstract; override;
   public
-    constructor Create;
-    destructor Destroy; override;
-
-    class function Obj: TNetDEV;
-    function Initialize(const ALibPath: string; const ALogPath: string): Boolean;
-
-    function GetLastError: string;
-    function GetErrorMessage(ACode: Int32): string;
-    function Cleanup: Boolean;
-    function SetLogPath(const szPath: string): Boolean;
-
-    function AddPlayer(AID: String): TPlayerInfo;
-    function GetPlayer(AID: String): TPlayerInfo;
-    procedure DelPlayer(AID: String);
-    function GetKeys: TArray<String>;
-    function GetPlayers: TArray<TPlayerInfo>;
+    function GetLastError: string; override;
+    function Cleanup: Boolean; override;
 
     function SetConnectTime(dwWaitTime: Int32 = 10; dwTrytimes: Int32 = 30): Boolean;
     function SetRevTimeOut(dwRevTimeOut: Int32 = 5; dwFileReportTimeOut: Int32 = 30): Boolean;
-
-    property OnException: TOnException write SetOnException;
   end;
 
 implementation
 
 var
-  MyObj: TNetDEV = nil;
-  MyOnException: TOnException;
-
   FNETDEV_Init: TNETDEV_Init;
   FNETDEV_StopRealPlay: TNETDEV_StopRealPlay;
   FNETDEV_SetExceptionCallBack: TNETDEV_SetExceptionCallBack;
@@ -983,32 +889,34 @@ begin
   Result := True;
 end;
 
-procedure OnSourceDataCallBack(lpRealHandle: IntPtr; var pucBuffer: BYTE;
-  dwBufSize, dwMediaDataType: Int32; lpUserParam: IntPtr)stdcall;
+procedure OnSourceDataCallBack(lpRealHandle: IntPtr; var pucBuffer: BYTE; dwBufSize, dwMediaDataType: Int32;
+  lpUserParam: IntPtr)stdcall;
 var
-  Player: TPlayerInfo;
+  Player: TPlayerNetDEV;
 begin
   Player := Pointer(lpUserParam);
   Player.Tick := GetTickCount;
 end;
 
-procedure ExceptionCallBack(plUserID: IntPtr; dwType: Int32; plExpHandle: IntPtr;
-  plUserData: IntPtr)stdcall;
+function GetErrorMessage(const ACode: Int32): string;
+var
+  Msg: string;
+  I: Int32;
 begin
-  if Assigned(MyOnException) then
-    MyOnException(TPlayerInfo(plUserData), dwType);
+  Msg := 'Unknown Error';
+  for I := Low(ERROR_CODE) to High(ERROR_CODE) do
+  begin
+    if ERROR_CODE[I, 0].ToInteger = ACode then
+      Msg := ERROR_CODE[I, 1];
+  end;
+  Result := format('%s(%d)', [Msg, ACode]);
 end;
 
 { TNetDEV }
 
-function TNetDEV.AddPlayer(AID: String): TPlayerInfo;
-begin
-  Result := GetPlayer(AID);
-end;
-
 function TNetDEV.Cleanup: Boolean;
 var
-  MyPlayer: TPlayerInfo;
+  MyPlayer: TPlayerAbstract;
 begin
   if not FInited then
     Exit(False);
@@ -1026,90 +934,17 @@ begin
     TLogging.Obj.ApplicationMessage(msDebug, 'ND_Cleanup')
   end
   else
-    TLogging.Obj.ApplicationMessage(msWarning, 'ND_Cleanup', TNetDEV.Obj.GetLastError)
+    TLogging.Obj.ApplicationMessage(msWarning, 'ND_Cleanup', GetLastError)
 end;
 
-constructor TNetDEV.Create;
+function TNetDEV.InitLib: Boolean;
 begin
-  MyOnException := nil;
-  FInited := False;
-  FDLLHandle := 0;
-  FPlayerDic := TDictionary<String, TPlayerInfo>.Create;
+  Result := FNETDEV_Init;
 end;
 
-procedure TNetDEV.DelPlayer(AID: String);
+function TNetDEV.CreatePlayer(const AID: string): TPlayerAbstract;
 begin
-  if not FPlayerDic.ContainsKey(AID) then
-    Exit;
-  FPlayerDic.Items[AID].Free;
-  FPlayerDic.Remove(AID);
-end;
-
-destructor TNetDEV.Destroy;
-var
-  MyPlayer: TPlayerInfo;
-begin
-  try
-    Cleanup;
-    for MyPlayer in FPlayerDic.Values do
-      MyPlayer.Free;
-    FPlayerDic.Free;
-  except
-    on E: Exception do
-  end;
-  FreeDLL;
-
-  MyObj := nil;
-  inherited;
-end;
-
-procedure TNetDEV.FreeDLL;
-begin
-  if FDLLHandle > 0 then
-  begin
-    try
-      TLogging.Obj.ApplicationMessage(msDebug, 'ND_FreeDLL', 'Handle=%d', [FDLLHandle]);
-      FDLLHandle := 0;
-    except
-      on E: Exception do
-    end;
-  end;
-end;
-
-function TNetDEV.Initialize(const ALibPath: string; const ALogPath: string): Boolean;
-begin
-  if not TDirectory.Exists(ALibPath) then
-    raise Exception.Create('path not exist. [' + ALibPath + ']');
-
-  LoadDLL(ALibPath);
-  SetLogPath(ALogPath + 'NetDEV');
-
-  if not FInited then
-    FInited := FNETDEV_Init;
-  Result := FInited;
-  if Result then
-    TLogging.Obj.ApplicationMessage(msDebug, 'ND_Init')
-  else
-    TLogging.Obj.ApplicationMessage(msWarning, 'ND_Init', TNetDEV.Obj.GetLastError);
-end;
-
-function TNetDEV.GetKeys: TArray<String>;
-begin
-  Result := FPlayerDic.Keys.ToArray;
-end;
-
-function TNetDEV.GetErrorMessage(ACode: Int32): string;
-var
-  Msg: string;
-  I: Int32;
-begin
-  Msg := 'Unknown Error';
-  for I := Low(ERROR_CODE) to High(ERROR_CODE) do
-  begin
-    if ERROR_CODE[I, 0].ToInteger = ACode then
-      Msg := ERROR_CODE[I, 1];
-  end;
-  Result := format('%s(%d)', [Msg, ACode]);
+  Result := TPlayerNetDEV.Create(AID);
 end;
 
 function TNetDEV.GetLastError: String;
@@ -1120,19 +955,7 @@ begin
   Result := GetErrorMessage(FNETDEV_GetLastError);
 end;
 
-function TNetDEV.GetPlayer(AID: String): TPlayerInfo;
-begin
-  if not FPlayerDic.ContainsKey(AID) then
-    FPlayerDic.add(AID, TPlayerInfo.Create(AID));
-  Result := FPlayerDic.Items[AID];
-end;
-
-function TNetDEV.GetPlayers: TArray<TPlayerInfo>;
-begin
-  Result := FPlayerDic.Values.ToArray;
-end;
-
-procedure TNetDEV.LoadDLL(APath: string);
+procedure TNetDEV.LoadDLL(const APath: string);
 begin
   SetCurrentDir(APath);
   FDLLHandle := LoadLibrary(NETDEVSDK_DLL);
@@ -1165,13 +988,6 @@ begin
   TLogging.Obj.ApplicationMessage(msDebug, 'ND_LoadDLL', 'Path=%s,Handle=%d', [APath, FDLLHandle]);
 end;
 
-class function TNetDEV.Obj: TNetDEV;
-begin
-  if MyObj = nil then
-    MyObj := TNetDEV.Create;
-  Result := MyObj;
-end;
-
 function TNetDEV.SetConnectTime(dwWaitTime, dwTrytimes: Int32): Boolean;
 begin
   Result := FNETDEV_SetConnectTime(dwWaitTime, dwTrytimes);
@@ -1179,8 +995,7 @@ begin
     TLogging.Obj.ApplicationMessage(msWarning, 'ND_SetConnectTime', 'WaitTime=%d,TryTimes=%d',
       [dwWaitTime, dwTrytimes])
   else
-    TLogging.Obj.ApplicationMessage(msWarning, 'ND_SetConnectTime', 'E=%s',
-      [TNetDEV.Obj.GetLastError]);
+    TLogging.Obj.ApplicationMessage(msWarning, 'ND_SetConnectTime', 'E=%s', [GetLastError]);
 end;
 
 function TNetDEV.SetLogPath(const szPath: string): Boolean;
@@ -1192,12 +1007,7 @@ begin
   if Result then
     TLogging.Obj.ApplicationMessage(msDebug, 'ND_SetLogPath', 'Path=%s', [szPath])
   else
-    TLogging.Obj.ApplicationMessage(msWarning, 'ND_SetLogPath', 'E=%s', [TNetDEV.Obj.GetLastError]);
-end;
-
-procedure TNetDEV.SetOnException(const Value: TOnException);
-begin
-  MyOnException := Value;
+    TLogging.Obj.ApplicationMessage(msWarning, 'ND_SetLogPath', 'E=%s', [GetLastError]);
 end;
 
 function TNetDEV.SetRevTimeOut(dwRevTimeOut, dwFileReportTimeOut: Int32): Boolean;
@@ -1209,21 +1019,20 @@ begin
   FillChar(rev.byRes, NETDEV_LEN_128, #0);
   Result := FNETDEV_SetRevTimeOut(rev);
   if Result then
-    TLogging.Obj.ApplicationMessage(msDebug, 'ND_SetRevTimeOut',
-      'RevTimeOut=%d,FileReportTimeOut=%d', [dwRevTimeOut, dwFileReportTimeOut])
+    TLogging.Obj.ApplicationMessage(msDebug, 'ND_SetRevTimeOut', 'RevTimeOut=%d,FileReportTimeOut=%d',
+      [dwRevTimeOut, dwFileReportTimeOut])
   else
-    TLogging.Obj.ApplicationMessage(msWarning, 'ND_SetRevTimeOut', 'E=%s',
-      [TNetDEV.Obj.GetLastError]);
+    TLogging.Obj.ApplicationMessage(msWarning, 'ND_SetRevTimeOut', 'E=%s', [GetLastError]);
 end;
 
 { TPreviewInfo }
 
-constructor TPreviewInfo.Create(AHandle: HWND; AChannel: Int32; AType: TNetDEVLiveStreamIndex;
-  AMode: TNetDEVProtocol; AFluncy: TNetDEVPictureFluency);
+constructor TPreviewInfo.Create(AHandle: HWND; AChannel: Int32; AType: Int32; AMode: Int32;
+  AFluncy: TNetDEVPictureFluency);
 begin
   Self.dwChannelID := AChannel;
-  Self.dwStreamType := Int32(AType);
-  Self.dwLinkMode := Int32(AMode);
+  Self.dwStreamType := AType;
+  Self.dwLinkMode := AMode;
   Self.hPlayWnd := AHandle;
   Self.dwFluency := Int32(AFluncy);
   Self.dwStreamMode := Int32(TNetDEVStreamMode.NETDEV_STREAM_MODE_VIDEO);
@@ -1235,43 +1044,9 @@ begin
   FillChar(Self.byRes, NETDEV_LEN_235, #0);
 end;
 
-{ TCCTVInfo }
-
-constructor TCCTVInfo.Create(AConfig: TSnapConfig);
-begin
-  Self.Enable := True;
-  Self.IP := AnsiString(AConfig.IP);
-  Self.Port := AConfig.Port;
-  Self.ID := AnsiString(AConfig.ID);
-  Self.Password := AnsiString(AConfig.PW);
-end;
-
-function TCCTVInfo.Equals(AInfo: TCCTVInfo): Boolean;
-begin
-  Result := (Self.IP = AInfo.IP) and (Self.Port = AInfo.Port) and (Self.ID = AInfo.ID) and
-    (Self.Password = AInfo.Password)
-end;
-
-function TCCTVInfo.ToNetNETDEVDeviceLoginInfo: TNETDEVLoginInfo;
-var
-  tmp: AnsiString;
-begin
-  FillChar(Result, SizeOf(TNETDEVLoginInfo), #0);
-  tmp := AnsiString(Self.IP);
-  CopyMemory(@Result.szIPAddr[0], @tmp[1], Length(Self.IP));
-  tmp := AnsiString(Self.ID);
-  CopyMemory(@Result.szUserName[0], @tmp[1], Length(Self.ID));
-  tmp := AnsiString(Self.Password);
-  CopyMemory(@Result.szPassword[0], @tmp[1], Length(Self.Password));
-  Result.dwPort := Self.Port;
-  Result.dwLoginProto := NETDEV_LOGIN_PROTO_ONVIF;
-  Result.dwDeviceType := 0;
-end;
-
 { TPlayerInfo }
 
-function TPlayerInfo.CapturePicture(const szFileName: String;
-  const dwCaptureMode: TNetDEVPictureFormat): Boolean;
+function TPlayerNetDEV.CapturePicture(const szFileName: String): Boolean;
 var
   Name: AnsiString;
 begin
@@ -1279,106 +1054,38 @@ begin
     raise Exception.Create('StopRealPlay');
 
   Name := AnsiString(szFileName);
-  Result := FNETDEV_CapturePicture(FRealHandle, PAnsiChar(Name), Int32(dwCaptureMode));
+  Result := FNETDEV_CapturePicture(FRealHandle, PAnsiChar(Name), NETDEV_PICTURE_JPG);
 end;
 
-constructor TPlayerInfo.Create(AID: String);
+function TPlayerNetDEV.GetLastError: String;
 begin
-  FLoggingIn := False;
-  FID := AID;
-  FRetryCount := 0;
-  FTick := 0;
-  FData := TMemoryStream.Create;
-  FLastCapture := 0;
-  Reset;
-
-  FAliveTask := TThread.CreateAnonymousThread(
-    procedure
-    begin
-      try
-        CheckAlive();
-      except
-        on E: Exception do
-          TLogging.Obj.ApplicationMessage(msError, 'CheckAlive', E.Message);
-      end;
-
-    end);
-  FAliveTask.FreeOnTerminate := False;
-  FAliveTask.Start;
+  Result := GetErrorMessage(FNETDEV_GetLastError);
 end;
 
-destructor TPlayerInfo.Destroy;
-begin
-  if Assigned(FAliveTask) then
-  begin
-    FAliveTask.Terminate;
-    FAliveTask.WaitFor;
-    FreeAndNil(FAliveTask);
-  end;
-
-  Self.StopRealPlay;
-  Self.Logout;
-
-  if Assigned(FData) then
-    FreeAndNil(FData);
-
-  inherited;
-end;
-
-function TPlayerInfo.GetStreamInfo(const dwChannelID: Int32;
-var lpOutBuffer: TNETDEVVideoStreamInfo; const dwOutBufferSize: Int32;
-var pdwBytesReturned: Int32): Boolean;
+function TPlayerNetDEV.GetStreamInfo(const dwChannelID: Int32; var lpOutBuffer: TNETDEVVideoStreamInfo;
+  const dwOutBufferSize: Int32; var pdwBytesReturned: Int32): Boolean;
 const
   NETDEV_GET_STREAMCFG = 120;
 begin
   if FUserID = 0 then
     Exit(False);
-  Result := FNETDEV_GetDevConfig(FUserID, dwChannelID, NETDEV_GET_STREAMCFG, lpOutBuffer,
-    dwOutBufferSize, pdwBytesReturned);
+  Result := FNETDEV_GetDevConfig(FUserID, dwChannelID, NETDEV_GET_STREAMCFG, lpOutBuffer, dwOutBufferSize,
+    pdwBytesReturned);
 end;
 
-function TPlayerInfo.GetStreamUrl(AChannel: Int32; AType: TNetDEVLiveStreamIndex): PAnsiChar;
+function TPlayerNetDEV.GetStreamUrl(AChannel: Int32; AType: Int32): PAnsiChar;
 var
   Url: PAnsiChar;
 begin
   Url := AllocMem(300);
-  if FNETDEV_GetStreamUrl(FUserID, AChannel, Int32(AType), Url) then
+  if FNETDEV_GetStreamUrl(FUserID, AChannel, AType, Url) then
     TLogging.Obj.ApplicationMessage(msDebug, 'ND_GetStreamUrl', '%s', [Url])
   else
-    TLogging.Obj.ApplicationMessage(msWarning, 'ND_GetStreamUrl', 'E=%s',
-      [TNetDEV.Obj.GetLastError]);
+    TLogging.Obj.ApplicationMessage(msWarning, 'ND_GetStreamUrl', 'E=%s', [GetLastError]);
   Result := Url;
 end;
 
-function TPlayerInfo.Login(AInfo: TCCTVInfo): Boolean;
-var
-  pstDevInfo: TNetDEVDeviceInfo;
-begin
-  if Self.Logined then
-    Exit(True);
-
-  FUserID := FNETDEV_Login(PAnsiChar(AInfo.IP), Int16(AInfo.Port), PAnsiChar(AInfo.ID),
-    PAnsiChar(AInfo.Password), pstDevInfo);
-  Result := Self.Logined;
-  if Result then
-  begin
-    FNETDEV_SetExceptionCallBack(ExceptionCallBack, 0);
-    TLogging.Obj.ApplicationMessage(msWarning, 'ND_Login', 'ID=%s,UserID=%s', [FID, FUserID]);
-  end
-  else
-  begin
-    FRetryCount := FRetryCount + 1;
-    TLogging.Obj.ApplicationMessage(msWarning, 'ND_Login', 'ID=%s,E=%s',
-      [FID, TNetDEV.Obj.GetLastError]);
-  end;
-end;
-
-function TPlayerInfo.Logined: Boolean;
-begin
-  Result := FUserID > 0;
-end;
-
-function TPlayerInfo.Login_V30: Boolean;
+function TPlayerNetDEV.Login(): Boolean;
 var
   pstDevLoginInfo: TNETDEVLoginInfo;
   pstDevSelogInfo: TNETDEVSelogInfo;
@@ -1387,9 +1094,8 @@ var
 begin
   FLoggingIn := True;
   try
-    TLogging.Obj.ApplicationMessage(msDebug, 'ND_TryLogin', 'ID=%s,TryCount=%d',
-      [FID, FRetryCount]);
-    pstDevLoginInfo := FCCTVInfo.ToNetNETDEVDeviceLoginInfo;
+    TLogging.Obj.ApplicationMessage(msDebug, 'ND_TryLogin', 'ID=%s,TryCount=%d', [FID, FRetryCount]);
+    pstDevLoginInfo := TNETDEVLoginInfo.Create(FCCTVInfo);
     FUserID := FNETDEV_Login_V30(pstDevLoginInfo, pstDevSelogInfo);
   finally
     FLoggingIn := False;
@@ -1400,7 +1106,6 @@ begin
   begin
     FLoggingIn := False;
     FRetryCount := 0;
-    FNETDEV_SetExceptionCallBack(ExceptionCallBack, 0);
     TLogging.Obj.ApplicationMessage(msInfo, 'ND_LoginSuccess', 'ID=%s,UserID=%d', [FID, FUserID]);
     retIntPtr := FNETDEV_QueryVideoChlDetailList(FUserID, ChCount, Info);
     TLogging.Obj.ApplicationMessage(msInfo, 'ND_ChannelList', 'ID=%s,Count=%d', [FID, ChCount]);
@@ -1408,143 +1113,13 @@ begin
   else
   begin
     FRetryCount := FRetryCount + 1;
-    TLogging.Obj.ApplicationMessage(msWarning, 'ND_LoginFailed', 'ID=%s,E=%s',
-      [FID, TNetDEV.Obj.GetLastError]);
+    if Assigned(OnException) then
+      OnException(Self, GetLastError);
   end;
 end;
 
-function TPlayerInfo.Logout: Boolean;
-begin
-  Result := False;
-  if FUserID = 0 then
-    Exit;
-
-  if Self.Played then
-    Self.StopRealPlay;
-
-  Result := FNETDEV_Logout(FUserID);
-  if Result then
-  begin
-    TLogging.Obj.ApplicationMessage(msInfo, 'ND_Logout', 'ID=%s,UserID=%d', [FID, FUserID]);
-    Reset;
-  end
-  else
-    TLogging.Obj.ApplicationMessage(msWarning, 'ND_Logout', 'ID=%s,E=%s',
-      [FID, TNetDEV.Obj.GetLastError]);
-end;
-
-function TPlayerInfo.Played: Boolean;
-begin
-  Result := FRealHandle > 0;
-end;
-
-procedure TPlayerInfo.CheckAlive();
-begin
-  while not TThread.CurrentThread.CheckTerminated do
-  begin
-    Sleep(501);
-
-    if not Self.Played then
-      Continue;
-
-    if Abs(GetTickCount - FTick) < 5000 then
-      Continue;
-
-    FTick := GetTickCount;
-
-    // No Data Àç½ÃÀÛ!
-    if Assigned(MyOnException) then
-      MyOnException(Self, Int32(TNETDEVException.NETDEV_EXCEPTION_REPORT_VOD_END));
-  end;
-end;
-
-function TPlayerInfo.RealPlay(AControl: TWinControl; AChannel: Int32;
-AStreamType: TNetDEVLiveStreamIndex): Boolean;
-begin
-  if FUserID = 0 then
-    raise Exception.Create('Logout');
-
-  if FRealHandle > 0 then
-    StopRealPlay;
-
-  ThreadSafeSync(
-    procedure
-    var
-      PreviewInfo: TPreviewInfo;
-    begin
-      FPlayControl := AControl;
-      FPlayControl.Invalidate;
-      FChannel := AChannel;
-      FStreamType := AStreamType;
-      PreviewInfo := TPreviewInfo.Create(AControl.Handle, AChannel, AStreamType);
-      FRealHandle := FNETDEV_RealPlay(FUserID, PreviewInfo, OnSourceDataCallBack, IntPtr(Self));
-    end);
-
-  Result := Self.Played;
-  if Result then
-  begin
-    FTick := GetTickCount;
-    FRetryCount := 0;
-    TLogging.Obj.ApplicationMessage(msInfo, 'ND_RealPlay', 'ID=%s,UserID=%d,RealHandle=%d',
-      [FID, FUserID, FRealHandle]);
-  end
-  else
-  begin
-    FRetryCount := FRetryCount + 1;
-    TLogging.Obj.ApplicationMessage(msWarning, 'ND_RealPlay', 'ID=%s,UserID=%d,TryCount=%d,E=%s',
-      [FID, FUserID, FRetryCount, TNetDEV.Obj.GetLastError]);
-  end;
-end;
-
-function TPlayerInfo.RealPlay_V30(AControl: TWinControl; AChannel: Int32;
-AStreamType: TNetDEVLiveStreamIndex): Boolean;
-var
-  cb: TNETDEVStreamDataCB;
-begin
-  if FUserID = 0 then
-    raise Exception.Create('Logout');
-
-  if FRealHandle > 0 then
-    StopRealPlay;
-
-  ThreadSafeSync(
-    procedure
-    var
-      PreviewInfo: TPreviewInfo;
-    begin
-      FPlayControl := AControl;
-      FPlayControl.Invalidate;
-      FChannel := AChannel;
-      FStreamType := AStreamType;
-      PreviewInfo := TPreviewInfo.Create(AControl.Handle, AChannel, AStreamType);
-
-      // TODO : No idea
-      cb.bDecode := False;
-      cb.dwCBType := 2;
-      cb.lpVideoDataCB := 0; // ??
-      cb.lpAudioDataCB := 0;
-      cb.lpUserData := IntPtr(Self);
-      FRealHandle := FNETDEV_RealPlay_V30(FUserID, PreviewInfo, cb);
-    end);
-
-  Result := Self.Played;
-  if Result then
-  begin
-    FTick := GetTickCount;
-    FRetryCount := 0;
-    TLogging.Obj.ApplicationMessage(msInfo, 'ND_RealPlay', 'ID=%s,UserID=%d,RealHandle=%d',
-      [FID, FUserID, FRealHandle]);
-  end
-  else
-  begin
-    FRetryCount := FRetryCount + 1;
-    TLogging.Obj.ApplicationMessage(msWarning, 'ND_RealPlay', 'ID=%s,UserID=%d,TryCount=%d,E=%s',
-      [FID, FUserID, FRetryCount, TNetDEV.Obj.GetLastError]);
-  end;
-end;
-
-function TPlayerInfo.RealPlayByUrl(_url: PAnsiChar; AControl: TWinControl; AChannel: Int32;
-AStreamType: TNetDEVLiveStreamIndex): Boolean;
+function TPlayerNetDEV.RealPlayByUrl(_url: PAnsiChar; AControl: TWinControl; AChannel: Int32;
+  AStreamType: Int32): Boolean;
 begin
   if FUserID = 0 then
     raise Exception.Create('Logout');
@@ -1571,19 +1146,19 @@ begin
   begin
     FTick := GetTickCount;
     FRetryCount := 0;
-    TLogging.Obj.ApplicationMessage(msInfo, 'NETDEV_FastRealPlayByUrl',
-      'ID=%s,UserID=%d,RealHandle=%d', [FID, FUserID, FRealHandle]);
+    TLogging.Obj.ApplicationMessage(msInfo, 'NETDEV_FastRealPlayByUrl', 'ID=%s,UserID=%d,RealHandle=%d',
+      [FID, FUserID, FRealHandle]);
   end
   else
   begin
     FRetryCount := FRetryCount + 1;
-    TLogging.Obj.ApplicationMessage(msWarning, 'NETDEV_FastRealPlayByUrl',
-      'ID=%s,UserID=%d,TryCount=%d,E=%s', [FID, FUserID, FRetryCount, TNetDEV.Obj.GetLastError]);
+    TLogging.Obj.ApplicationMessage(msWarning, 'NETDEV_FastRealPlayByUrl', 'ID=%s,UserID=%d,TryCount=%d,E=%s',
+      [FID, FUserID, FRetryCount, GetLastError]);
   end;
 end;
 
-function TPlayerInfo.RealPlayByUrl_V30(_url: PAnsiChar; _id: PAnsiChar; _pwd: PAnsiChar;
-AControl: TWinControl; AChannel: Int32; AStreamType: TNetDEVLiveStreamIndex): Boolean;
+function TPlayerNetDEV.RealPlayByUrl_V30(_url: PAnsiChar; _id: PAnsiChar; _pwd: PAnsiChar;
+AControl: TWinControl; AChannel: Int32; AStreamType: Int32): Boolean;
 begin
   if FUserID = 0 then
     raise Exception.Create('Logout');
@@ -1610,79 +1185,51 @@ begin
   begin
     FTick := GetTickCount;
     FRetryCount := 0;
-    TLogging.Obj.ApplicationMessage(msInfo, 'NETDEV_FastRealPlayByUrl_V30',
-      'ID=%s,UserID=%d,RealHandle=%d', [FID, FUserID, FRealHandle]);
+    TLogging.Obj.ApplicationMessage(msInfo, 'NETDEV_FastRealPlayByUrl_V30', 'ID=%s,UserID=%d,RealHandle=%d',
+      [FID, FUserID, FRealHandle]);
   end
   else
   begin
     FRetryCount := FRetryCount + 1;
     TLogging.Obj.ApplicationMessage(msWarning, 'NETDEV_FastRealPlayByUrl_V30',
-      'ID=%s,UserID=%d,TryCount=%d,E=%s', [FID, FUserID, FRetryCount, TNetDEV.Obj.GetLastError]);
+      'ID=%s,UserID=%d,TryCount=%d,E=%s', [FID, FUserID, FRetryCount, GetLastError]);
   end;
 end;
 
-function TPlayerInfo.RealPlay: Boolean;
+function TPlayerNetDEV._Logout: Boolean;
 begin
-  Result := RealPlay(FPlayControl, FChannel, FStreamType);
+  Result := FNETDEV_Logout(FUserID);
 end;
 
-procedure TPlayerInfo.Reset;
-begin
-  FUserID := 0;
-  FRealHandle := 0;
-end;
-
-procedure TPlayerInfo.SetData(
-
-  const Value: TStream);
-begin
-  if Assigned(FData) then
-    FreeAndNil(FData);
-  FData := Value;
-end;
-
-function TPlayerInfo.StopRealPlay: Boolean;
+function TPlayerNetDEV._RealPlay: IntPtr;
 var
-  ret: Boolean;
+  PreviewInfo: TPreviewInfo;
 begin
-  Result := True;
-  if FRealHandle = 0 then
-    Exit;
-
-  ThreadSafeSync(
-    procedure
-    begin
-      ret := FNETDEV_StopRealPlay(FRealHandle);
-      FPlayControl.Invalidate;
-    end);
-
-  if ret then
-  begin
-    TLogging.Obj.ApplicationMessage(msInfo, 'StopRealPlay', 'ID=%d,RealHandle=%d',
-      [FUserID, FRealHandle]);
-    FRealHandle := 0;
-  end
-  else
-  begin
-    Result := False;
-    TLogging.Obj.ApplicationMessage(msWarning, 'ND_StopRealPlay', 'ID=%d,RealHandle=%d,E=%s',
-      [FUserID, FRealHandle, TNetDEV.Obj.GetLastError]);
-  end;
+  PreviewInfo := TPreviewInfo.Create(FPlayControl.Handle, FChannel, FStreamType);
+  Result := FNETDEV_RealPlay(FUserID, PreviewInfo, OnSourceDataCallBack, IntPtr(Self));
 end;
 
-function TPlayerInfo.ToString: string;
+function TPlayerNetDEV._StopRealPlay: Boolean;
 begin
-  Result := format('ID=%s', [FID]);
+  Result := FNETDEV_StopRealPlay(FRealHandle);
 end;
 
-initialization
+{ TNETDEVLoginInfo }
 
-if MyObj = nil then
-  MyObj := TNetDEV.Create;
-
-finalization
-
-if Assigned(MyObj) then
-  FreeAndNil(MyObj);
+constructor TNETDEVLoginInfo.Create(AInfo: TCCTVInfo);
+var
+  tmp: AnsiString;
+begin
+  FillChar(Self, SizeOf(TNETDEVLoginInfo), #0);
+  tmp := AnsiString(AInfo.IP);
+  CopyMemory(@Self.szIPAddr[0], @tmp[1], Length(AInfo.IP));
+  tmp := AnsiString(AInfo.ID);
+  CopyMemory(@Self.szUserName[0], @tmp[1], Length(AInfo.ID));
+  tmp := AnsiString(AInfo.Password);
+  CopyMemory(@Self.szPassword[0], @tmp[1], Length(AInfo.Password));
+  Self.dwPort := AInfo.Port;
+  Self.dwLoginProto := NETDEV_LOGIN_PROTO_ONVIF;
+  Self.dwDeviceType := 0;
+end;
 
 end.
