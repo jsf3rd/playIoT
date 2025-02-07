@@ -21,7 +21,8 @@ uses
 
 {$IFDEF MSWINDOWS}
     , Winapi.Windows, JclFileUtils, Vcl.ExtCtrls, JclSysInfo, Winapi.psAPI, Vcl.StdCtrls,
-  JclSvcCtrl, Vcl.ActnList, Vcl.Dialogs, Winapi.Shellapi, JvJclUtils
+  JclSvcCtrl, Vcl.ActnList, Vcl.Dialogs, Winapi.Shellapi, JvJclUtils, Vcl.Imaging.pngimage, Vcl.Imaging.jpeg,
+  Vcl.Graphics
 {$ENDIF}
     ;
 
@@ -176,6 +177,7 @@ function DefaultFormatSettings: TFormatSettings;
 
 function CurrentProcessMemory: Cardinal;
 function FileVersion(const FileName: String): String;
+function FileVersionInt(const FileName: String): Integer;
 
 {$IFDEF MSWINDOWS}
 function IsFileInUse(const fName: string): Boolean;
@@ -187,6 +189,7 @@ procedure StopService(const ServiceName: String; var OldStatus: TJclServiceState
   hnd: HWND);
 procedure UpdateServiceStatus(const ServiceName: String; var OldStatus: TJclServiceState;
   const StartAction, StopAction: TAction; const StatusEdit: TLabeledEdit);
+procedure ConvertPngToJpg(const PngFile, JpgFile: string; const qual: Integer = 80);
 {$ENDIF}
 // Integer To Bit String
 function IntToBin(Value: Cardinal; Digits: Integer): String;
@@ -197,13 +200,6 @@ procedure ExtractValues(var AList: TStrings; const AValue: TJSONValue);
 function PChar2String(AValue: PAnsiChar): WideString;
 function String2PChar(AValue: WideString): PAnsiChar;
 
-// JclDebug Rapper
-{
-  function GetModuleByLevel(const Level: Integer = 0): string;
-  function GetLineByLevel(const Level: Integer = 0): Integer;
-  function GetProcByLevel(const Level: Integer = 0; const OnlyProcedureName: Boolean = False): string;
-  function GetCurrentProc: string;
-}
 function CopyStream(const AStream: TStream): TMemoryStream;
 
 // 도분초 to Degree
@@ -212,6 +208,9 @@ function ConvertDegree(Value: string): double;
 function BoolToStr(AValue: Boolean; T: String = 'True'; F: String = 'False'): string;
 
 function GetMondayOfCurrentWeek: TDate;
+
+// 파일쓰기 완료 유무
+function IsFileWriteComplete(const FileName: string): Boolean;
 
 const
   LOG_PORT = 8094;
@@ -230,6 +229,27 @@ const
 implementation
 
 uses JdcGlobal.ClassHelper, JdcLogging;
+
+function IsFileWriteComplete(const FileName: string): Boolean;
+var
+  FileStream: TFileStream;
+begin
+  Result := False;
+  if not FileExists(FileName) then
+    Exit; // 파일이 없으면 False 반환
+
+  try
+    FileStream := TFileStream.Create(FileName, fmOpenReadWrite or fmShareExclusive);
+    try
+      Result := True; // 파일을 열 수 있으면 쓰기 완료로 간주
+    finally
+      FileStream.Free;
+    end;
+  except
+    // 파일이 잠겨 있거나 다른 이유로 열 수 없는 경우 예외가 발생
+    Result := False;
+  end;
+end;
 
 function GetMondayOfCurrentWeek: TDate;
 var
@@ -352,6 +372,39 @@ begin
 end;
 
 {$IFDEF MSWINDOWS}
+
+procedure ConvertPngToJpg(const PngFile, JpgFile: string; const qual: Integer);
+var
+  pngimage: TPngImage;
+  JpegImage: TJpegImage;
+  Bmp: Vcl.Graphics.TBitmap;
+begin
+  // PNG 이미지 로드
+  pngimage := TPngImage.Create;
+  Bmp := Vcl.Graphics.TBitmap.Create;
+  JpegImage := TJpegImage.Create;
+  try
+    try
+      pngimage.LoadFromFile(PngFile); // PNG 파일 읽기
+
+      // JPEG 이미지에 PNG 이미지 복사
+      Bmp.Assign(pngimage);
+      JpegImage.Assign(Bmp);
+      JpegImage.CompressionQuality := qual; // 품질 설정 (0~100)
+
+      // JPG로 저장
+      JpegImage.SaveToFile(JpgFile);
+    except
+      on E: Exception do
+        TLogging.Obj.ApplicationMessage(msError, 'ConvertPngToJpg', '%s,E=%s', [JpgFile, E.Message]);
+    end;
+  finally
+    // 리소스 해제
+    pngimage.Free;
+    Bmp.Free;
+    JpegImage.Free;
+  end;
+end;
 
 // 파일 사용 유무
 // https:// stackoverflow.com/questions/141302/checking-file-is-open-in-delphi
@@ -483,6 +536,58 @@ begin
             LoWord(dwFileVersionMS), // Minor
             HiWord(dwFileVersionLS) // Release
             ]);
+    end
+    else
+    begin
+      iLastError := GetLastError;
+      TLogging.Obj.ApplicationMessage(msError, 'FileVersion', SysErrorMessage(iLastError));
+    end;
+  finally
+    FreeMem(PVerInfo, VerInfoSize);
+  end;
+{$ENDIF}
+end;
+
+function FileVersionInt(const FileName: String): Integer;
+{$IFDEF MSWINDOWS}
+var
+  VerInfoSize: Cardinal;
+  VerValueSize: Cardinal;
+  Dummy: Cardinal;
+  PVerInfo: Pointer;
+  PVerValue: PVSFixedFileInfo;
+  iLastError: DWORD;
+  _version: string;
+{$ENDIF}
+begin
+  Result := 0;
+
+{$IFDEF MSWINDOWS}
+  if not TFile.Exists(FileName) then
+    Exit;
+
+  VerInfoSize := GetFileVersionInfoSize(PChar(FileName), Dummy);
+  if VerInfoSize = 0 then
+  begin
+    iLastError := GetLastError;
+    TLogging.Obj.ApplicationMessage(msError, 'FileVersion', SysErrorMessage(iLastError));
+    Exit;
+  end;
+
+  GetMem(PVerInfo, VerInfoSize);
+  try
+    if GetFileVersionInfo(PChar(FileName), 0, VerInfoSize, PVerInfo) then
+    begin
+      if VerQueryValue(PVerInfo, '\', Pointer(PVerValue), VerValueSize) then
+      begin
+        with PVerValue^ do
+          _version := Format('%0.3d%0.3d%0.3d', [HiWord(dwFileVersionMS),
+            // Major
+            LoWord(dwFileVersionMS), // Minor
+            HiWord(dwFileVersionLS) // Release
+            ]);
+        Result := StrToIntDef(_version, 0);
+      end;
     end
     else
     begin
