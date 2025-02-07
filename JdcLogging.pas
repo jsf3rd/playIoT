@@ -114,7 +114,8 @@ procedure PrintDebug(const Format: string; const Args: array of const); overload
 procedure PrintDebug(const str: string); overload;
 
 {$IFDEF MSWINDOWS}
-procedure PrintLog(const AMemo: TMemo; const AMsg: String; const ATime: TDateTime = 0); overload;
+procedure PrintLog(const AMemo: TMemo; const AMsg: String; const ATime: TDateTime = 0;
+  const ShowTime: Boolean = True); overload;
 {$ENDIF}
 
 implementation
@@ -163,7 +164,9 @@ end;
 
 {$IFDEF MSWINDOWS}
 
-procedure PrintLog(const AMemo: TMemo; const AMsg: String; const ATime: TDateTime);
+procedure PrintLog(const AMemo: TMemo; const AMsg: String; const ATime: TDateTime; const ShowTime: Boolean);
+var
+  TimeStr: string;
 begin
   if not Assigned(AMemo) then
     Exit;
@@ -178,10 +181,17 @@ begin
         AMemo.Lines.Add('')
       else
       begin
-        if ATime = 0 then
-          AMemo.Lines.Add(FormatDateTime('YYYY-MM-DD HH:NN:SS.zzz, ', Now) + AMsg)
-        else
-          AMemo.Lines.Add(FormatDateTime('YYYY-MM-DD HH:NN:SS.zzz, ', ATime) + AMsg);
+
+        TimeStr := '';
+        if ShowTime then
+        begin
+          if ATime = 0 then
+            TimeStr := FormatDateTime('YYYY-MM-DD HH:NN:SS.zzz, ', Now)
+          else
+            TimeStr := FormatDateTime('YYYY-MM-DD HH:NN:SS.zzz, ', ATime);
+        end;
+
+        AMemo.Lines.Add(TimeStr + AMsg);
       end;
     end);
 end;

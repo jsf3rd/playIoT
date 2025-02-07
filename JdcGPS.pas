@@ -26,7 +26,7 @@ type
     constructor Create(const AValue: string; const _PCTime: TDateTime);
     function GetPCTime: TDateTime;
     function ToString(): string;
-    function IsValid(ALimit: Integer = 200): Boolean;
+    function IsValid(AMsec: Integer = 200): Boolean;
     function IsFixed: Boolean;
     function IsNoSignal: Boolean;
 
@@ -222,7 +222,7 @@ end;
 
 function TGPSData.IsNoSignal: Boolean;
 begin
-  result := IsValid and ((quality = TGPS.GPS_NO_SIGNAL) or (quality = TGPS.GPS_ASSISTED))
+  result := IsValid(2000) and ((quality = TGPS.GPS_NO_SIGNAL) or (quality = TGPS.GPS_ASSISTED))
 end;
 
 function TGPSData.IsFixed: Boolean;
@@ -235,9 +235,9 @@ begin
   result := UpperCase(Self.NS_Indicator) = 'N';
 end;
 
-function TGPSData.IsValid(ALimit: Integer): Boolean;
+function TGPSData.IsValid(AMsec: Integer): Boolean;
 begin
-  result := MilliSecondsBetween(Now, PCTime) < ALimit;
+  result := MilliSecondsBetween(Now, PCTime) < AMsec;
 end;
 
 function TGPSData.ToString: string;

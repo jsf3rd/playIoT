@@ -7,8 +7,8 @@ uses
 
 type
   TInterval = record
-    StartValue, EndValue: Double;
-    constructor Create(const A, B, Margin: Double);
+    BeginValue, EndValue: Double;
+    constructor Create(const A, B, AMargin: Double);
   end;
 
   PIntervalNode = ^TIntervalNode;
@@ -58,7 +58,7 @@ begin
     Exit;
   end;
 
-  if Interval.StartValue < Root^.Interval.StartValue then
+  if Interval.BeginValue < Root^.Interval.BeginValue then
     Root^.Left := InsertNode(Root^.Left, Interval)
   else
     Root^.Right := InsertNode(Root^.Right, Interval);
@@ -75,15 +75,15 @@ begin
   if Root = nil then
     Exit;
 
-  if (Root^.Interval.StartValue <= Interval.EndValue) and (Interval.StartValue <= Root^.Interval.EndValue)
+  if (Root^.Interval.BeginValue <= Interval.EndValue) and (Interval.BeginValue <= Root^.Interval.EndValue)
   then
   begin
-    Root^.Interval.StartValue := Min(Root^.Interval.StartValue, Interval.StartValue);
+    Root^.Interval.BeginValue := Min(Root^.Interval.BeginValue, Interval.BeginValue);
     Root^.Interval.EndValue := Max(Root^.Interval.EndValue, Interval.EndValue);
     Root^.MaxEnd := Root^.Interval.EndValue;
     Result := True;
   end
-  else if Interval.StartValue < Root^.Interval.StartValue then
+  else if Interval.BeginValue < Root^.Interval.BeginValue then
     Result := MergeIntervals(Root^.Left, Interval)
   else
     Result := MergeIntervals(Root^.Right, Interval);
@@ -100,7 +100,7 @@ begin
   if Root = nil then
     Exit(False);
 
-  if (Root^.Interval.StartValue <= Point) and (Point <= Root^.Interval.EndValue) then
+  if (Root^.Interval.BeginValue <= Point) and (Point <= Root^.Interval.EndValue) then
     Exit(True);
 
   if (Root^.Left <> nil) and (Root^.Left^.MaxEnd >= Point) then
@@ -126,17 +126,17 @@ end;
 
 { TInterval }
 
-constructor TInterval.Create(const A, B, Margin: Double);
+constructor TInterval.Create(const A, B, AMargin: Double);
 begin
   if A < B then
   begin
-    Self.StartValue := A - Margin;
-    Self.EndValue := B + Margin;
+    Self.BeginValue := A - AMargin;
+    Self.EndValue := B + AMargin;
   end
   else
   begin
-    Self.StartValue := B - Margin;
-    Self.EndValue := A + Margin;
+    Self.BeginValue := B - AMargin;
+    Self.EndValue := A + AMargin;
   end;
 end;
 

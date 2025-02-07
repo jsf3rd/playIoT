@@ -4,7 +4,7 @@ interface
 
 uses System.Classes, System.SysUtils, System.DateUtils, REST.Types, JdcGlobal.DSCommon,
   REST.Client, Data.Bind.Components, Data.Bind.ObjectScope, JdcGlobal.ClassHelper, REST.JSON,
-  Data.DB, FireDAC.Comp.DataSet, FireDAC.Comp.Client, math;
+  Data.DB, FireDAC.Comp.DataSet, FireDAC.Comp.Client, math, JdcLogging, JdcGlobal;
 
 type
   TwcResult = record
@@ -177,26 +177,40 @@ end;
 function TWeatherAPI.GetAWS2(const ADateTime: string; const AID: Integer): TWeatherInfo;
 var
   Response: TwcResponse;
+  msg: string;
 const
   URL = 'https://apihub.kma.go.kr/api/typ01/cgi-bin/url/nph-aws2_min';
 begin
   FBusy := True;
   try
-    FRestClient.BaseURL := URL;
-    FRestReqeust.Params.AddItem('tm2', Trim(ADateTime));
-    FRestReqeust.Params.AddItem('stn', AID.ToString);
-    FRestReqeust.Params.AddItem('disp', '1');
-    FRestReqeust.Params.AddItem('help', '0');
-    FRestReqeust.Params.AddItem('authKey', FAPIKey);
+    FRestReqeust.Resource := URL;
+    FRestReqeust.Params.Clear;
+    FRestReqeust.AddParameter('tm2', Trim(ADateTime));
+    FRestReqeust.AddParameter('stn', AID.ToString);
+    FRestReqeust.AddParameter('disp', '1');
+    FRestReqeust.AddParameter('help', '0');
+    FRestReqeust.AddParameter('authKey', FAPIKey);
     FRestReqeust.Execute;
 
-    if FRestResponse.StatusCode = 200 then
-      result := ParseWeatherInfo(FRestResponse.content)
+    msg := FRestResponse.content;
+    if (FRestResponse.StatusCode = 200) and not msg.IsEmpty then
+    begin
+      // TLogging.Obj.ApplicationMessage(msInfo, 'GetAWS2', msg);
+      result := ParseWeatherInfo(msg)
+    end
+    else if msg.IsEmpty then
+      raise Exception.Create(Format('Noresponse,id=%d', [AID]))
     else
     begin
-      Response := TJSON.JsonToRecord<TwcResponse>(FRestResponse.content);
-      raise Exception.Create(Format('Status=%d,message=%s', [Response.result.status,
-        Response.result.message]));
+      try
+        Response := TJSON.JsonToRecord<TwcResponse>(msg);
+        raise Exception.Create(Format('Status=%d,message=%s,id=%d', [Response.result.status,
+          Response.result.message, AID]));
+      except
+        on E: Exception do
+          raise Exception.Create(Format('id=%d,msg=%s', [AID, msg]))
+      end;
+
     end;
   finally
     FBusy := False;
@@ -206,27 +220,30 @@ end;
 function TWeatherAPI.GetStationList(const ADateTime: string): TArray<TStationInfo>;
 var
   Response: TwcResponse;
+  msg: string;
 const
   URL = 'https://apihub.kma.go.kr/api/typ01/url/stn_inf.php';
 begin
   FBusy := True;
   try
-    FRestClient.BaseURL := URL;
-    FRestReqeust.Params.AddItem('inf', 'AWS');
-    FRestReqeust.Params.AddItem('authKey', FAPIKey);
-    FRestReqeust.Params.AddItem('help', '0');
-    FRestReqeust.Params.AddItem('tm', Trim(ADateTime));
-    FRestReqeust.Client.FallbackCharsetEncoding := 'raw';
-
+    FRestReqeust.Resource := URL;
+    FRestReqeust.Params.Clear;
+    FRestReqeust.AddParameter('inf', 'AWS');
+    FRestReqeust.AddParameter('authKey', FAPIKey);
+    FRestReqeust.AddParameter('help', '0');
+    FRestReqeust.AddParameter('tm', Trim(ADateTime));
+    // FRestReqeust.Client.FallbackCharsetEncoding := 'raw';
     FRestReqeust.Execute;
-    if FRestResponse.StatusCode = 200 then
+
+    msg := FRestResponse.content;
+    if (FRestResponse.StatusCode = 200) and not msg.IsEmpty then
     begin
-      FStationList := ParseStationList(FRestResponse.content);
+      FStationList := ParseStationList(msg);
       result := FStationList;
     end
     else
     begin
-      Response := TJSON.JsonToRecord<TwcResponse>(FRestResponse.content);
+      Response := TJSON.JsonToRecord<TwcResponse>(msg);
       raise Exception.Create(Format('Status=%d,message=%s', [Response.result.status,
         Response.result.message]));
     end;

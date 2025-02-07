@@ -23,19 +23,15 @@ type
     vlcMedia: plibvlc_media_t;
     vlcMediaPlayer: plibvlc_media_player_t;
 
-    libvlc_media_new_path: function(p_instance: plibvlc_instance_t; path: PAnsiChar)
-      : plibvlc_media_t; cdecl;
+    libvlc_media_new_path: function(p_instance: plibvlc_instance_t; path: PAnsiChar): plibvlc_media_t; cdecl;
     libvlc_media_new_location: function(p_instance: plibvlc_instance_t; psz_mrl: PAnsiChar)
       : plibvlc_media_t; cdecl;
-    libvlc_media_player_new_from_media: function(p_media: plibvlc_media_t)
-      : plibvlc_media_player_t; cdecl;
-    libvlc_media_player_set_hwnd: procedure(p_media_player: plibvlc_media_player_t;
-      drawable: Pointer); cdecl;
+    libvlc_media_player_new_from_media: function(p_media: plibvlc_media_t): plibvlc_media_player_t; cdecl;
+    libvlc_media_player_set_hwnd: procedure(p_media_player: plibvlc_media_player_t; drawable: Pointer); cdecl;
     libvlc_media_player_play: procedure(p_media_player: plibvlc_media_player_t); cdecl;
     libvlc_media_player_stop: procedure(p_media_player: plibvlc_media_player_t); cdecl;
     libvlc_media_player_release: procedure(p_media_player: plibvlc_media_player_t); cdecl;
-    libvlc_media_player_is_playing: function(p_media_player: plibvlc_media_player_t)
-      : Integer; cdecl;
+    libvlc_media_player_is_playing: function(p_media_player: plibvlc_media_player_t): Integer; cdecl;
     libvlc_media_release: procedure(p_media: plibvlc_media_t); cdecl;
     libvlc_new: function(argc: Integer; argv: PAnsiChar): plibvlc_instance_t; cdecl;
     libvlc_media_add_option: procedure(p_md: plibvlc_media_t; ppsz_options: PAnsiChar); cdecl;
@@ -51,7 +47,8 @@ type
     function LoadVLCFunctions(vlcHandle: THandle; failedList: TStringList): Boolean;
   private
     FRtspPort: Integer;
-    function _Play(AIndex: Integer; AHandle: HWND; Caching: string = '150'): Boolean;
+    FConnecting: Boolean;
+    function _Play(AIndex: Integer; AHandle: HWND; Caching: string = '150'; Ratio: string = '16:9'): Boolean;
     procedure _Stop;
   public
     constructor Create(ConnInfo: TConnInfo; AUser, APassword, ARemark: string);
@@ -66,6 +63,7 @@ type
 
     property RtspPort: Integer read FRtspPort write FRtspPort;
     property URI: string read FURI;
+    property Connecting: Boolean read FConnecting;
   end;
 
 implementation
@@ -79,22 +77,18 @@ function TRTSP.LoadVLCFunctions(vlcHandle: THandle; failedList: TStringList): Bo
 begin
   GetAProcAddress(vlcHandle, @libvlc_new, 'libvlc_new', failedList);
   GetAProcAddress(vlcHandle, @libvlc_media_new_location, 'libvlc_media_new_location', failedList);
-  GetAProcAddress(vlcHandle, @libvlc_media_player_new_from_media,
-    'libvlc_media_player_new_from_media', failedList);
-  GetAProcAddress(vlcHandle, @libvlc_media_release, 'libvlc_media_release', failedList);
-  GetAProcAddress(vlcHandle, @libvlc_media_player_set_hwnd, 'libvlc_media_player_set_hwnd',
+  GetAProcAddress(vlcHandle, @libvlc_media_player_new_from_media, 'libvlc_media_player_new_from_media',
     failedList);
+  GetAProcAddress(vlcHandle, @libvlc_media_release, 'libvlc_media_release', failedList);
+  GetAProcAddress(vlcHandle, @libvlc_media_player_set_hwnd, 'libvlc_media_player_set_hwnd', failedList);
   GetAProcAddress(vlcHandle, @libvlc_media_player_play, 'libvlc_media_player_play', failedList);
   GetAProcAddress(vlcHandle, @libvlc_media_player_stop, 'libvlc_media_player_stop', failedList);
-  GetAProcAddress(vlcHandle, @libvlc_media_player_release, 'libvlc_media_player_release',
-    failedList);
+  GetAProcAddress(vlcHandle, @libvlc_media_player_release, 'libvlc_media_player_release', failedList);
   GetAProcAddress(vlcHandle, @libvlc_release, 'libvlc_release', failedList);
-  GetAProcAddress(vlcHandle, @libvlc_media_player_is_playing, 'libvlc_media_player_is_playing',
-    failedList);
+  GetAProcAddress(vlcHandle, @libvlc_media_player_is_playing, 'libvlc_media_player_is_playing', failedList);
   GetAProcAddress(vlcHandle, @libvlc_media_new_path, 'libvlc_media_new_path', failedList);
   GetAProcAddress(vlcHandle, @libvlc_media_add_option, 'libvlc_media_add_option', failedList);
-  GetAProcAddress(vlcHandle, @libvlc_video_set_aspect_ratio, 'libvlc_video_set_aspect_ratio',
-    failedList);
+  GetAProcAddress(vlcHandle, @libvlc_video_set_aspect_ratio, 'libvlc_video_set_aspect_ratio', failedList);
   GetAProcAddress(vlcHandle, @libvlc_video_take_snapshot, 'libvlc_video_take_snapshot', failedList);
   // if all functions loaded, result is an empty list, otherwise result is a list of functions failed
   Result := failedList.Count = 0;
@@ -109,9 +103,11 @@ end;
 function TRTSP.Play(AIndex: Integer; AHandle: HWND; Caching: string): Boolean;
 begin
   EnterCriticalSection(CritSect);
+  FConnecting := True;
   try
     Result := _Play(AIndex, AHandle, Caching);
   finally
+    FConnecting := False;
     LeaveCriticalSection(CritSect);
   end;
 end;
@@ -137,7 +133,7 @@ begin
   end;
 end;
 
-function TRTSP._Play(AIndex: Integer; AHandle: HWND; Caching: string): Boolean;
+function TRTSP._Play(AIndex: Integer; AHandle: HWND; Caching: string; Ratio: string): Boolean;
 var
   profxml, StreamXml: string;
   prof: TProfiles;
@@ -155,33 +151,35 @@ begin
   begin
     // has URI
     FURI := FConnInfo.StringValue;
-    URL := 'rtsp://' + FURI.Insert(Pos('/', FURI) - 1, Format(':%d', [FConnInfo.IntegerValue]));
+    URL := FURI.Insert(Pos('/', FURI) - 1, Format(':%d', [FConnInfo.IntegerValue]));
+    URL := Format('rtsp://%s:%s@%s', [FUser, FPassword, URL]);
   end
   else
   begin
     profxml := '';
     try
-      profxml := Trim(ONVIFGetProfiles('http://' + FConnInfo.ToString + '/onvif/media', FUser,
-        FPassword));
-
+      profxml := Trim(ONVIFGetProfiles('http://' + FConnInfo.ToString + '/onvif/Media', FUser, FPassword));
     except
       on E: Exception do
+      begin
         TLogging.Obj.ApplicationMessage(msError, 'ONVIF', E.Message);
+        Exit(False);
+      end;
     end;
 
     if profxml = ERROR_MSG then
-      profxml := Trim(ONVIFGetProfiles('http://' + FConnInfo.ToString + '/onvif/media_service',
-        FUser, FPassword));
+      profxml := Trim(ONVIFGetProfiles('http://' + FConnInfo.ToString + '/onvif/media_service', FUser,
+        FPassword));
 
     XMLProfilesToProfiles(profxml, prof);
     if Length(prof) = 0 then
       raise Exception.Create('No channel list');
 
-    StreamXml := Trim(ONVIFGetStreamUri('http://' + FConnInfo.ToString + '/onvif/media', FUser,
-      FPassword, 'RTP-Unicast', 'RTSP', prof[AIndex].token));
+    StreamXml := Trim(ONVIFGetStreamUri('http://' + FConnInfo.ToString + '/onvif/media', FUser, FPassword,
+      'RTP-Unicast', 'RTSP', prof[AIndex].token));
     if StreamXml = ERROR_MSG then
-      StreamXml := Trim(ONVIFGetStreamUri('http://' + FConnInfo.ToString + '/onvif/media_service',
-        FUser, FPassword, 'RTP-Unicast', 'RTSP', prof[AIndex].token));
+      StreamXml := Trim(ONVIFGetStreamUri('http://' + FConnInfo.ToString + '/onvif/media_service', FUser,
+        FPassword, 'RTP-Unicast', 'RTSP', prof[AIndex].token));
 
     XMLStreamUriToStreamUri(StreamXml, StreamUri);
 
@@ -203,12 +201,11 @@ begin
     begin
       // 사용자가 설정한 RTSP포트 사용
       URL := FURI.Substring(Pos('/', FURI, 7));
-      URL := Format('rtsp://%s:%s@%s:%d/%s', [FUser, FPassword, FConnInfo.StringValue,
-        FRtspPort, URL]);
+      URL := Format('rtsp://%s:%s@%s:%d/%s', [FUser, FPassword, FConnInfo.StringValue, FRtspPort, URL]);
     end;
   end;
 
-  TLogging.Obj.ApplicationMessage(msInfo, 'libvlc_new', URL);
+  // TLogging.Obj.ApplicationMessage(msInfo, 'libvlc_new', URL);
   vlcInstance := libvlc_new(Length(LibVLCOptions), @LibVLCOptions[0]);
 
   vlcMedia := libvlc_media_new_location(vlcInstance, PAnsiChar(AnsiString(URL)));
@@ -217,7 +214,7 @@ begin
   libvlc_media_add_option(vlcMedia, ':clock-jitter=0');
   libvlc_media_add_option(vlcMedia, ':clock-synchro=0');
   vlcMediaPlayer := libvlc_media_player_new_from_media(vlcMedia);
-  libvlc_video_set_aspect_ratio(vlcMediaPlayer, '16:9');
+  libvlc_video_set_aspect_ratio(vlcMediaPlayer, PAnsiChar(AnsiString(Ratio)));
   libvlc_media_player_set_hwnd(vlcMediaPlayer, Pointer(AHandle));
   libvlc_media_player_play(vlcMediaPlayer);
   Result := IsPlaying;
@@ -267,6 +264,7 @@ begin
   FOption := ARemark;
   FRtspPort := 0;
   FURI := '';
+  FConnecting := False;
 
   _path := ExtractFilePath(ParamStr(0));
   vlcLib := LoadVLCLibrary(_path);

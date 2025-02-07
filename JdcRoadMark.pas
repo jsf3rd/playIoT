@@ -23,6 +23,7 @@ type
     tonodeid: string; // 정점노드ID
     sectionid: string; // 영역ID
     length: double; // 길이
+    total_lane: Integer; // 전체차로수
     function Init: TRoadLink;
     function GetLaneNo: Integer;
   end;
@@ -30,7 +31,7 @@ type
   TLaneInfo = record
     Lane: Integer; // 주행차로
     Total: Integer; // 전체차로
-    function ToString: string;
+    function ToString(ADefault: string): string;
   end;
 
   TRoadMark = record
@@ -151,9 +152,8 @@ type
 const
   ROADMARK_DIST = 35;
   NO_DIRECTION = 'X'; // 방향 미정
-  START_DRIECTION = 'S'; // 시점
-  END_DRIECTION = 'E'; // 종점
-
+  START_DIRECTION = 'S'; // 시점
+  END_DIRECTION = 'E'; // 종점
   NEAR_DIRECTION = 'N'; // 근방
 
 implementation
@@ -240,9 +240,9 @@ begin
     Exit(FDriveMark.road_direction);
 
   if FDriveMark.mark_value > NewMark.mark_value then
-    result := START_DRIECTION
+    result := START_DIRECTION
   else
-    result := END_DRIECTION;
+    result := END_DIRECTION;
 
   if FDriveMark.road_direction = result then
     Exit;
@@ -404,8 +404,8 @@ end;
 
 function TRoadMark.IsValid: Boolean;
 begin
-  result := (Self.dist < ROADMARK_DIST) and ((Self.road_direction = START_DRIECTION) or
-    (Self.road_direction = END_DRIECTION));
+  result := (Self.dist < ROADMARK_DIST) and ((Self.road_direction = START_DIRECTION) or
+    (Self.road_direction = END_DIRECTION));
 end;
 
 function TRoadMark.mark_value: double;
@@ -435,9 +435,12 @@ end;
 
 { TLaneInfo }
 
-function TLaneInfo.ToString: string;
+function TLaneInfo.ToString(ADefault: string): string;
 begin
-  result := Format('%d (%d)', [Self.Lane, Self.Total]);
+  if Self.Total = 0 then
+    result := ADefault
+  else
+    result := Format('%d (%d)', [Self.Lane, Self.Total]);
 end;
 
 { TRoadLink }
