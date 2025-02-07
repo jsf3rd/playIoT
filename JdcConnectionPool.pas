@@ -22,6 +22,7 @@ const
   DEFAULT_MAX_ITEMS = 50;
   DEFAULT_CLEANUP_TIMEOUT = 30000;
   DEFAULT_EXPIRE_TIMEOUT = 90000;
+  DEFAULT_LOGIN_TIMEOUT = 5;
 
 type
   TJdcConnectionPool = class
@@ -30,9 +31,9 @@ type
     FMaxItems: Integer;
     FDefName: string;
   public
-    constructor Create(CommaText, DefName, DriverID: String;
-      MaximumItems: Integer = DEFAULT_MAX_ITEMS; CleanupTimeout: Integer = DEFAULT_CLEANUP_TIMEOUT;
-      ExpireTimeout: Integer = DEFAULT_EXPIRE_TIMEOUT);
+    constructor Create(CommaText, DefName, DriverID: String; MaximumItems: Integer = DEFAULT_MAX_ITEMS;
+      CleanupTimeout: Integer = DEFAULT_CLEANUP_TIMEOUT; ExpireTimeout: Integer = DEFAULT_EXPIRE_TIMEOUT;
+      LoginTimeout: Integer = DEFAULT_LOGIN_TIMEOUT);
     destructor Destroy; override;
 
     function GetIdleConnection: TFDConnection;
@@ -44,7 +45,7 @@ implementation
 { TJdcConnectionPool }
 
 constructor TJdcConnectionPool.Create(CommaText, DefName, DriverID: String;
-  MaximumItems, CleanupTimeout, ExpireTimeout: Integer);
+  MaximumItems, CleanupTimeout, ExpireTimeout: Integer; LoginTimeout: Integer);
 {$IF CompilerVersion  = 26} // XE5
 const
   S_FD_ConnParam_Common_Pool_CleanupTimeout = 'POOL_CleanupTimeout';
@@ -65,6 +66,7 @@ begin
     List.Values[S_FD_ConnParam_Common_Pool_MaximumItems] := FMaxItems.ToString;
     List.Values[S_FD_ConnParam_Common_Pool_CleanupTimeout] := CleanupTimeout.ToString;
     List.Values[S_FD_ConnParam_Common_Pool_ExpireTimeout] := ExpireTimeout.ToString;
+    List.Values[S_FD_ConnParam_Common_LoginTimeout] := LoginTimeout.ToString;
 
     FDManager.AddConnectionDef(FDefName, DriverID, List);
   finally
