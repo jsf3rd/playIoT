@@ -136,7 +136,7 @@ type
     class function FileToObject<T: class>(const FileName: String): T;
 
     class function RecordToJsonObject<T: record >(const ARecord: T): TJSONObject;
-    class function RecordToJsonString<T: record >(const ARecord: T): String;
+    class function RecordToJsonString<T: record >(const ARecord: T; const Indent: Boolean = False): String;
     class procedure RecordToJsonFile<T: record >(const ARecord: T; AName: string; const Encoding: TEncoding);
     class function JsonToRecord<T: record >(const AJsonObject: TJSONObject): T; overload;
     class function JsonToRecord<T: record >(const AJson: String): T; overload;
@@ -652,9 +652,20 @@ begin
   end;
 end;
 
-class function TJSONHelper.RecordToJsonString<T>(const ARecord: T): String;
+class function TJSONHelper.RecordToJsonString<T>(const ARecord: T; const Indent: Boolean): String;
+var
+  JSONObject: TJSONObject;
 begin
   result := TSuperRecord<T>.AsJSON(ARecord);
+  if Indent then
+  begin
+    JSONObject := TJSONObject.ParseJSONValue(result) as TJSONObject;
+    try
+      result := JSONObject.Format(2);
+    finally
+      JSONObject.Free;
+    end;
+  end;
 end;
 
 { TStringListHelper }
