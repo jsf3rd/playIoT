@@ -73,16 +73,24 @@ var
   I: Integer;
   Obj: TObject;
 begin
-  for I := 0 to FList.Count - 1 do
-  begin
-    Obj := FList.Items[I];
-    FreeAndNil(Obj);
+{$IFDEF MSWINDOWS}
+  EnterCriticalSection(CritSect);
+{$ENDIF}
+  try
+    for I := 0 to FList.Count - 1 do
+    begin
+      Obj := FList.Items[I];
+      FreeAndNil(Obj);
+    end;
+
+    FList.Free;
+  finally
+{$IFDEF MSWINDOWS}
+    LeaveCriticalSection(CritSect);
+    DeleteCriticalSection(CritSect);
+{$ENDIF}
   end;
 
-  FList.Free;
-{$IFDEF MSWINDOWS}
-  DeleteCriticalSection(CritSect);
-{$ENDIF}
   inherited;
 end;
 
@@ -92,5 +100,3 @@ begin
 end;
 
 end.
-
-
