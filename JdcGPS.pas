@@ -53,6 +53,8 @@ type
     FConnMode: TConnMode;
     FOnGPSData: TOnGPSData;
 
+    FMsgCount: Integer;
+
     procedure OnRxBuf(Sender: TObject; const Buffer; Count: Integer);
     procedure SetConnInfo(const Value: TConnInfo);
     function GetConnInfo: TConnInfo;
@@ -67,7 +69,7 @@ type
     GPS_FLOAT = 5;
     GPS_ASSISTED = 6;
 
-    constructor Create(const AMode: TConnMode = cmUSB; AOnGPSData: TOnGPSData = nil);
+    constructor Create(const AMode: TConnMode = cmUSB; AOnGPSData: TOnGPSData = nil; MsgCount: Integer = 2);
     destructor Destroy; override;
 
     procedure Open;
@@ -274,11 +276,12 @@ begin
     result := FTCPClient.Connected;
 end;
 
-constructor TGPS.Create(const AMode: TConnMode; AOnGPSData: TOnGPSData);
+constructor TGPS.Create(const AMode: TConnMode; AOnGPSData: TOnGPSData; MsgCount: Integer);
 begin
   FOnGPSData := AOnGPSData;
   FConnMode := AMode;
   FGPSMsg := TStringList.Create;
+  FMsgCount := MsgCount;
 
   if FConnMode = cmUSB then
   begin
@@ -353,6 +356,8 @@ begin
 end;
 
 procedure TGPS.Open;
+var
+  buff: string;
 begin
   try
     FSpeed := 0;
@@ -360,6 +365,10 @@ begin
     if FConnMode = cmUSB then
     begin
       FComPort.Open;
+
+      // ReadStr를 호출하지 않으면 RxBuf, RxChar 이벤트가 발생하지 않음
+      FComPort.ReadStr(buff, 1);
+      FBuffer := ToBytes(buff);
     end
     else
     begin
@@ -423,6 +432,10 @@ var
 begin
   PCTime := Now;
   FGPSMsg.Text := AMsg;
+
+  if FGPSMsg.Count > FMsgCount then
+    Exit;
+
   for MyMsg in FGPSMsg do
   begin
     GPS := TGPSData.Create(MyMsg, PCTime);
