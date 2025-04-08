@@ -336,7 +336,14 @@ end;
 
 function TNetAbstract.AddPlayer(const AID: String): TPlayerAbstract;
 begin
-  Result := GetPlayer(AID);
+  if not FPlayerDic.ContainsKey(AID) then
+  begin
+    Result := Self.CreatePlayer(AID);
+    Result.OnException := Self.OnException;
+    FPlayerDic.add(AID, Result);
+  end
+  else
+    Result := FPlayerDic.Items[AID];
 end;
 
 constructor TNetAbstract.Create;
@@ -393,16 +400,11 @@ begin
 end;
 
 function TNetAbstract.GetPlayer(const AID: String): TPlayerAbstract;
-var
-  Player: TPlayerAbstract;
 begin
-  if not FPlayerDic.ContainsKey(AID) then
-  begin
-    Player := Self.CreatePlayer(AID);
-    Player.OnException := Self.OnException;
-    FPlayerDic.add(AID, Player);
-  end;
-  Result := FPlayerDic.Items[AID];
+  if FPlayerDic.ContainsKey(AID) then
+    Result := FPlayerDic.Items[AID]
+  else
+    Result := nil;
 end;
 
 function TNetAbstract.GetPlayers: TArray<TPlayerAbstract>;
